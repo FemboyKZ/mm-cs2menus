@@ -1,0 +1,7 @@
+services:
+  build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./output:/output

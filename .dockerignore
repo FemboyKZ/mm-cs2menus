@@ -1,0 +1,18 @@
+# Build artifacts & intermediate files
+build/
+output/
+
+# Git internals (submodule contents are needed, but .git metadata is not)
+.git
+**/.git
+
+# IDE / editor files
+.vscode/
+*.suo
+*.user
+*.sln
+*.vcxproj*
+
+# OS junk
+Thumbs.db
+.DS_Store
