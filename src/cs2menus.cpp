@@ -535,7 +535,7 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 
 	if (g_MenuManager.ProcessInput(slot, msg, curtime))
 	{
-		// Selection consumed: suppress the chat line so the number doesn't show.
+		// Suppress the chat line so the number doesn't show.
 		RETURN_META(MRES_SUPERCEDE);
 	}
 
