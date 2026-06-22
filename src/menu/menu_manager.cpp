@@ -67,6 +67,10 @@ static void MenuButtonToBinding(MenuButton button, uint64_t &outMask, const char
 			outMask = in_button::Score;
 			outLabel = "TAB";
 			return;
+		case MenuButton::Inspect:
+			outMask = in_button::Inspect;
+			outLabel = "F";
+			return;
 		case MenuButton::None:
 			outMask = kNavDisabledSentinel;
 			outLabel = "";

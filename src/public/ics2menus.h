@@ -59,6 +59,7 @@ enum class MenuButton : int
 	Attack,  // Mouse1
 	Attack2, // Mouse2
 	Score,   // Tab
+	Inspect, // F (look at weapon)
 	None,    // disable this action for the menu
 };
 

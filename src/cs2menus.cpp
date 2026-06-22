@@ -301,6 +301,10 @@ static uint64_t ParseNavKey(const std::string &name)
 	{
 		return in_button::Score;
 	}
+	if (name == "f" || name == "inspect" || name == "lookatweapon")
+	{
+		return in_button::Inspect;
+	}
 	return 0;
 }
 
