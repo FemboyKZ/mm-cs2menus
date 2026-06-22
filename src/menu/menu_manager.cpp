@@ -387,6 +387,16 @@ MenuHandle MenuManager::GetActiveMenu(int slot) const
 	return m_players[slot].handle;
 }
 
+MenuType MenuManager::GetActiveMenuType(int slot) const
+{
+	if (slot < 0 || slot > MAXPLAYERS || !m_players[slot].active)
+	{
+		return MenuType::Chat;
+	}
+	const MenuDef *def = Find(m_players[slot].handle);
+	return def ? def->type : MenuType::Chat;
+}
+
 void MenuManager::DestroyMenu(MenuHandle menu)
 {
 	auto it = m_menus.find(menu);

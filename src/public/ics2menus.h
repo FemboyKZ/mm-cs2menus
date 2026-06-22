@@ -139,6 +139,11 @@ public:
 	// The handle of the menu `slot` has open, or kInvalidMenuHandle if none.
 	virtual MenuHandle GetActiveMenu(int slot) = 0;
 
+	// The render type of the menu `slot` has open, or MenuType::Chat if none.
+	// Lets a consumer tell whether the center-screen channel is in use (Html),
+	// e.g. to yield its own HUD only for HTML menus, not chat ones.
+	virtual MenuType GetActiveMenuType(int slot) = 0;
+
 	// --- Lifetime ---
 
 	// Free a menu. Any player currently viewing it has their display closed (fires MenuEnd=Destroyed).

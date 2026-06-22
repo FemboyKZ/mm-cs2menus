@@ -65,6 +65,7 @@ public:
 	void CancelMenu(int slot);
 	bool HasMenu(int slot) const;
 	MenuHandle GetActiveMenu(int slot) const;
+	MenuType GetActiveMenuType(int slot) const;
 	void DestroyMenu(MenuHandle menu);
 
 	int GetItemCount(MenuHandle menu) const;
@@ -167,7 +168,7 @@ private:
 	uint64_t EffectiveNavMask(const MenuDef &def, int action) const;
 	std::string EffectiveNavLabel(const MenuDef &def, int action) const;
 
-	// HTML: whether to render the selectable "Exit" row. 
+	// HTML: whether to render the selectable "Exit" row.
 	// Shown when the menu is exitable and either the toggle is on
 	// or the Back key is disabled (so the  menu is never left unexitable).
 	// It occupies the row after the last item.

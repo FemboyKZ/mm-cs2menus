@@ -189,6 +189,11 @@ class CS2MenusAPI : public ICS2Menus
 		return g_MenuManager.GetActiveMenu(slot);
 	}
 
+	MenuType GetActiveMenuType(int slot) override
+	{
+		return g_MenuManager.GetActiveMenuType(slot);
+	}
+
 	void DestroyMenu(MenuHandle menu) override
 	{
 		g_MenuManager.DestroyMenu(menu);
