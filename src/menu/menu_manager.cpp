@@ -694,15 +694,9 @@ void MenuManager::HtmlMoveCursor(int slot, int delta)
 	}
 
 	int count = static_cast<int>(def->items.size());
-	int next = pm.cursor + delta;
-	if (next < 0)
-	{
-		next = 0;
-	}
-	else if (next >= count)
-	{
-		next = count - 1;
-	}
+	// Wrap around: past the bottom returns to the top and vice versa.
+	// This also lets a single bound key cycle through every item.
+	int next = ((pm.cursor + delta) % count + count) % count;
 	if (next == pm.cursor)
 	{
 		return;
@@ -924,20 +918,52 @@ void MenuManager::RenderHtml(int slot)
 		html += "</font><br>";
 	}
 
-	// Footer with key hints (reflects per-menu overrides, else configured nav keys).
+	// Footer with key hints. Reflects per-menu overrides / configured nav keys,
+	// and adapts when a direction is disabled (single-key scroll shows "Scroll: KEY").
+	bool upOn = EffectiveNavMask(*def, 0) != 0;
+	bool downOn = EffectiveNavMask(*def, 1) != 0;
+	bool selectOn = EffectiveNavMask(*def, 2) != 0;
+	bool backOn = def->exitButton && EffectiveNavMask(*def, 3) != 0;
+
+	std::string footer;
+	auto addSegment = [&footer](const std::string &seg)
+	{
+		if (seg.empty())
+		{
+			return;
+		}
+		if (!footer.empty())
+		{
+			footer += " | ";
+		}
+		footer += seg;
+	};
+
+	if (upOn && downOn)
+	{
+		addSegment("Move: " + EffectiveNavLabel(*def, 0) + "/" + EffectiveNavLabel(*def, 1));
+	}
+	else if (downOn)
+	{
+		addSegment("Scroll: " + EffectiveNavLabel(*def, 1));
+	}
+	else if (upOn)
+	{
+		addSegment("Scroll: " + EffectiveNavLabel(*def, 0));
+	}
+	if (selectOn)
+	{
+		addSegment("Select: " + EffectiveNavLabel(*def, 2));
+	}
+	if (backOn)
+	{
+		addSegment("Exit: " + EffectiveNavLabel(*def, 3));
+	}
+
 	html += "<font color='";
 	html += m_settings.footerColor;
-	html += "' class='fontSize-s'>Move: ";
-	html += EffectiveNavLabel(*def, 0);
-	html += "/";
-	html += EffectiveNavLabel(*def, 1);
-	html += " | Select: ";
-	html += EffectiveNavLabel(*def, 2);
-	if (def->exitButton)
-	{
-		html += " | Exit: ";
-		html += EffectiveNavLabel(*def, 3);
-	}
+	html += "' class='fontSize-s'>";
+	html += footer;
 	html += "</font>";
 
 	center_html::Send(slot, html.c_str(), kHtmlDurationSecs);

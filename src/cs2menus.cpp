@@ -350,9 +350,17 @@ static void LoadAndApplyConfig()
 	settings.footerColor = g_MenusConfig.menu.htmlFooterColor;
 	settings.disabledColor = g_MenusConfig.menu.htmlDisabledColor;
 
-	// HTML nav keys: override the WASD defaults only for names we recognize.
+	// HTML nav keys. "none"/"off"/blank disables the action (mask 0).
+	// Enables single-key scrolling (disable Up, keep Down: the cursor wraps).
+	// An unrecognized name leaves the default binding untouched.
 	auto applyNav = [](const std::string &name, uint64_t &mask, std::string &label)
 	{
+		if (name == "none" || name == "off" || name.empty())
+		{
+			mask = 0;
+			label = "";
+			return;
+		}
 		uint64_t m = ParseNavKey(name);
 		if (m != 0)
 		{
