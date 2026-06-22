@@ -51,6 +51,10 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.htmlVisibleItems = std::atoi(value.c_str());
 		}
+		else if (k == "htmlexititem")
+		{
+			cfg->menu.htmlExitItem = (value != "0");
+		}
 		else if (k == "htmlnavcolor")
 		{
 			cfg->menu.htmlNavColor = value;

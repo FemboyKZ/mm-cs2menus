@@ -25,6 +25,9 @@ struct MenuDefaultsCfg
 	// --- HTML menus ---
 	// Rows visible at once in an HTML menu (scrolling window, clamped 1-6).
 	int htmlVisibleItems = 6;
+	// Show a selectable "Exit" row in HTML menus.
+	// Auto-forced on anyway when the Back key is disabled, so the menu is never left unexitable.
+	bool htmlExitItem = false;
 	// Hex colors for HTML markup.
 	std::string htmlNavColor = "#ff2ee7";      // cursor row + marker
 	std::string htmlFooterColor = "#909090";   // key-hint footer

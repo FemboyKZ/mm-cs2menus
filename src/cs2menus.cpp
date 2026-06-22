@@ -157,6 +157,11 @@ class CS2MenusAPI : public ICS2Menus
 		g_MenuManager.SetMenuEndCallback(menu, std::move(onEnd));
 	}
 
+	void SetExitItem(MenuHandle menu, bool enabled) override
+	{
+		g_MenuManager.SetExitItem(menu, enabled);
+	}
+
 	void SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton button) override
 	{
 		g_MenuManager.SetMenuKey(menu, action, button);
@@ -346,6 +351,7 @@ static void LoadAndApplyConfig()
 	settings.defaultType = ParseMenuType(g_MenusConfig.menu.defaultType);
 	settings.defaultExitButton = g_MenusConfig.menu.exitButton;
 	settings.htmlVisibleItems = g_MenusConfig.menu.htmlVisibleItems;
+	settings.defaultExitItem = g_MenusConfig.menu.htmlExitItem;
 	settings.navColor = g_MenusConfig.menu.htmlNavColor;
 	settings.footerColor = g_MenusConfig.menu.htmlFooterColor;
 	settings.disabledColor = g_MenusConfig.menu.htmlDisabledColor;

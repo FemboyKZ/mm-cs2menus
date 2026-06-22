@@ -187,6 +187,7 @@ MenuHandle MenuManager::CreateMenu(MenuType type, const char *title, MenuItemSel
 	def.title = title ? title : "";
 	def.onSelect = std::move(onSelect);
 	def.exitButton = m_settings.defaultExitButton;
+	def.exitItem = m_settings.defaultExitItem;
 	m_menus.emplace(h, std::move(def));
 	return h;
 }
@@ -249,6 +250,26 @@ void MenuManager::SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton b
 
 	def->navOverride[idx].mask = mask; // 0 (MenuButton::Default) clears the override
 	def->navOverride[idx].label = label;
+}
+
+void MenuManager::SetExitItem(MenuHandle menu, bool enabled)
+{
+	if (MenuDef *def = Find(menu))
+	{
+		def->exitItem = enabled;
+	}
+}
+
+bool MenuManager::HtmlShowsExitRow(const MenuDef &def) const
+{
+	// Must be exitable, and either explicitly requested or forced because the Back
+	// key is disabled (otherwise the player would have no way out but the timeout).
+	return def.exitButton && (def.exitItem || EffectiveNavMask(def, 3) == 0);
+}
+
+int MenuManager::HtmlRowCount(const MenuDef &def) const
+{
+	return static_cast<int>(def.items.size()) + (HtmlShowsExitRow(def) ? 1 : 0);
 }
 
 uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, int action) const
@@ -688,7 +709,15 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
 	}
 	else if (newly & EffectiveNavMask(*def, 2))
 	{
-		Select(slot, pm.cursor);
+		// Selecting the inline Exit row exits WOW.
+		if (HtmlShowsExitRow(*def) && pm.cursor == static_cast<int>(def->items.size()))
+		{
+			EndDisplay(slot, MenuEndReason::Exit);
+		}
+		else
+		{
+			Select(slot, pm.cursor);
+		}
 	}
 	else if (newly & EffectiveNavMask(*def, 3))
 	{
@@ -703,14 +732,18 @@ void MenuManager::HtmlMoveCursor(int slot, int delta)
 {
 	PlayerMenu &pm = m_players[slot];
 	const MenuDef *def = Find(pm.handle);
-	if (!def || def->items.empty())
+	if (!def)
 	{
 		return;
 	}
 
-	int count = static_cast<int>(def->items.size());
+	int count = HtmlRowCount(*def); // includes the inline Exit row, if any
+	if (count <= 0)
+	{
+		return;
+	}
 	// Wrap around: past the bottom returns to the top and vice versa.
-	// This also lets a single bound key cycle through every item.
+	// This also lets a single bound key cycle through every row.
 	int next = ((pm.cursor + delta) % count + count) % count;
 	if (next == pm.cursor)
 	{
@@ -873,13 +906,15 @@ void MenuManager::RenderHtml(int slot)
 	pm.nextHtmlRender = m_curtime + kHtmlRefreshInterval;
 
 	const auto &items = def->items;
-	int count = static_cast<int>(items.size());
+	int itemCount = static_cast<int>(items.size());
+	bool exitRow = HtmlShowsExitRow(*def);
+	int count = itemCount + (exitRow ? 1 : 0); // navigable rows (Exit is the last)
 
 	if (pm.cursor < 0)
 	{
 		pm.cursor = 0;
 	}
-	else if (pm.cursor >= count && count > 0)
+	else if (count > 0 && pm.cursor >= count)
 	{
 		pm.cursor = count - 1;
 	}
@@ -913,8 +948,26 @@ void MenuManager::RenderHtml(int slot)
 
 	for (int i = start; i < start + vis; i++)
 	{
-		const MenuItem &item = items[i];
 		bool selected = (i == pm.cursor);
+
+		// The inline Exit row sits at index == itemCount (after the real items).
+		if (i >= itemCount)
+		{
+			if (selected)
+			{
+				html += "<font color='";
+				html += m_settings.navColor;
+				html += "' class='fontSize-sm'>";
+				html += kHtmlMarker;
+				html += "</font>";
+			}
+			html += "<font color='";
+			html += selected ? m_settings.navColor : m_settings.footerColor;
+			html += "' class='fontSize-sm'>Exit</font><br>";
+			continue;
+		}
+
+		const MenuItem &item = items[i];
 
 		if (selected)
 		{

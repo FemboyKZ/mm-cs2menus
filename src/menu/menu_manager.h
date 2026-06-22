@@ -24,6 +24,8 @@ struct MenuManagerSettings
 	MenuType defaultType = MenuType::Chat;
 	// Exit-button default for new menus.
 	bool defaultExitButton = true;
+	// HTML: default for the inline selectable "Exit" row on new menus.
+	bool defaultExitItem = false;
 
 	// HTML: rows visible at once (clamped 1..MENU_MAX_HTML_VISIBLE).
 	int htmlVisibleItems = MENU_MAX_HTML_VISIBLE;
@@ -57,6 +59,7 @@ public:
 	void SetCloseOnSelect(MenuHandle menu, bool enabled);
 	void SetMenuEndCallback(MenuHandle menu, MenuEndFn onEnd);
 	void SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton button);
+	void SetExitItem(MenuHandle menu, bool enabled);
 
 	bool DisplayMenu(MenuHandle menu, int slot, float duration, float curtime);
 	void CancelMenu(int slot);
@@ -127,6 +130,7 @@ private:
 		MenuEndFn onEnd;
 		bool exitButton = true;
 		bool closeOnSelect = true;
+		bool exitItem = false; // HTML: show a selectable "Exit" row in the list
 		NavOverride navOverride[4];
 	};
 
@@ -162,6 +166,14 @@ private:
 	// Effective nav binding for an action (per-menu override, else server config).
 	uint64_t EffectiveNavMask(const MenuDef &def, int action) const;
 	std::string EffectiveNavLabel(const MenuDef &def, int action) const;
+
+	// HTML: whether to render the selectable "Exit" row. 
+	// Shown when the menu is exitable and either the toggle is on
+	// or the Back key is disabled (so the  menu is never left unexitable).
+	// It occupies the row after the last item.
+	bool HtmlShowsExitRow(const MenuDef &def) const;
+	// HTML: total navigable rows = items + (exit row ? 1 : 0).
+	int HtmlRowCount(const MenuDef &def) const;
 
 	std::unordered_map<MenuHandle, MenuDef> m_menus;
 	MenuHandle m_nextHandle = 1;

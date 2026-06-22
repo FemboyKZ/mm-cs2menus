@@ -110,6 +110,11 @@ public:
 	// Register the per-menu end callback. See MenuEndFn.
 	virtual void SetMenuEndCallback(MenuHandle menu, MenuEndFn onEnd) = 0;
 
+	// HTML menus: show a selectable "Exit" row at the end of the list (default off).
+	// Useful when the Back key is set to None, it's also auto-shown in that case so a
+	// menu is never left unexitable. Requires SetExitButton(true). No-op for chat menus.
+	virtual void SetExitItem(MenuHandle menu, bool enabled) = 0;
+
 	// Override the navigation key for one action on an HTML menu.
 	// Pass MenuButton::Default to clear the override and fall back to the server's configured binding.
 	// Pass MenuButton::None to disable the action for this menu
