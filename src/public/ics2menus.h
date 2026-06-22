@@ -59,6 +59,7 @@ enum class MenuButton : int
 	Attack,  // Mouse1
 	Attack2, // Mouse2
 	Score,   // Tab
+	None,    // disable this action for the menu
 };
 
 // HTML-menu navigation actions whose key can be overridden per menu.
@@ -111,6 +112,8 @@ public:
 
 	// Override the navigation key for one action on an HTML menu.
 	// Pass MenuButton::Default to clear the override and fall back to the server's configured binding.
+	// Pass MenuButton::None to disable the action for this menu
+	// (e.g. disable Up so a single key cycles through items, the cursor wraps).
 	// The footer key hints update to match.
 	virtual void SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton button) = 0;
 

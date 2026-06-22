@@ -8,7 +8,13 @@
 #include <cstdio>
 #include <cstring>
 
-// Map a public MenuButton to its IN_* mask + footer label. Default -> {0,""}.
+// Sentinel stored in a per-menu override to mean "explicitly disabled" (MenuButton::None),
+// as opposed to mask 0 which means "no override - inherit the server config binding".
+// All bits set is never a real single-button IN_* mask.
+static constexpr uint64_t kNavDisabledSentinel = ~0ull;
+
+// Map a public MenuButton to its IN_* mask + footer label.
+// Default -> {0, ""} (inherit); None -> {sentinel, ""} (disabled).
 static void MenuButtonToBinding(MenuButton button, uint64_t &outMask, const char *&outLabel)
 {
 	switch (button)
@@ -60,6 +66,10 @@ static void MenuButtonToBinding(MenuButton button, uint64_t &outMask, const char
 		case MenuButton::Score:
 			outMask = in_button::Score;
 			outLabel = "TAB";
+			return;
+		case MenuButton::None:
+			outMask = kNavDisabledSentinel;
+			outLabel = "";
 			return;
 		case MenuButton::Default:
 		default:
@@ -243,9 +253,14 @@ void MenuManager::SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton b
 
 uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, int action) const
 {
-	if (def.navOverride[action].mask != 0)
+	uint64_t override_ = def.navOverride[action].mask;
+	if (override_ == kNavDisabledSentinel)
 	{
-		return def.navOverride[action].mask;
+		return 0; // explicitly disabled for this menu (MenuButton::None)
+	}
+	if (override_ != 0)
+	{
+		return override_;
 	}
 	switch (action)
 	{
