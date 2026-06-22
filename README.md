@@ -7,10 +7,10 @@ It owns player input and rendering so other Metamod plugins can create interacti
 
 ## Menu types
 
-| Type                        | Render                                               | Navigation                                                           | Notes                                                                             |
-| --------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **Chat** (`MenuType::Chat`) | Numbered list printed to chat                        | Player types the number (`1`-`7`, `8` next page, `9` prev, `0` exit) | Always available                                                                  |
-| **HTML** (`MenuType::Html`) | Center-screen panel (`show_survival_respawn_status`) | Movement keys - W/S move, D select, A exit by default (configurable) | Requires runtime signature + schema (see [HTML availability](#html-availability)) |
+| Type     | Render                        | Navigation                                                           | Notes                                                                             |
+| -------- | ----------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Chat** | Numbered list printed to chat | Player types the number (`1`-`7`, `8` next page, `9` prev, `0` exit) | Always available                                                                  |
+| **HTML** | Center-screen panel           | Movement keys - W/S move, D select, A exit by default (configurable) | Requires runtime signature + schema (see [HTML availability](#html-availability)) |
 
 Pass `MenuType::Default` to use the server's configured default style.
 
@@ -19,9 +19,6 @@ Pass `MenuType::Default` to use the server's configured default style.
 1. Install [Metamod:Source 2.0](https://www.metamodsource.net/downloads.php?branch=dev) on a CS2 dedicated server.
 2. Drop the built plugin into `addons/` and the config into `cfg/cs2menus/core.cfg`.
 3. On its own, this plugin does nothing visible, it's a library other plugins use.
-   Install plugins that depend on it (e.g. cs2rockthevote, cs2admin).
-
-If you instead see `HTML menus unavailable (falling back to chat)`, see [HTML availability](#html-availability).
 
 ## Configuration
 
