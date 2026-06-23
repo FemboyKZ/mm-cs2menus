@@ -16,6 +16,15 @@
 //
 // ABI note: this interface is consumed by sibling plugins built with the SAME toolchain as cs2menus,
 // so passing std::function / std::string across the boundary is safe here
+//
+// Threading: every method is safe from the main (game) thread or a worker thread.
+//  - Build/query calls (CreateMenu, AddItem, SetX, GetX...) run inline under a lock.
+//  - DisplayMenu/CancelMenu off-thread are queued for the next GameFrame,
+//    DisplayMenu then returns true optimistically.
+//  - onSelect/onEnd callbacks always fire on the main thread.
+//  - DestroyMenu off-thread invalidates the handle at once but skips the Destroyed callback.
+//  - GetItemText/GetItemInfo pointers alias internal storage; copy them, don't cache.
+//  - Don't block a main-thread callback on a worker that re-enters this API (lock is held -> deadlock).
 #define CS2MENUS_INTERFACE "ICS2Menus001"
 
 // Opaque menu identifier returned by CreateMenu. 0 is the invalid sentinel.

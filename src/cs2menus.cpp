@@ -169,8 +169,14 @@ class CS2MenusAPI : public ICS2Menus
 
 	bool DisplayMenu(MenuHandle menu, int slot, float duration) override
 	{
-		CGlobalVars *globals = GetGameGlobals();
-		float curtime = globals ? globals->curtime : 0.0f;
+		// GetGameGlobals walks engine state - main-thread only. Off-thread passes 0,
+		// the manager stamps curtime when it drains the queue on GameFrame.
+		float curtime = 0.0f;
+		if (g_MenuManager.OnMainThread())
+		{
+			CGlobalVars *globals = GetGameGlobals();
+			curtime = globals ? globals->curtime : 0.0f;
+		}
 		return g_MenuManager.DisplayMenu(menu, slot, duration, curtime);
 	}
 
@@ -394,6 +400,10 @@ static void LoadAndApplyConfig()
 bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
 	PLUGIN_SAVEVARS();
+
+	// Load runs on the game thread, record it so the menu API can tell main-thread callers
+	// from worker-thread callers (deferred to GameFrame).
+	g_MenuManager.SetMainThread();
 
 	GET_V_IFACE_CURRENT(GetEngineFactory, g_pEngine, IVEngineServer, INTERFACEVERSION_VENGINESERVER);
 	GET_V_IFACE_CURRENT(GetEngineFactory, g_pICvar, ICvar, CVAR_INTERFACE_VERSION);

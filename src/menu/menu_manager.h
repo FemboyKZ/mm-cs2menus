@@ -5,7 +5,10 @@
 #include "src/public/ics2menus.h"
 
 #include <cstdint>
+#include <functional>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -101,6 +104,12 @@ public:
 	// Apply settings parsed from core.cfg.
 	void Configure(const MenuManagerSettings &settings);
 
+	// Record the calling thread as the main/game thread. Call once from Load.
+	// Lets the API run engine-touching work inline on main, or defer it to GameFrame off-thread.
+	void SetMainThread();
+
+	bool OnMainThread() const;
+
 	// Whether HTML menus can actually render + receive input.
 	// When false, CreateMenu downgrades any HTML menu to chat so it stays usable.
 	// Set by the plugin after probing.
@@ -150,6 +159,9 @@ private:
 	MenuDef *Find(MenuHandle menu);
 	const MenuDef *Find(MenuHandle menu) const;
 
+	// Core of DisplayMenu; assumes m_mutex held, runs on main, schedules off m_curtime.
+	bool DisplayLocked(MenuHandle menu, int slot, float duration);
+
 	// Close slot's display and fire its MenuEnd.
 	// Safe against the callback destroying the menu.
 	void EndDisplay(int slot, MenuEndReason reason);
@@ -158,6 +170,7 @@ private:
 	// if closeOnSelect, else re-render. Shared by chat and html.
 	void Select(int slot, int itemIndex);
 
+	void Render(int slot);     // dispatch to RenderPage/RenderHtml by the slot's menu type
 	void RenderPage(int slot); // chat
 	void RenderHtml(int slot); // html
 
@@ -179,6 +192,15 @@ private:
 	std::unordered_map<MenuHandle, MenuDef> m_menus;
 	MenuHandle m_nextHandle = 1;
 	PlayerMenu m_players[MAXPLAYERS + 1];
+
+	// Guards all of the above. Recursive: a callback fired while held may re-enter the API.
+	mutable std::recursive_mutex m_mutex;
+
+	// The game thread (render/callbacks must run here). Set by SetMainThread in Load.
+	std::thread::id m_mainThread;
+
+	// Queued by off-thread callers, drained on main at the top of Tick (lock held).
+	std::vector<std::function<void()>> m_pending;
 
 	MenuManagerSettings m_settings;
 	// Effective clamped copies of the size settings.

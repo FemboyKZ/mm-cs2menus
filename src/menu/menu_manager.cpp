@@ -8,6 +8,9 @@
 #include <cstdio>
 #include <cstring>
 
+// Recursive so a callback can re-enter the API on the same thread.
+using ScopedLock = std::lock_guard<std::recursive_mutex>;
+
 // Sentinel stored in a per-menu override to mean "explicitly disabled" (MenuButton::None),
 // as opposed to mask 0 which means "no override - inherit the server config binding".
 // All bits set is never a real single-button IN_* mask.
@@ -166,6 +169,18 @@ static bool IsNumericInput(const char *text, const std::string &prefixes, int &o
 	return true;
 }
 
+void MenuManager::SetMainThread()
+{
+	ScopedLock lock(m_mutex);
+	m_mainThread = std::this_thread::get_id();
+}
+
+bool MenuManager::OnMainThread() const
+{
+	// Until SetMainThread runs (Load), the default id counts as main: early calls run inline.
+	return m_mainThread == std::thread::id {} || std::this_thread::get_id() == m_mainThread;
+}
+
 MenuManager::MenuDef *MenuManager::Find(MenuHandle menu)
 {
 	auto it = m_menus.find(menu);
@@ -180,6 +195,7 @@ const MenuManager::MenuDef *MenuManager::Find(MenuHandle menu) const
 
 MenuHandle MenuManager::CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect)
 {
+	ScopedLock lock(m_mutex);
 	MenuHandle h = m_nextHandle++;
 	MenuDef def;
 	def.type = (type == MenuType::Default) ? m_settings.defaultType : type;
@@ -198,6 +214,7 @@ MenuHandle MenuManager::CreateMenu(MenuType type, const char *title, MenuItemSel
 
 int MenuManager::AddItem(MenuHandle menu, const char *text, const char *info, bool disabled)
 {
+	ScopedLock lock(m_mutex);
 	MenuDef *def = Find(menu);
 	if (!def)
 	{
@@ -209,6 +226,7 @@ int MenuManager::AddItem(MenuHandle menu, const char *text, const char *info, bo
 
 void MenuManager::SetTitle(MenuHandle menu, const char *title)
 {
+	ScopedLock lock(m_mutex);
 	if (MenuDef *def = Find(menu))
 	{
 		def->title = title ? title : "";
@@ -217,6 +235,7 @@ void MenuManager::SetTitle(MenuHandle menu, const char *title)
 
 void MenuManager::SetExitButton(MenuHandle menu, bool enabled)
 {
+	ScopedLock lock(m_mutex);
 	if (MenuDef *def = Find(menu))
 	{
 		def->exitButton = enabled;
@@ -225,6 +244,7 @@ void MenuManager::SetExitButton(MenuHandle menu, bool enabled)
 
 void MenuManager::SetCloseOnSelect(MenuHandle menu, bool enabled)
 {
+	ScopedLock lock(m_mutex);
 	if (MenuDef *def = Find(menu))
 	{
 		def->closeOnSelect = enabled;
@@ -233,6 +253,7 @@ void MenuManager::SetCloseOnSelect(MenuHandle menu, bool enabled)
 
 void MenuManager::SetMenuEndCallback(MenuHandle menu, MenuEndFn onEnd)
 {
+	ScopedLock lock(m_mutex);
 	if (MenuDef *def = Find(menu))
 	{
 		def->onEnd = std::move(onEnd);
@@ -241,6 +262,7 @@ void MenuManager::SetMenuEndCallback(MenuHandle menu, MenuEndFn onEnd)
 
 void MenuManager::SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton button)
 {
+	ScopedLock lock(m_mutex);
 	MenuDef *def = Find(menu);
 	int idx = static_cast<int>(action);
 	if (!def || idx < 0 || idx > 3)
@@ -258,6 +280,7 @@ void MenuManager::SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton b
 
 void MenuManager::SetExitItem(MenuHandle menu, bool enabled)
 {
+	ScopedLock lock(m_mutex);
 	if (MenuDef *def = Find(menu))
 	{
 		def->exitItem = enabled;
@@ -321,17 +344,41 @@ std::string MenuManager::EffectiveNavLabel(const MenuDef &def, int action) const
 
 bool MenuManager::DisplayMenu(MenuHandle menu, int slot, float duration, float curtime)
 {
+	ScopedLock lock(m_mutex);
 	if (slot < 0 || slot > MAXPLAYERS)
 	{
 		return false;
 	}
+	if (!Find(menu))
+	{
+		return false;
+	}
+
+	// Render + possible Cancelled callback are main-thread only; off-thread defers to GameFrame.
+	if (!OnMainThread())
+	{
+		m_pending.push_back(
+			[this, menu, slot, duration]
+			{
+				if (Find(menu))
+				{
+					DisplayLocked(menu, slot, duration);
+				}
+			});
+		return true; // queued
+	}
+
+	m_curtime = curtime;
+	return DisplayLocked(menu, slot, duration);
+}
+
+bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
+{
 	MenuDef *def = Find(menu);
 	if (!def)
 	{
 		return false;
 	}
-
-	m_curtime = curtime;
 
 	// Replace any existing menu first (fires its end callback).
 	if (m_players[slot].active)
@@ -344,26 +391,26 @@ bool MenuManager::DisplayMenu(MenuHandle menu, int slot, float duration, float c
 	pm.handle = menu;
 	pm.page = 0;
 	pm.cursor = 0;
-	pm.expireTime = (duration > 0.0f) ? (curtime + duration) : 0.0f;
+	pm.expireTime = (duration > 0.0f) ? (m_curtime + duration) : 0.0f;
 	pm.prevButtons = 0;
 	pm.buttonsPrimed = false;
 	pm.nextHtmlRender = 0.0f;
 
-	if (def->type == MenuType::Chat)
-	{
-		RenderPage(slot);
-	}
-	else
-	{
-		RenderHtml(slot);
-	}
+	Render(slot);
 	return true;
 }
 
 void MenuManager::CancelMenu(int slot)
 {
+	ScopedLock lock(m_mutex);
 	if (slot < 0 || slot > MAXPLAYERS)
 	{
+		return;
+	}
+	// HTML clear + end-callback are main-thread only; off-thread defers to GameFrame.
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, slot] { EndDisplay(slot, MenuEndReason::Cancelled); });
 		return;
 	}
 	EndDisplay(slot, MenuEndReason::Cancelled);
@@ -371,6 +418,7 @@ void MenuManager::CancelMenu(int slot)
 
 bool MenuManager::HasMenu(int slot) const
 {
+	ScopedLock lock(m_mutex);
 	if (slot < 0 || slot > MAXPLAYERS)
 	{
 		return false;
@@ -380,6 +428,7 @@ bool MenuManager::HasMenu(int slot) const
 
 MenuHandle MenuManager::GetActiveMenu(int slot) const
 {
+	ScopedLock lock(m_mutex);
 	if (slot < 0 || slot > MAXPLAYERS || !m_players[slot].active)
 	{
 		return kInvalidMenuHandle;
@@ -389,6 +438,7 @@ MenuHandle MenuManager::GetActiveMenu(int slot) const
 
 MenuType MenuManager::GetActiveMenuType(int slot) const
 {
+	ScopedLock lock(m_mutex);
 	if (slot < 0 || slot > MAXPLAYERS || !m_players[slot].active)
 	{
 		return MenuType::Chat;
@@ -399,6 +449,7 @@ MenuType MenuManager::GetActiveMenuType(int slot) const
 
 void MenuManager::DestroyMenu(MenuHandle menu)
 {
+	ScopedLock lock(m_mutex);
 	auto it = m_menus.find(menu);
 	if (it == m_menus.end())
 	{
@@ -407,15 +458,24 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 
 	MenuEndFn onEnd = it->second.onEnd;
 	bool wasHtml = (it->second.type != MenuType::Chat);
+
+	// Erase now: handle is invalid on return (API contract) and no render can resurrect it.
 	m_menus.erase(it);
+
+	bool onMain = OnMainThread();
 
 	for (int slot = 0; slot <= MAXPLAYERS; slot++)
 	{
 		PlayerMenu &pm = m_players[slot];
-		if (pm.active && pm.handle == menu)
+		if (!(pm.active && pm.handle == menu))
 		{
-			pm.active = false;
-			pm.handle = kInvalidMenuHandle;
+			continue;
+		}
+		pm.active = false;
+		pm.handle = kInvalidMenuHandle;
+
+		if (onMain)
+		{
 			if (wasHtml)
 			{
 				center_html::Send(slot, "", 0); // clear the panel immediately
@@ -426,17 +486,26 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 				onEnd(menu, slot, MenuEndReason::Destroyed);
 			}
 		}
+		else if (wasHtml)
+		{
+			// Defer the panel clear to main, skip the Destroyed callback,
+			// consumer initiated this, and running its lambda off-thread / post-Unload is unsafe.
+			m_pending.push_back([this, slot] { center_html::Send(slot, "", 0); });
+		}
 	}
 }
 
 int MenuManager::GetItemCount(MenuHandle menu) const
 {
+	ScopedLock lock(m_mutex);
 	const MenuDef *def = Find(menu);
 	return def ? static_cast<int>(def->items.size()) : 0;
 }
 
+// Returned pointer aliases internal storage: valid only until the next mutating call, don't cache it.
 const char *MenuManager::GetItemText(MenuHandle menu, int item) const
 {
+	ScopedLock lock(m_mutex);
 	const MenuDef *def = Find(menu);
 	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
 	{
@@ -445,8 +514,10 @@ const char *MenuManager::GetItemText(MenuHandle menu, int item) const
 	return def->items[item].text.c_str();
 }
 
+// Same aliasing caveat as GetItemText.
 const char *MenuManager::GetItemInfo(MenuHandle menu, int item) const
 {
+	ScopedLock lock(m_mutex);
 	const MenuDef *def = Find(menu);
 	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
 	{
@@ -503,15 +574,7 @@ void MenuManager::Select(int slot, int itemIndex)
 
 	if (def->items[itemIndex].disabled)
 	{
-		// Re-render so the player can pick again.
-		if (def->type == MenuType::Chat)
-		{
-			RenderPage(slot);
-		}
-		else
-		{
-			RenderHtml(slot);
-		}
+		Render(slot); // re-render so the player can pick again
 		return;
 	}
 
@@ -559,20 +622,14 @@ void MenuManager::Select(int slot, int itemIndex)
 		// Re-render only if the handler left this same menu open.
 		if (pm.active && pm.handle == handle)
 		{
-			if (const MenuDef *d = Find(handle); d && d->type == MenuType::Chat)
-			{
-				RenderPage(slot);
-			}
-			else
-			{
-				RenderHtml(slot);
-			}
+			Render(slot);
 		}
 	}
 }
 
 bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
 {
+	ScopedLock lock(m_mutex);
 	if (slot < 0 || slot > MAXPLAYERS)
 	{
 		return false;
@@ -654,6 +711,7 @@ bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
 
 bool MenuManager::WantsButtonInput(int slot) const
 {
+	ScopedLock lock(m_mutex);
 	if (slot < 0 || slot > MAXPLAYERS || !m_players[slot].active)
 	{
 		return false;
@@ -664,6 +722,7 @@ bool MenuManager::WantsButtonInput(int slot) const
 
 bool MenuManager::AnyHtmlMenuActive() const
 {
+	ScopedLock lock(m_mutex);
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
 		if (!m_players[i].active)
@@ -681,6 +740,7 @@ bool MenuManager::AnyHtmlMenuActive() const
 
 void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
 {
+	ScopedLock lock(m_mutex);
 	if (slot < 0 || slot > MAXPLAYERS)
 	{
 		return;
@@ -769,7 +829,21 @@ void MenuManager::HtmlMoveCursor(int slot, int delta)
 
 void MenuManager::Tick(float curtime)
 {
+	ScopedLock lock(m_mutex);
 	m_curtime = curtime;
+
+	// Drain off-thread work on main (m_curtime now set).
+	// Swap first so a closure that queues more defers it to the next tick instead of looping.
+	if (!m_pending.empty())
+	{
+		std::vector<std::function<void()>> pending;
+		pending.swap(m_pending);
+		for (auto &fn : pending)
+		{
+			fn();
+		}
+	}
+
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
 		PlayerMenu &pm = m_players[i];
@@ -793,6 +867,7 @@ void MenuManager::Tick(float curtime)
 
 void MenuManager::OnPlayerDisconnect(int slot)
 {
+	ScopedLock lock(m_mutex);
 	if (slot < 0 || slot > MAXPLAYERS)
 	{
 		return;
@@ -802,6 +877,8 @@ void MenuManager::OnPlayerDisconnect(int slot)
 
 void MenuManager::Shutdown()
 {
+	ScopedLock lock(m_mutex);
+	m_pending.clear();
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
 		m_players[i].active = false;
@@ -812,6 +889,7 @@ void MenuManager::Shutdown()
 
 void MenuManager::Configure(const MenuManagerSettings &settings)
 {
+	ScopedLock lock(m_mutex);
 	m_settings = settings;
 
 	m_itemsPerPage = (std::max)(1, (std::min)(settings.itemsPerPage, MENU_MAX_ITEMS_PER_PAGE));
@@ -826,7 +904,25 @@ void MenuManager::Configure(const MenuManagerSettings &settings)
 
 void MenuManager::SetHtmlAvailable(bool available)
 {
+	ScopedLock lock(m_mutex);
 	m_htmlAvailable = available;
+}
+
+void MenuManager::Render(int slot)
+{
+	const MenuDef *def = Find(m_players[slot].handle);
+	if (!def)
+	{
+		return;
+	}
+	if (def->type == MenuType::Chat)
+	{
+		RenderPage(slot);
+	}
+	else
+	{
+		RenderHtml(slot);
+	}
 }
 
 void MenuManager::RenderPage(int slot)
