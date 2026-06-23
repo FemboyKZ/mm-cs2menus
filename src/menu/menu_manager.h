@@ -63,6 +63,15 @@ public:
 	void SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton button);
 	void SetExitItem(MenuHandle menu, bool enabled);
 
+	// Live item mutation. Any player currently viewing the menu is re-rendered.
+	void SetItemText(MenuHandle menu, int item, const char *text);
+	void SetItemDisabled(MenuHandle menu, int item, bool disabled);
+	void RemoveItem(MenuHandle menu, int item);
+	void RemoveAllItems(MenuHandle menu);
+
+	// Item the menu opens on (HTML cursor / chat page). Clamped at display.
+	void SetStartItem(MenuHandle menu, int item);
+
 	bool DisplayMenu(MenuHandle menu, int slot, float duration, float curtime);
 	void CancelMenu(int slot);
 	bool HasMenu(int slot) const;
@@ -70,9 +79,16 @@ public:
 	MenuType GetActiveMenuType(int slot) const;
 	void DestroyMenu(MenuHandle menu);
 
+	// Abs index of the highlighted item for an HTML menu, or -1 if none / on the Exit row / chat.
+	int GetSelectedItem(int slot) const;
+
 	int GetItemCount(MenuHandle menu) const;
 	const char *GetItemText(MenuHandle menu, int item) const;
 	const char *GetItemInfo(MenuHandle menu, int item) const;
+
+	// Run fn on the main thread: inline if already there, else queued for the next GameFrame.
+	// Used by DisplayMenuToAll, which needs main-thread entity access to enumerate players.
+	void RunOnMainThread(std::function<void()> fn);
 
 	// Feed a player's raw say message. Returns true if it was consumed as a
 	// chat-menu action (caller should suppress the chat line).
@@ -136,6 +152,7 @@ private:
 		bool exitButton = true;
 		bool closeOnSelect = true;
 		bool exitItem = false; // HTML: show a selectable "Exit" row in the list
+		int startItem = 0;     // item the menu opens on
 		NavOverride navOverride[4];
 	};
 
@@ -169,6 +186,10 @@ private:
 	void Render(int slot);     // dispatch to RenderPage/RenderHtml by the slot's menu type
 	void RenderPage(int slot); // chat
 	void RenderHtml(int slot); // html
+
+	// Re-render every player currently viewing `menu` (after a live mutation).
+	// Defers to the next GameFrame if called off the main thread.
+	void RefreshMenu(MenuHandle menu);
 
 	// html navigation
 	void HtmlMoveCursor(int slot, int delta);

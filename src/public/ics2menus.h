@@ -170,6 +170,34 @@ public:
 	virtual const char *GetItemText(MenuHandle menu, int item) = 0;
 	// Returns the item's info tag (see AddItem), or "" for an invalid handle/index.
 	virtual const char *GetItemInfo(MenuHandle menu, int item) = 0;
+
+	// --- Live mutation ---
+
+	// Change an item's display text in place. Any player viewing the menu is re-rendered.
+	virtual void SetItemText(MenuHandle menu, int item, const char *text) = 0;
+
+	// Grey/un-grey an item in place. Any player viewing the menu is re-rendered.
+	virtual void SetItemDisabled(MenuHandle menu, int item, bool disabled) = 0;
+
+	// Remove one item by absolute index. Shifts later indices down.
+	// Viewers are re-rendered, their cursor/page clamped to the new size.
+	virtual void RemoveItem(MenuHandle menu, int item) = 0;
+
+	// Clear every item. Viewers are re-rendered (cursor/page reset to 0).
+	virtual void RemoveAllItems(MenuHandle menu) = 0;
+
+	// Item the menu opens on: HTML cursor row, or the chat page containing it.
+	// Clamped to the item range when displayed. Default 0.
+	virtual void SetStartItem(MenuHandle menu, int item) = 0;
+
+	// Display `menu` to every connected player for `duration` seconds (0 = no timeout).
+	// Each player's existing menu is replaced (fires its MenuEnd=Cancelled).
+	// Safe off-thread: deferred to the next GameFrame.
+	virtual void DisplayMenuToAll(MenuHandle menu, float duration) = 0;
+
+	// Abs index of the item a player currently has highlighted in an HTML menu,
+	// or -1 if they have no menu / it's a chat menu / the Exit row is highlighted.
+	virtual int GetSelectedItem(int slot) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_

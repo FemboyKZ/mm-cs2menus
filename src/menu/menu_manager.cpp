@@ -287,6 +287,73 @@ void MenuManager::SetExitItem(MenuHandle menu, bool enabled)
 	}
 }
 
+void MenuManager::SetItemText(MenuHandle menu, int item, const char *text)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	{
+		return;
+	}
+	def->items[item].text = text ? text : "";
+	RefreshMenu(menu);
+}
+
+void MenuManager::SetItemDisabled(MenuHandle menu, int item, bool disabled)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	{
+		return;
+	}
+	def->items[item].disabled = disabled;
+	RefreshMenu(menu);
+}
+
+void MenuManager::RemoveItem(MenuHandle menu, int item)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	{
+		return;
+	}
+	def->items.erase(def->items.begin() + item);
+	RefreshMenu(menu); // RenderHtml/RenderPage clamp any now-stale cursor/page
+}
+
+void MenuManager::RemoveAllItems(MenuHandle menu)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def)
+	{
+		return;
+	}
+	def->items.clear();
+	// Reset display state for anyone viewing it, then re-render.
+	for (int slot = 0; slot <= MAXPLAYERS; slot++)
+	{
+		PlayerMenu &pm = m_players[slot];
+		if (pm.active && pm.handle == menu)
+		{
+			pm.cursor = 0;
+			pm.page = 0;
+		}
+	}
+	RefreshMenu(menu);
+}
+
+void MenuManager::SetStartItem(MenuHandle menu, int item)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->startItem = (item > 0) ? item : 0;
+	}
+}
+
 bool MenuManager::HtmlShowsExitRow(const MenuDef &def) const
 {
 	// Must be exitable, and either explicitly requested or forced because the Back
@@ -390,8 +457,9 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	PlayerMenu &pm = m_players[slot];
 	pm.active = true;
 	pm.handle = menu;
-	pm.page = 0;
-	pm.cursor = 0;
+	// Open on the configured start item (clamped at render time).
+	pm.cursor = def->startItem;
+	pm.page = (m_itemsPerPage > 0) ? def->startItem / m_itemsPerPage : 0;
 	pm.expireTime = (duration > 0.0f) ? (m_curtime + duration) : 0.0f;
 	pm.prevButtons = 0;
 	pm.buttonsPrimed = false;
@@ -447,6 +515,23 @@ MenuType MenuManager::GetActiveMenuType(int slot) const
 	}
 	const MenuDef *def = Find(m_players[slot].handle);
 	return def ? def->type : MenuType::Chat;
+}
+
+int MenuManager::GetSelectedItem(int slot) const
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS || !m_players[slot].active)
+	{
+		return -1;
+	}
+	const PlayerMenu &pm = m_players[slot];
+	const MenuDef *def = Find(pm.handle);
+	// HTML only, and only when the cursor sits on a real item (not the Exit row).
+	if (!def || def->type == MenuType::Chat || pm.cursor < 0 || pm.cursor >= static_cast<int>(def->items.size()))
+	{
+		return -1;
+	}
+	return pm.cursor;
 }
 
 void MenuManager::DestroyMenu(MenuHandle menu)
@@ -909,6 +994,37 @@ void MenuManager::SetHtmlAvailable(bool available)
 	m_htmlAvailable = available;
 }
 
+void MenuManager::RefreshMenu(MenuHandle menu)
+{
+	// Rendering touches the engine, defer off-thread callers to GameFrame.
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, menu] { RefreshMenu(menu); });
+		return;
+	}
+	for (int slot = 0; slot <= MAXPLAYERS; slot++)
+	{
+		PlayerMenu &pm = m_players[slot];
+		if (pm.active && pm.handle == menu)
+		{
+			Render(slot);
+		}
+	}
+}
+
+void MenuManager::RunOnMainThread(std::function<void()> fn)
+{
+	ScopedLock lock(m_mutex);
+	if (OnMainThread())
+	{
+		fn();
+	}
+	else
+	{
+		m_pending.push_back(std::move(fn));
+	}
+}
+
 void MenuManager::Render(int slot)
 {
 	const MenuDef *def = Find(m_players[slot].handle);
@@ -948,6 +1064,11 @@ void MenuManager::RenderPage(int slot)
 	if (pageCount == 0)
 	{
 		pageCount = 1;
+	}
+	// Clamp a page left stale by a live item removal / start-item past the end.
+	if (pm.page >= pageCount)
+	{
+		pm.page = pageCount - 1;
 	}
 
 	bool hasMore = (pm.page + 1 < pageCount);

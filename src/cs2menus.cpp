@@ -211,6 +211,60 @@ class CS2MenusAPI : public ICS2Menus
 	{
 		return g_MenuManager.GetItemInfo(menu, item);
 	}
+
+	void SetItemText(MenuHandle menu, int item, const char *text) override
+	{
+		g_MenuManager.SetItemText(menu, item, text);
+	}
+
+	void SetItemDisabled(MenuHandle menu, int item, bool disabled) override
+	{
+		g_MenuManager.SetItemDisabled(menu, item, disabled);
+	}
+
+	void RemoveItem(MenuHandle menu, int item) override
+	{
+		g_MenuManager.RemoveItem(menu, item);
+	}
+
+	void RemoveAllItems(MenuHandle menu) override
+	{
+		g_MenuManager.RemoveAllItems(menu);
+	}
+
+	void SetStartItem(MenuHandle menu, int item) override
+	{
+		g_MenuManager.SetStartItem(menu, item);
+	}
+
+	void DisplayMenuToAll(MenuHandle menu, float duration) override
+	{
+		// Enumerating players needs main-thread entity access, so run there.
+		g_MenuManager.RunOnMainThread(
+			[menu, duration]
+			{
+				CGlobalVars *globals = GetGameGlobals();
+				if (!globals)
+				{
+					return;
+				}
+				int maxClients = globals->maxClients;
+				float curtime = globals->curtime;
+				for (int slot = 0; slot < maxClients && slot <= MAXPLAYERS; slot++)
+				{
+					if (!CCSPlayerController::FromSlot(slot))
+					{
+						continue;
+					}
+					g_MenuManager.DisplayMenu(menu, slot, duration, curtime);
+				}
+			});
+	}
+
+	int GetSelectedItem(int slot) override
+	{
+		return g_MenuManager.GetSelectedItem(slot);
+	}
 };
 
 static CS2MenusAPI g_CS2MenusAPI;
