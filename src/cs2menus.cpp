@@ -265,6 +265,26 @@ class CS2MenusAPI : public ICS2Menus
 	{
 		return g_MenuManager.GetSelectedItem(slot);
 	}
+
+	void SetItemInfo(MenuHandle menu, int item, const char *info) override
+	{
+		g_MenuManager.SetItemInfo(menu, item, info);
+	}
+
+	bool GetItemDisabled(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemDisabled(menu, item);
+	}
+
+	int GetStartItem(MenuHandle menu) override
+	{
+		return g_MenuManager.GetStartItem(menu);
+	}
+
+	int AddSubMenu(MenuHandle parent, const char *text, MenuHandle child, const char *info) override
+	{
+		return g_MenuManager.AddSubMenu(parent, text, child, info);
+	}
 };
 
 static CS2MenusAPI g_CS2MenusAPI;
@@ -468,6 +488,19 @@ static void LoadAndApplyConfig()
 	g_MenuManager.Configure(settings);
 }
 
+// Server console / rcon command to reapply core.cfg without waiting for a map change.
+CON_COMMAND_F(cs2menus_reload, "Reload cs2menus core.cfg and re-probe HTML availability.", FCVAR_RELEASE | FCVAR_GAMEDLL)
+{
+	LoadAndApplyConfig();
+	EvaluateHtmlAvailability();
+	META_CONPRINTF("[CS2Menus] Config reloaded.\n");
+}
+
+CON_COMMAND_F(cs2menus_version, "Print the cs2menus plugin and menu-API interface versions.", FCVAR_RELEASE | FCVAR_GAMEDLL)
+{
+	META_CONPRINTF("[CS2Menus] Plugin version %s, interface %s.\n", PLUGIN_FULL_VERSION, CS2MENUS_INTERFACE);
+}
+
 bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
 	PLUGIN_SAVEVARS();
@@ -573,7 +606,8 @@ void CS2MenusPlugin::Hook_GameFrame(bool /*simulating*/, bool /*bFirstTick*/, bo
 			{
 				continue;
 			}
-			CCSPlayerPawn *pawn = controller->GetPawn();
+			// Use the controlled pawn so dead/spectating players can still navigate.
+			CBasePlayerPawn *pawn = controller->GetInputPawn();
 			if (!pawn)
 			{
 				continue;

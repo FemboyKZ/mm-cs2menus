@@ -56,6 +56,7 @@ public:
 	// --- API ---
 	MenuHandle CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect);
 	int AddItem(MenuHandle menu, const char *text, const char *info, bool disabled);
+	int AddSubMenu(MenuHandle parent, const char *text, MenuHandle child, const char *info);
 	void SetTitle(MenuHandle menu, const char *title);
 	void SetExitButton(MenuHandle menu, bool enabled);
 	void SetCloseOnSelect(MenuHandle menu, bool enabled);
@@ -65,12 +66,16 @@ public:
 
 	// Live item mutation. Any player currently viewing the menu is re-rendered.
 	void SetItemText(MenuHandle menu, int item, const char *text);
+	void SetItemInfo(MenuHandle menu, int item, const char *info);
 	void SetItemDisabled(MenuHandle menu, int item, bool disabled);
 	void RemoveItem(MenuHandle menu, int item);
 	void RemoveAllItems(MenuHandle menu);
 
+	bool GetItemDisabled(MenuHandle menu, int item) const;
+
 	// Item the menu opens on (HTML cursor / chat page). Clamped at display.
 	void SetStartItem(MenuHandle menu, int item);
+	int GetStartItem(MenuHandle menu) const;
 
 	bool DisplayMenu(MenuHandle menu, int slot, float duration, float curtime);
 	void CancelMenu(int slot);
@@ -132,6 +137,8 @@ private:
 		std::string text;
 		std::string info;
 		bool disabled = false;
+		// Selecting this item navigates into another menu instead of firing onSelect.
+		MenuHandle submenu = kInvalidMenuHandle;
 	};
 
 	// Per-menu HTML nav-key overrides, indexed by MenuNavAction (Up/Down/Select/Back).
@@ -153,6 +160,8 @@ private:
 		bool closeOnSelect = true;
 		bool exitItem = false; // HTML: show a selectable "Exit" row in the list
 		int startItem = 0;     // item the menu opens on
+		// Set when this menu is reached as a submenu, so Back returns to the parent.
+		MenuHandle parent = kInvalidMenuHandle;
 		NavOverride navOverride[4];
 	};
 
@@ -166,6 +175,9 @@ private:
 		uint64_t prevButtons = 0;
 		bool buttonsPrimed = false;
 		float nextHtmlRender = 0.0f;
+		// Last HTML actually sent + when, so identical refreshes can be skipped.
+		std::string lastHtml;
+		float lastHtmlSend = 0.0f;
 	};
 
 	MenuDef *Find(MenuHandle menu);
@@ -182,6 +194,10 @@ private:
 	// Run a selection: invoke onSelect, then close + fire End(Selected)
 	// if closeOnSelect, else re-render. Shared by chat and html.
 	void Select(int slot, int itemIndex);
+
+	// Swap the slot's displayed menu to `handle` without firing end callbacks.
+	// Used for submenu navigation (into a child, or Back to a parent).
+	void SwitchMenu(int slot, MenuHandle handle);
 
 	void Render(int slot);     // dispatch to RenderPage/RenderHtml by the slot's menu type
 	void RenderPage(int slot); // chat

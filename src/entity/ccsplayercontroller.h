@@ -56,9 +56,24 @@ class CCSPlayerController : public CBasePlayerController
 public:
 	DECLARE_SCHEMA_CLASS(CCSPlayerController)
 
+	SCHEMA_FIELD(CEntityHandle, m_hObserverPawn)
+
 	CCSPlayerPawn *GetPawn()
 	{
 		return reinterpret_cast<CCSPlayerPawn *>(ResolveEntityHandle(m_hPawn()));
+	}
+
+	// Pawn to read button input from: the engine repoints m_hPawn to the controlled
+	// pawn (player pawn when alive, observer pawn when dead/spectating), so prefer it.
+	// Fall back to the observer pawn handle if m_hPawn is momentarily unset.
+	// Returned as CBasePlayerPawn* since only GetHeldButtons (a base method) is needed.
+	CBasePlayerPawn *GetInputPawn()
+	{
+		if (CEntityInstance *current = ResolveEntityHandle(m_hPawn()))
+		{
+			return reinterpret_cast<CBasePlayerPawn *>(current);
+		}
+		return reinterpret_cast<CBasePlayerPawn *>(ResolveEntityHandle(m_hObserverPawn()));
 	}
 
 	// Get controller from player slot (slot 0 -> entity index 1).

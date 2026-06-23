@@ -52,16 +52,24 @@ void MENU_PrintToChat(int slot, const char *fmt, ...)
 		return;
 	}
 
-	char buf[512];
+	// Size the buffer to the formatted length so long lines aren't truncated.
 	va_list args;
 	va_start(args, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, args);
+	int len = vsnprintf(nullptr, 0, fmt, args);
 	va_end(args);
+	if (len < 0)
+	{
+		return;
+	}
 
 	// Leading space keeps the first color code from being eaten by the client.
-	char chatBuf[600];
-	snprintf(chatBuf, sizeof(chatBuf), " %s", buf);
+	std::string text(static_cast<size_t>(len) + 2, '\0');
+	text[0] = ' ';
+	va_start(args, fmt);
+	vsnprintf(&text[1], static_cast<size_t>(len) + 1, fmt, args);
+	va_end(args);
+	text.resize(static_cast<size_t>(len) + 1);
 
 	CSingleRecipientFilter filter(slot);
-	SendChatToFilter(&filter, chatBuf);
+	SendChatToFilter(&filter, text.c_str());
 }

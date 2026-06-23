@@ -25,7 +25,7 @@
 //  - DestroyMenu off-thread invalidates the handle at once but skips the Destroyed callback.
 //  - GetItemText/GetItemInfo pointers alias internal storage, copy them, don't cache.
 //  - Don't block a main-thread callback on a worker that re-enters this API (lock is held -> deadlock).
-#define CS2MENUS_INTERFACE "ICS2Menus001"
+#define CS2MENUS_INTERFACE "ICS2Menus002"
 
 // Opaque menu identifier returned by CreateMenu. 0 is the invalid sentinel.
 // A handle stays valid until DestroyMenu (or until cs2menus unloads).
@@ -198,6 +198,21 @@ public:
 	// Abs index of the item a player currently has highlighted in an HTML menu,
 	// or -1 if they have no menu / it's a chat menu / the Exit row is highlighted.
 	virtual int GetSelectedItem(int slot) = 0;
+
+	// Change an item's info tag in place (see AddItem). No re-render needed.
+	virtual void SetItemInfo(MenuHandle menu, int item, const char *info) = 0;
+
+	// True if the item is greyed out. False for an invalid handle/index.
+	virtual bool GetItemDisabled(MenuHandle menu, int item) = 0;
+
+	// The configured start item (see SetStartItem), or 0 for an invalid handle.
+	virtual int GetStartItem(MenuHandle menu) = 0;
+
+	// Append an item that opens a submenu when selected, instead of firing onSelect.
+	// Selecting it navigates into `child`. In the child, the Back key returns to this parent.
+	// The parent's onSelect is not called for this item. Returns the new item's index, or -1 on failure.
+	// `child` must be a live handle distinct from `parent`.
+	virtual int AddSubMenu(MenuHandle parent, const char *text, MenuHandle child, const char *info) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_

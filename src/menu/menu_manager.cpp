@@ -91,6 +91,8 @@ MenuManager g_MenuManager;
 // HTML menus decay, we re-send with this duration and refresh a bit faster.
 static constexpr int kHtmlDurationSecs = 3;
 static constexpr float kHtmlRefreshInterval = 1.0f;
+// Resend an unchanged panel at least this often to beat the decay. Must be < kHtmlDurationSecs.
+static constexpr float kHtmlKeepAlive = 2.0f;
 static const char *kHtmlMarker = "\xE2\x96\xB6 "; // ▶
 
 // Cap on nested menu callbacks, so a consumer that re-displays a menu inside its
@@ -224,6 +226,25 @@ int MenuManager::AddItem(MenuHandle menu, const char *text, const char *info, bo
 	return static_cast<int>(def->items.size()) - 1;
 }
 
+int MenuManager::AddSubMenu(MenuHandle parent, const char *text, MenuHandle child, const char *info)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *parentDef = Find(parent);
+	MenuDef *childDef = Find(child);
+	if (!parentDef || !childDef || child == parent)
+	{
+		return -1;
+	}
+
+	childDef->parent = parent; // so Back in the child returns here
+	MenuItem item;
+	item.text = text ? text : "";
+	item.info = info ? info : "";
+	item.submenu = child;
+	parentDef->items.push_back(std::move(item));
+	return static_cast<int>(parentDef->items.size()) - 1;
+}
+
 void MenuManager::SetTitle(MenuHandle menu, const char *title)
 {
 	ScopedLock lock(m_mutex);
@@ -299,6 +320,28 @@ void MenuManager::SetItemText(MenuHandle menu, int item, const char *text)
 	RefreshMenu(menu);
 }
 
+void MenuManager::SetItemInfo(MenuHandle menu, int item, const char *info)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	{
+		return;
+	}
+	def->items[item].info = info ? info : ""; // info isn't rendered, no refresh
+}
+
+bool MenuManager::GetItemDisabled(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	{
+		return false;
+	}
+	return def->items[item].disabled;
+}
+
 void MenuManager::SetItemDisabled(MenuHandle menu, int item, bool disabled)
 {
 	ScopedLock lock(m_mutex);
@@ -352,6 +395,13 @@ void MenuManager::SetStartItem(MenuHandle menu, int item)
 	{
 		def->startItem = (item > 0) ? item : 0;
 	}
+}
+
+int MenuManager::GetStartItem(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def ? def->startItem : 0;
 }
 
 bool MenuManager::HtmlShowsExitRow(const MenuDef &def) const
@@ -464,6 +514,8 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	pm.prevButtons = 0;
 	pm.buttonsPrimed = false;
 	pm.nextHtmlRender = 0.0f;
+	pm.lastHtml.clear();
+	pm.lastHtmlSend = 0.0f;
 
 	Render(slot);
 	return true;
@@ -665,6 +717,14 @@ void MenuManager::Select(int slot, int itemIndex)
 		return;
 	}
 
+	// A submenu item navigates into its child instead of firing onSelect.
+	MenuHandle sub = def->items[itemIndex].submenu;
+	if (sub != kInvalidMenuHandle && Find(sub))
+	{
+		SwitchMenu(slot, sub);
+		return;
+	}
+
 	MenuHandle handle = pm.handle;
 	MenuItemSelectFn onSelect = def->onSelect;
 	bool closeOnSelect = def->closeOnSelect;
@@ -712,6 +772,37 @@ void MenuManager::Select(int slot, int itemIndex)
 			Render(slot);
 		}
 	}
+}
+
+void MenuManager::SwitchMenu(int slot, MenuHandle handle)
+{
+	PlayerMenu &pm = m_players[slot];
+	const MenuDef *oldDef = Find(pm.handle);
+	const MenuDef *newDef = Find(handle);
+	if (!newDef)
+	{
+		return;
+	}
+
+	// Clear the HTML panel only when leaving HTML for chat, otherwise the re-render overwrites it.
+	bool oldHtml = oldDef && oldDef->type != MenuType::Chat;
+	bool newHtml = newDef->type != MenuType::Chat;
+	if (oldHtml && !newHtml)
+	{
+		center_html::Send(slot, "", 0);
+	}
+
+	pm.handle = handle;
+	pm.cursor = newDef->startItem;
+	pm.page = (m_itemsPerPage > 0) ? newDef->startItem / m_itemsPerPage : 0;
+	// Re-baseline buttons so the key that triggered the switch doesn't act again in the new menu.
+	pm.prevButtons = 0;
+	pm.buttonsPrimed = false;
+	pm.nextHtmlRender = 0.0f;
+	pm.lastHtml.clear();
+	// expireTime is kept so the whole submenu stack shares one timeout.
+
+	Render(slot);
 }
 
 bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
@@ -765,11 +856,20 @@ bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
 	int pageEnd = (std::min)(pageStart + m_itemsPerPage, static_cast<int>(items.size()));
 	int pageItems = pageEnd - pageStart;
 
-	// Key layout: items 1..pageItems, Next = itemsPerPage+1, Prev = +2, Exit = 0.
-	if (num == 0 && def->exitButton)
+	// Key layout: items 1..pageItems, Next = itemsPerPage+1, Prev = +2, Exit/Back = 0.
+	if (num == 0)
 	{
-		EndDisplay(slot, MenuEndReason::Exit);
-		return true;
+		// In a submenu, 0 steps back to the parent. Otherwise it exits.
+		if (def->parent != kInvalidMenuHandle && Find(def->parent))
+		{
+			SwitchMenu(slot, def->parent);
+			return true;
+		}
+		if (def->exitButton)
+		{
+			EndDisplay(slot, MenuEndReason::Exit);
+			return true;
+		}
 	}
 
 	if (num == m_itemsPerPage + 1 && hasMore)
@@ -882,7 +982,12 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
 	}
 	else if (newly & EffectiveNavMask(*def, MenuNavAction::Back))
 	{
-		if (def->exitButton)
+		// Back steps up to the parent in a submenu, else exits.
+		if (def->parent != kInvalidMenuHandle && Find(def->parent))
+		{
+			SwitchMenu(slot, def->parent);
+		}
+		else if (def->exitButton)
 		{
 			EndDisplay(slot, MenuEndReason::Exit);
 		}
@@ -1078,40 +1183,34 @@ void MenuManager::RenderPage(int slot)
 	int pageEnd = (std::min)(pageStart + m_itemsPerPage, static_cast<int>(items.size()));
 	int pageItems = pageEnd - pageStart;
 
-	char buf[256];
+	// Built as std::string so long titles/items aren't truncated by a fixed buffer.
+	std::string title = "\x04-- " + def->title;
 	if (pageCount > 1)
 	{
-		snprintf(buf, sizeof(buf), "\x04-- %s \x01(page %d/%d) --", def->title.c_str(), pm.page + 1, pageCount);
+		title += " \x01(page " + std::to_string(pm.page + 1) + "/" + std::to_string(pageCount) + ")";
 	}
-	else
-	{
-		snprintf(buf, sizeof(buf), "\x04-- %s --", def->title.c_str());
-	}
-	MENU_PrintToChat(slot, "%s", buf);
+	title += " --";
+	MENU_PrintToChat(slot, "%s", title.c_str());
 
 	for (int i = 0; i < pageItems; i++)
 	{
 		const MenuItem &item = items[pageStart + i];
-		if (item.disabled)
-		{
-			snprintf(buf, sizeof(buf), "\x08#%d %s", i + 1, item.text.c_str());
-		}
-		else
-		{
-			snprintf(buf, sizeof(buf), "\x01#%d %s", i + 1, item.text.c_str());
-		}
-		MENU_PrintToChat(slot, "%s", buf);
+		std::string line = item.disabled ? "\x08#" : "\x01#";
+		line += std::to_string(i + 1);
+		line += " ";
+		line += item.text;
+		MENU_PrintToChat(slot, "%s", line.c_str());
 	}
 
 	if (hasMore)
 	{
-		snprintf(buf, sizeof(buf), "\x01#%d \x04-> Next Page", m_itemsPerPage + 1);
-		MENU_PrintToChat(slot, "%s", buf);
+		std::string line = "\x01#" + std::to_string(m_itemsPerPage + 1) + " \x04-> Next Page";
+		MENU_PrintToChat(slot, "%s", line.c_str());
 	}
 	if (hasPrev)
 	{
-		snprintf(buf, sizeof(buf), "\x01#%d \x04-> Previous Page", m_itemsPerPage + 2);
-		MENU_PrintToChat(slot, "%s", buf);
+		std::string line = "\x01#" + std::to_string(m_itemsPerPage + 2) + " \x04-> Previous Page";
+		MENU_PrintToChat(slot, "%s", line.c_str());
 	}
 	if (def->exitButton)
 	{
@@ -1155,9 +1254,7 @@ void MenuManager::RenderHtml(int slot)
 	html.reserve(512);
 
 	// Title + position counter.
-	html += "<font color='#FFFFFF' class='fontSize-m'>";
-	html += center_html::Escape(def->title);
-	html += "</font>";
+	html += center_html::ColorizeChat(def->title, "#FFFFFF", "fontSize-m");
 	if (count > 0)
 	{
 		char counter[64];
@@ -1210,12 +1307,9 @@ void MenuManager::RenderHtml(int slot)
 			html += "</font>";
 		}
 
-		const char *color = item.disabled ? m_settings.disabledColor.c_str() : (selected ? m_settings.navColor.c_str() : "#FFFFFF");
-		html += "<font color='";
-		html += color;
-		html += "' class='fontSize-sm'>";
-		html += center_html::Escape(item.text);
-		html += "</font><br>";
+		const char *base = item.disabled ? m_settings.disabledColor.c_str() : (selected ? m_settings.navColor.c_str() : "#FFFFFF");
+		html += center_html::ColorizeChat(item.text, base, "fontSize-sm");
+		html += "<br>";
 	}
 
 	// Footer key hints, adapting when a direction is disabled
@@ -1266,5 +1360,14 @@ void MenuManager::RenderHtml(int slot)
 	html += footer;
 	html += "</font>";
 
-	center_html::Send(slot, html.c_str(), kHtmlDurationSecs);
+	// Skip the network send when nothing changed, except a periodic keep-alive so the
+	// decaying panel doesn't blink. Saves bandwidth with many viewers idling on a menu.
+	bool changed = (html != pm.lastHtml);
+	bool keepAliveDue = (m_curtime - pm.lastHtmlSend) >= kHtmlKeepAlive;
+	if (changed || keepAliveDue)
+	{
+		center_html::Send(slot, html.c_str(), kHtmlDurationSecs);
+		pm.lastHtml = html;
+		pm.lastHtmlSend = m_curtime;
+	}
 }
