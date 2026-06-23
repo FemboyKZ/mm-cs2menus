@@ -498,6 +498,12 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 		return false;
 	}
 
+	// A host UI owns this slot. Stay out of its way.
+	if (m_players[slot].externalBusy)
+	{
+		return false;
+	}
+
 	// Replace any existing menu first (fires its end callback).
 	if (m_players[slot].active)
 	{
@@ -1064,6 +1070,40 @@ void MenuManager::OnPlayerDisconnect(int slot)
 		return;
 	}
 	EndDisplay(slot, MenuEndReason::Disconnect);
+	// Drop busy state so a reconnecting client on this slot starts clean.
+	m_players[slot].externalBusy = false;
+}
+
+void MenuManager::SetExternalBusy(int slot, bool busy)
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	m_players[slot].externalBusy = busy;
+	if (!busy || !m_players[slot].active)
+	{
+		return;
+	}
+	// A host menu just took the slot: drop ours.
+	// EndDisplay (HTML clear + callback) is main-thread only, so defer if we're off-thread.
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, slot] { EndDisplay(slot, MenuEndReason::Cancelled); });
+		return;
+	}
+	EndDisplay(slot, MenuEndReason::Cancelled);
+}
+
+bool MenuManager::GetExternalBusy(int slot) const
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return false;
+	}
+	return m_players[slot].externalBusy;
 }
 
 void MenuManager::Shutdown()

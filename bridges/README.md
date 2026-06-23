@@ -36,7 +36,7 @@ Each release ships a per-framework zip.
 Extract it into your `game/csgo` directory.
 cs2menus itself (the Metamod plugin) must already be installed.
 
-**SwiftlyS2** - the dll installs as a Swiftly *export*:
+**SwiftlyS2** - the dll installs as a Swiftly _export_:
 
 ```text
 addons/swiftlys2/plugins/SwiftlyS2.Cs2Menus/resources/exports/SwiftlyS2.Cs2Menus.dll
@@ -148,7 +148,40 @@ The facade (`cs2menus_capi.h`) and `src/*.cs` are identical to the SwiftlyS2 pat
 
 cs2menus, SwiftlyS2's own menus, and CS#'s own menus each claim chat `say` input,
 per-frame button polling, and the same center-HTML channel (`show_survival_respawn_status`).
+Two systems open for one player at once fight over these.
 
-Only run one menu system per player at a time.
+### cs2menus yields to the host
 
-Use `cs2m_get_active_type` / `Cs2MenusBridge` introspection to coordinate.
+Tell cs2menus when a host menu owns a slot. While marked busy, cs2menus cancels
+any menu on that slot and refuses new displays, so it stays out of the host's way.
+cs2menus never auto-reopens when released, the host owns that.
+
+**SwiftlyS2** - one call, wired to the host's menu events automatically:
+
+```csharp
+Cs2MenusBridge.TrackHostMenus(Core); // Core = ISwiftlyCore
+```
+
+**CounterStrikeSharp** - CS#'s `MenuManager` is static and exposes no open/close events,
+so wire it yourself where you open/close menus:
+
+```csharp
+MenuManager.OpenCenterHtmlMenu(this, player, menu);
+Cs2MenusBridge.SetHostMenuBusy(player.Slot, true);
+// ... when the menu closes:
+Cs2MenusBridge.SetHostMenuBusy(player.Slot, false);
+```
+
+### The host yields to cs2menus
+
+The other direction already works via introspection: before opening your own
+menu, check whether cs2menus has the slot.
+
+```csharp
+if (Cs2MenusBridge.GetActiveType(slot) != MenuType.Html)
+{
+   /* center-HTML channel is free */
+}
+```
+
+The raw exports `cs2m_get_active_type` / `cs2m_has_menu` back these.

@@ -32,4 +32,28 @@ public sealed partial class Cs2MenusBridge
 
 		return Path.Combine(csgoDirectory, "addons", PluginName, "bin", platform, PluginName + ext);
 	}
+
+	/// <summary>
+	/// Auto-yield cs2menus whenever a SwiftlyS2 menu opens for a player,
+	/// and reclaim when it closes, by subscribing to the host menu manager's events.
+	/// Call once in plugin load. So cs2menus never fights Swiftly's own menus for input.
+	/// </summary>
+	public static void TrackHostMenus(ISwiftlyCore core)
+	{
+		ArgumentNullException.ThrowIfNull(core);
+		core.MenusAPI.MenuOpened += (_, e) =>
+		{
+			if (e.Player is { } p)
+			{
+				SetHostMenuBusy(p.Slot, true);
+			}
+		};
+		core.MenusAPI.MenuClosed += (_, e) =>
+		{
+			if (e.Player is { } p)
+			{
+				SetHostMenuBusy(p.Slot, false);
+			}
+		};
+	}
 }

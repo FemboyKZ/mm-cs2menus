@@ -115,6 +115,13 @@ public:
 	// Close a leaving player's menu (fires MenuEnd=Disconnect).
 	void OnPlayerDisconnect(int slot);
 
+	// Yield this slot to a host menu system (SwiftlyS2 / CS#).
+	// When busy is set, any open cs2menus menu for the slot is cancelled
+	// and further DisplayMenu calls for it are refused until cleared.
+	// The host drives this off its own menu open/close. cs2menus never auto-reopens on clear.
+	void SetExternalBusy(int slot, bool busy);
+	bool GetExternalBusy(int slot) const;
+
 	// Drop everything without firing callbacks. Call from plugin Unload().
 	void Shutdown();
 
@@ -178,6 +185,9 @@ private:
 		// Last HTML actually sent + when, so identical refreshes can be skipped.
 		std::string lastHtml;
 		float lastHtmlSend = 0.0f;
+		// A host UI (SwiftlyS2 / CS# menu) owns this slot's screen.
+		// While set, we refuse to display so we never fight the host for input or the HTML channel.
+		bool externalBusy = false;
 	};
 
 	MenuDef *Find(MenuHandle menu);

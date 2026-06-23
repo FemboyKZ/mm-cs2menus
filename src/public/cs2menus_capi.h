@@ -73,6 +73,15 @@ CS2M_API cs2m_handle CS2M_CALL cs2m_get_active_menu(int slot);
 CS2M_API int CS2M_CALL cs2m_get_active_type(int slot);
 CS2M_API int CS2M_CALL cs2m_get_selected_item(int slot);
 
+// --- Host coordination ---
+
+// Yield (busy=1) or reclaim (busy=0) a slot for a host menu system.
+// While busy, cs2menus cancels any menu on that slot and refuses new displays,
+// so it never fights the host for chat input or the center-HTML channel.
+// The host drives this off its own menu open/close. cs2menus never auto-reopens.
+CS2M_API void CS2M_CALL cs2m_set_external_busy(int slot, int busy);
+CS2M_API int CS2M_CALL cs2m_get_external_busy(int slot);
+
 // --- Lifetime ---
 
 CS2M_API void CS2M_CALL cs2m_destroy(cs2m_handle menu);

@@ -39,6 +39,10 @@ internal static unsafe class Cs2MenusNative
 	private static delegate* unmanaged[Cdecl]<int, int> _getActiveType;
 	private static delegate* unmanaged[Cdecl]<int, int> _getSelectedItem;
 
+	// Host coordination
+	private static delegate* unmanaged[Cdecl]<int, int, void> _setExternalBusy;
+	private static delegate* unmanaged[Cdecl]<int, int> _getExternalBusy;
+
 	// Lifetime / introspection / mutation
 	private static delegate* unmanaged[Cdecl]<uint, void> _destroy;
 	private static delegate* unmanaged[Cdecl]<uint, int> _itemCount;
@@ -90,6 +94,8 @@ internal static unsafe class Cs2MenusNative
 			_getActiveMenu = (delegate* unmanaged[Cdecl]<int, uint>)Get(lib, "cs2m_get_active_menu");
 			_getActiveType = (delegate* unmanaged[Cdecl]<int, int>)Get(lib, "cs2m_get_active_type");
 			_getSelectedItem = (delegate* unmanaged[Cdecl]<int, int>)Get(lib, "cs2m_get_selected_item");
+			_setExternalBusy = (delegate* unmanaged[Cdecl]<int, int, void>)Get(lib, "cs2m_set_external_busy");
+			_getExternalBusy = (delegate* unmanaged[Cdecl]<int, int>)Get(lib, "cs2m_get_external_busy");
 			_destroy = (delegate* unmanaged[Cdecl]<uint, void>)Get(lib, "cs2m_destroy");
 			_itemCount = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_item_count");
 			_getItemText = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_item_text");
@@ -166,6 +172,8 @@ internal static unsafe class Cs2MenusNative
 	public static uint GetActiveMenu(int slot) => _getActiveMenu(slot);
 	public static int GetActiveType(int slot) => _getActiveType(slot);
 	public static int GetSelectedItem(int slot) => _getSelectedItem(slot);
+	public static void SetExternalBusy(int slot, bool busy) => _setExternalBusy(slot, busy ? 1 : 0);
+	public static bool GetExternalBusy(int slot) => _getExternalBusy(slot) != 0;
 	public static void Destroy(uint menu) => _destroy(menu);
 	public static int ItemCount(uint menu) => _itemCount(menu);
 

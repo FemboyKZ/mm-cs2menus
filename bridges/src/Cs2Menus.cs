@@ -40,6 +40,34 @@ public sealed partial class Cs2MenusBridge : IDisposable
 	/// </summary>
 	public static bool Load(string binaryPath) => Cs2MenusNative.Load(binaryPath);
 
+	/// <summary>
+	/// Tell cs2menus a host menu system owns this slot (busy=true) or released it (busy=false).
+	/// While busy, cs2menus cancels any menu on the slot and refuses new ones,
+	/// so it won't fight the host for chat input or the HTML channel.
+	/// cs2menus never auto-reopens on release. No-op if cs2menus isn't loaded.
+	/// Prefer the host-specific <c>TrackHostMenus</c> overload, which wires this automatically.
+	/// </summary>
+	public static void SetHostMenuBusy(int slot, bool busy)
+	{
+		if (Cs2MenusNative.Loaded)
+		{
+			Cs2MenusNative.SetExternalBusy(slot, busy);
+		}
+	}
+
+	/// <summary>True if a host menu has been marked busy for this slot.</summary>
+	public static bool IsHostMenuBusy(int slot) => Cs2MenusNative.Loaded && Cs2MenusNative.GetExternalBusy(slot);
+
+	/// <summary>
+	/// Render type of the cs2menus menu this slot has open (Chat if none).
+	/// Lets a host check whether cs2menus is using the center-HTML channel before opening its own.
+	/// Returns Chat if cs2menus isn't loaded.
+	/// </summary>
+	public static MenuType GetActiveType(int slot) => Cs2MenusNative.Loaded ? (MenuType)Cs2MenusNative.GetActiveType(slot) : MenuType.Chat;
+
+	/// <summary>True if this slot currently has a cs2menus menu open.</summary>
+	public static bool HasMenu(int slot) => Cs2MenusNative.Loaded && Cs2MenusNative.HasMenu(slot);
+
 	/// <summary>Create a menu. <paramref name="onSelect"/> fires when a player picks an item.</summary>
 	public Cs2Menu CreateMenu(MenuType type, string title, Action<Cs2Menu, int, int>? onSelect = null)
 	{
