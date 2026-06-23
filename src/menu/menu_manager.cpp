@@ -11,8 +11,8 @@
 // Recursive so a callback can re-enter the API on the same thread.
 using ScopedLock = std::lock_guard<std::recursive_mutex>;
 
-// Sentinel stored in a per-menu override to mean "explicitly disabled" (MenuButton::None),
-// as opposed to mask 0 which means "no override - inherit the server config binding".
+// Per-menu override value meaning "explicitly disabled" (MenuButton::None),
+// as opposed to mask 0 which means "inherit the server config binding".
 // All bits set is never a real single-button IN_* mask.
 static constexpr uint64_t kNavDisabledSentinel = ~0ull;
 
@@ -354,7 +354,8 @@ bool MenuManager::DisplayMenu(MenuHandle menu, int slot, float duration, float c
 		return false;
 	}
 
-	// Render + possible Cancelled callback are main-thread only; off-thread defers to GameFrame.
+	// Render + possible Cancelled callback are main-thread only.
+	// Off-thread defers to GameFrame.
 	if (!OnMainThread())
 	{
 		m_pending.push_back(
@@ -365,7 +366,7 @@ bool MenuManager::DisplayMenu(MenuHandle menu, int slot, float duration, float c
 					DisplayLocked(menu, slot, duration);
 				}
 			});
-		return true; // queued
+		return true;
 	}
 
 	m_curtime = curtime;
@@ -407,7 +408,8 @@ void MenuManager::CancelMenu(int slot)
 	{
 		return;
 	}
-	// HTML clear + end-callback are main-thread only; off-thread defers to GameFrame.
+	// HTML clear + end-callback are main-thread only.
+	// Off-thread defers to GameFrame.
 	if (!OnMainThread())
 	{
 		m_pending.push_back([this, slot] { EndDisplay(slot, MenuEndReason::Cancelled); });
@@ -488,8 +490,8 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 		}
 		else if (wasHtml)
 		{
-			// Defer the panel clear to main, skip the Destroyed callback,
-			// consumer initiated this, and running its lambda off-thread / post-Unload is unsafe.
+			// Defer the panel clear to main. The Destroyed callback is skipped:
+			// the consumer initiated this, and running its lambda off-thread is unsafe.
 			m_pending.push_back([this, slot] { center_html::Send(slot, "", 0); });
 		}
 	}
@@ -783,7 +785,7 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
 	}
 	else if (newly & EffectiveNavMask(*def, 2))
 	{
-		// Selecting the inline Exit row exits WOW.
+		// Selecting the inline Exit row closes the menu.
 		if (HtmlShowsExitRow(*def) && pm.cursor == static_cast<int>(def->items.size()))
 		{
 			EndDisplay(slot, MenuEndReason::Exit);
@@ -816,8 +818,7 @@ void MenuManager::HtmlMoveCursor(int slot, int delta)
 	{
 		return;
 	}
-	// Wrap around: past the bottom returns to the top and vice versa.
-	// This also lets a single bound key cycle through every row.
+	// Wrap around, so a single bound key can cycle through every row.
 	int next = ((pm.cursor + delta) % count + count) % count;
 	if (next == pm.cursor)
 	{
@@ -1096,8 +1097,8 @@ void MenuManager::RenderHtml(int slot)
 		html += "</font><br>";
 	}
 
-	// Footer with key hints. Reflects per-menu overrides / configured nav keys,
-	// and adapts when a direction is disabled (single-key scroll shows "Scroll: KEY").
+	// Footer key hints, adapting when a direction is disabled
+	// (a single-key scroll shows "Scroll: KEY").
 	bool upOn = EffectiveNavMask(*def, 0) != 0;
 	bool downOn = EffectiveNavMask(*def, 1) != 0;
 	bool selectOn = EffectiveNavMask(*def, 2) != 0;

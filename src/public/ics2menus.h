@@ -23,7 +23,7 @@
 //    DisplayMenu then returns true optimistically.
 //  - onSelect/onEnd callbacks always fire on the main thread.
 //  - DestroyMenu off-thread invalidates the handle at once but skips the Destroyed callback.
-//  - GetItemText/GetItemInfo pointers alias internal storage; copy them, don't cache.
+//  - GetItemText/GetItemInfo pointers alias internal storage, copy them, don't cache.
 //  - Don't block a main-thread callback on a worker that re-enters this API (lock is held -> deadlock).
 #define CS2MENUS_INTERFACE "ICS2Menus001"
 

@@ -20,22 +20,17 @@
 #include <networksystem/inetworkmessages.h>
 #include <schemasystem/schemasystem.h>
 
-// SourceHook declarations
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK5_void(IServerGameClients, ClientDisconnect, SH_NOATTRIB, 0, CPlayerSlot, ENetworkDisconnectionReason, const char *, uint64,
 				   const char *);
 SH_DECL_HOOK3_void(ICvar, DispatchConCommand, SH_NOATTRIB, 0, ConCommandRef, const CCommandContext &, const CCommand &);
 
-// Global interface pointers (declared extern in common.h).
-// g_pNetworkServerService, g_pNetworkMessages, g_pSchemaSystem and
-// g_pGameResourceServiceServer are provided by interfaces.lib.
 IServerGameDLL *g_pServerGameDLL = nullptr;
 IServerGameClients *g_pGameClients = nullptr;
 IVEngineServer *g_pEngine = nullptr;
 ICvar *g_pICvar = nullptr;
 IGameEventSystem *g_pGameEventSystem = nullptr;
 
-// Entity system, resolved from g_pGameResourceServiceServer (declared extern in common.h).
 CGameEntitySystem *g_pEntitySystem = nullptr;
 
 CGameEntitySystem *GameEntitySystem()
@@ -47,9 +42,7 @@ CGameEntitySystem *GameEntitySystem()
 	return *reinterpret_cast<CGameEntitySystem **>(reinterpret_cast<uintptr_t>(g_pGameResourceServiceServer) + gamedata::kGameEntitySystemOffset);
 }
 
-// Cached gamerules for the HUD-flashing workaround.
-// Re-found each map (reset to null in OnLevelInit).
-// Only ever touched when the fix is enabled in config.
+// Cached gamerules for the HUD-flashing workaround. Re-found each map.
 static CCSGameRules *s_pGameRules = nullptr;
 
 static CCSGameRules *FindGameRules()
@@ -88,7 +81,7 @@ static CCSGameRules *FindGameRules()
 }
 
 // Fake CCSGameRules::m_bGameRestart to stop the center-HTML panel flashing while a
-// menu is shown. Off unless enabled in cfg, throttled ~0.5s.
+// menu is shown. Throttled ~0.5s.
 static void ApplyHudFlashingFix(float curtime)
 {
 	if (!g_MenusConfig.menu.htmlFixFlashing)
@@ -111,7 +104,7 @@ static void ApplyHudFlashingFix(float curtime)
 	float restartTime;
 	if (!rules->GetRestartRoundTime(restartTime))
 	{
-		return; // schema offset unresolved, disabled
+		return; // schema offset unresolved
 	}
 
 	// Only fake it while a menu is up and no real round restart is scheduled.
@@ -124,7 +117,6 @@ CS2MenusPlugin g_ThisPlugin;
 PLUGIN_EXPOSE(CS2MenusPlugin, g_ThisPlugin);
 
 // Public menu API: a thin forwarder onto g_MenuManager.
-// Returned to other plugins from OnMetamodQuery(CS2MENUS_INTERFACE).
 class CS2MenusAPI : public ICS2Menus
 {
 	MenuHandle CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect) override
@@ -169,7 +161,7 @@ class CS2MenusAPI : public ICS2Menus
 
 	bool DisplayMenu(MenuHandle menu, int slot, float duration) override
 	{
-		// GetGameGlobals walks engine state - main-thread only. Off-thread passes 0,
+		// GetGameGlobals is main-thread only. Off-thread passes 0,
 		// the manager stamps curtime when it drains the queue on GameFrame.
 		float curtime = 0.0f;
 		if (g_MenuManager.OnMainThread())
@@ -260,8 +252,7 @@ static MenuType ParseMenuType(const std::string &name)
 	return MenuType::Chat; // "chat" and any unknown value
 }
 
-// Map a config key name to its IN_* button mask.
-// Returns 0 for unknown names so the caller can keep the default binding.
+// Map a config key name to its IN_* button mask. Returns 0 for unknown names.
 static uint64_t ParseNavKey(const std::string &name)
 {
 	if (name == "w" || name == "forward")
@@ -319,7 +310,7 @@ static uint64_t ParseNavKey(const std::string &name)
 	return 0;
 }
 
-// Short uppercase footer label for a nav key name (e.g. "shift" -> "SHIFT").
+// Uppercase footer label for a nav key name, e.g. "shift" to "SHIFT".
 static std::string NavKeyLabel(const std::string &name)
 {
 	std::string label = name;
@@ -330,8 +321,8 @@ static std::string NavKeyLabel(const std::string &name)
 	return label;
 }
 
-// True if the pawn button schema fields resolve.
-// If any fails, HTML menus can't read input and must fall back to chat.
+// True if the pawn button schema fields resolve. If any fails, HTML menus
+// can't read input and must fall back to chat.
 static bool ProbeButtonSchema()
 {
 	int16_t a = schema::GetOffset("CBasePlayerPawn", FNV1a("CBasePlayerPawn"), "m_pMovementServices", FNV1a("m_pMovementServices"));
@@ -371,9 +362,8 @@ static void LoadAndApplyConfig()
 	settings.footerColor = g_MenusConfig.menu.htmlFooterColor;
 	settings.disabledColor = g_MenusConfig.menu.htmlDisabledColor;
 
-	// HTML nav keys. "none"/"off"/blank disables the action (mask 0).
-	// Enables single-key scrolling (disable Up, keep Down: the cursor wraps).
-	// An unrecognized name leaves the default binding untouched.
+	// HTML nav keys. "none"/"off"/blank disables the action (mask 0),
+	// an unrecognized name leaves the default binding untouched.
 	auto applyNav = [](const std::string &name, uint64_t &mask, std::string &label)
 	{
 		if (name == "none" || name == "off" || name.empty())
@@ -401,8 +391,8 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 {
 	PLUGIN_SAVEVARS();
 
-	// Load runs on the game thread, record it so the menu API can tell main-thread callers
-	// from worker-thread callers (deferred to GameFrame).
+	// Load runs on the game thread.
+	// Record it so the menu API can tell main-thread callers from worker-thread callers.
 	g_MenuManager.SetMainThread();
 
 	GET_V_IFACE_CURRENT(GetEngineFactory, g_pEngine, IVEngineServer, INTERFACEVERSION_VENGINESERVER);
@@ -424,8 +414,7 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	g_pCVar = g_pICvar;
 	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL);
 
-	// Resolve the game event manager for HTML menus. Optional:
-	// chat menus work even if this fails.
+	// Resolve the game event manager for HTML menus. Chat menus work if this fails.
 	center_html::Init();
 
 	// On a late load the map is already running, so grab the entity system now.
@@ -447,7 +436,8 @@ void CS2MenusPlugin::OnLevelInit(char const * /*pMapName*/, char const * /*pMapE
 	g_pEntitySystem = GameEntitySystem();
 	s_pGameRules = nullptr; // gamerules proxy is recreated each map, re-find lazily
 
-	// Schema is reliably ready by now, re-check in case the load-time probe was early.
+	// Schema is reliably ready by now.
+	// Re-check in case the load-time probe was early.
 	EvaluateHtmlAvailability();
 
 	// Pick up config edits on each map change.
@@ -456,9 +446,8 @@ void CS2MenusPlugin::OnLevelInit(char const * /*pMapName*/, char const * /*pMapE
 
 void CS2MenusPlugin::OnLevelShutdown()
 {
-	// The entity system and gamerules object are freed on level end.
-	// Drop our cached pointers so GameFrame (button polling / flashing fix)
-	// can't touch freed memory before OnLevelInit re-acquires them.
+	// Entity system and gamerules are freed on level end. Drop our cached pointers
+	// so GameFrame can't touch freed memory before OnLevelInit re-acquires them.
 	g_pEntitySystem = nullptr;
 	s_pGameRules = nullptr;
 }
@@ -545,7 +534,7 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 		RETURN_META(MRES_IGNORED);
 	}
 
-	const char *rawMsg = args.ArgS(); // everything after the command name
+	const char *rawMsg = args.ArgS();
 	if (!rawMsg || !rawMsg[0])
 	{
 		RETURN_META(MRES_IGNORED);

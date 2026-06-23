@@ -13,7 +13,8 @@
 
 #include <unordered_map>
 
-// Resolved by signature in Init(); declared extern in common.h.
+// Resolved by signature in Init().
+// Declared extern in common.h.
 IGameEventManager2 *g_pGameEventManager = nullptr;
 
 bool center_html::Init()

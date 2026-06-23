@@ -48,9 +48,8 @@ struct MenuManagerSettings
 	std::string disabledColor = "#808080";
 };
 
-// Backing store for the public ICS2Menus API.
-// Holds every created menu by handle plus per-player display state,
-// renders chat + HTML menus, and routes input.
+// Backing store for the public ICS2Menus API. Holds menus by handle plus
+// per-player display state, renders chat + HTML menus, and routes input.
 class MenuManager
 {
 public:
@@ -75,11 +74,8 @@ public:
 	const char *GetItemText(MenuHandle menu, int item) const;
 	const char *GetItemInfo(MenuHandle menu, int item) const;
 
-	// ---
-
-	// Feed a player's raw say message.
-	// Returns true if it was consumed as a chat-menu action
-	// (caller should suppress the chat line).
+	// Feed a player's raw say message. Returns true if it was consumed as a
+	// chat-menu action (caller should suppress the chat line).
 	bool ProcessInput(int slot, const char *text, float curtime);
 
 	// True if `slot` has an active HTML menu and thus needs per-frame button polling.
@@ -105,14 +101,13 @@ public:
 	void Configure(const MenuManagerSettings &settings);
 
 	// Record the calling thread as the main/game thread. Call once from Load.
-	// Lets the API run engine-touching work inline on main, or defer it to GameFrame off-thread.
+	// Lets the API run engine-touching work inline, or defer it to GameFrame off-thread.
 	void SetMainThread();
 
 	bool OnMainThread() const;
 
-	// Whether HTML menus can actually render + receive input.
+	// Whether HTML menus can render + receive input (set by the plugin after probing).
 	// When false, CreateMenu downgrades any HTML menu to chat so it stays usable.
-	// Set by the plugin after probing.
 	void SetHtmlAvailable(bool available);
 
 private:
@@ -159,7 +154,8 @@ private:
 	MenuDef *Find(MenuHandle menu);
 	const MenuDef *Find(MenuHandle menu) const;
 
-	// Core of DisplayMenu; assumes m_mutex held, runs on main, schedules off m_curtime.
+	// Core of DisplayMenu.
+	// Assumes m_mutex held, runs on main, schedules off m_curtime.
 	bool DisplayLocked(MenuHandle menu, int slot, float duration);
 
 	// Close slot's display and fire its MenuEnd.
@@ -181,10 +177,9 @@ private:
 	uint64_t EffectiveNavMask(const MenuDef &def, int action) const;
 	std::string EffectiveNavLabel(const MenuDef &def, int action) const;
 
-	// HTML: whether to render the selectable "Exit" row.
-	// Shown when the menu is exitable and either the toggle is on
-	// or the Back key is disabled (so the  menu is never left unexitable).
-	// It occupies the row after the last item.
+	// HTML: whether to render the selectable "Exit" row (after the last item).
+	// Shown when the menu is exitable and either the toggle is on or the Back key
+	// is disabled, so a menu is never left unexitable.
 	bool HtmlShowsExitRow(const MenuDef &def) const;
 	// HTML: total navigable rows = items + (exit row ? 1 : 0).
 	int HtmlRowCount(const MenuDef &def) const;
