@@ -2,3 +2,7 @@ build*/
 output*/
 .vs/
 .vscode/
+
+# C#
+bin*/
+obj*/

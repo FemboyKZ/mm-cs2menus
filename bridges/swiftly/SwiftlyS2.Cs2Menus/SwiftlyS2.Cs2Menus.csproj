@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<AssemblyName>SwiftlyS2.Cs2Menus</AssemblyName>
+		<RootNamespace>Cs2Menus</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Framework-agnostic core. -->
+		<Compile Include="../../src/Cs2MenusNative.cs" Link="Cs2MenusNative.cs" />
+		<Compile Include="../../src/Cs2Menus.cs" Link="Cs2Menus.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- For ISwiftlyCore in LoadDefault. The host provides it at runtime. -->
+		<PackageReference Include="SwiftlyS2.CS2" Version="*" ExcludeAssets="runtime"
+			PrivateAssets="all" />
+	</ItemGroup>
+
+</Project>

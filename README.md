@@ -127,6 +127,10 @@ Consumers don't need to handle this.
 A `CreateMenu(MenuType::Html, ...)` simply renders as a chat menu instead.
 Re-checked on every map change.
 
+### SwiftlyS2 and CounterStrikeSharp
+
+CS2Menus supports both platforms via [bridges](/bridges/README.md).
+
 ## Build
 
 ### Prerequisites

@@ -114,10 +114,61 @@ jobs:
           name: cs2menus-windows
           path: staging
 
+  build-bridges:
+    name: Bridges (.NET)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build SwiftlyS2 bridge
+        run: >-
+          dotnet publish bridges/swiftly/SwiftlyS2.Cs2Menus/SwiftlyS2.Cs2Menus.csproj
+          -c Release -o build-swiftly
+
+      - name: Build CounterStrikeSharp bridge
+        run: >-
+          dotnet publish bridges/counterstrikesharp/CounterStrikeSharp.Cs2Menus/CounterStrikeSharp.Cs2Menus.csproj
+          -c Release -o build-css
+
+      # SwiftlyS2: shared libs are loaded as "exports" from a plugin's resources/exports folder.
+      - name: Stage SwiftlyS2 package
+        run: |
+          dest=staging-swiftly/addons/swiftlys2/plugins/SwiftlyS2.Cs2Menus
+          mkdir -p "$dest/resources/exports"
+          cp build-swiftly/SwiftlyS2.Cs2Menus.dll "$dest/resources/exports/"
+          cp bridges/README.md "$dest/README.md"
+
+      # CounterStrikeSharp: shared APIs live in addons/counterstrikesharp/shared/<Name>/<Name>.dll.
+      - name: Stage CounterStrikeSharp package
+        run: |
+          dest=staging-css/addons/counterstrikesharp/shared/CounterStrikeSharp.Cs2Menus
+          mkdir -p "$dest"
+          cp build-css/CounterStrikeSharp.Cs2Menus.dll "$dest/"
+          cp bridges/README.md "$dest/README.md"
+
+      - name: Upload SwiftlyS2 bridge artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cs2menus-swiftly-bridge
+          path: staging-swiftly
+
+      - name: Upload CounterStrikeSharp bridge artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cs2menus-css-bridge
+          path: staging-css
+
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-windows, build-bridges]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -135,10 +186,24 @@ jobs:
           name: cs2menus-windows
           path: cs2menus-windows
 
+      - name: Download SwiftlyS2 bridge artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: cs2menus-swiftly-bridge
+          path: cs2menus-swiftly-bridge
+
+      - name: Download CounterStrikeSharp bridge artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: cs2menus-css-bridge
+          path: cs2menus-css-bridge
+
       - name: Create archives
         run: |
           cd cs2menus-linux && zip -r ../cs2menus-${{ github.ref_name }}-linux.zip . && cd ..
           cd cs2menus-windows && zip -r ../cs2menus-${{ github.ref_name }}-windows.zip . && cd ..
+          cd cs2menus-swiftly-bridge && zip -r ../cs2menus-swiftly-bridge-${{ github.ref_name }}.zip . && cd ..
+          cd cs2menus-css-bridge && zip -r ../cs2menus-css-bridge-${{ github.ref_name }}.zip . && cd ..
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
@@ -146,4 +211,6 @@ jobs:
           files: |
             cs2menus-${{ github.ref_name }}-linux.zip
             cs2menus-${{ github.ref_name }}-windows.zip
+            cs2menus-swiftly-bridge-${{ github.ref_name }}.zip
+            cs2menus-css-bridge-${{ github.ref_name }}.zip
           generate_release_notes: true

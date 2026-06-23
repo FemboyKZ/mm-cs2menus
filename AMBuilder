@@ -11,6 +11,7 @@ for sdk_target in MMSPlugin.sdk_targets:
 
     binary.sources += [
         "src/cs2menus.cpp",
+        "src/bridge/capi.cpp",
         "src/config/config.cpp",
         "src/entity/schema.cpp",
         "src/menu/menu_manager.cpp",

@@ -289,6 +289,13 @@ class CS2MenusAPI : public ICS2Menus
 
 static CS2MenusAPI g_CS2MenusAPI;
 
+// Used by the flat C ABI facade (src/bridge/capi.cpp) so it routes through the
+// same interface instance (curtime stamping + off-thread queueing) as MetaFactory consumers.
+ICS2Menus *Cs2Menus_GetLocalAPI()
+{
+	return &g_CS2MenusAPI;
+}
+
 void *CS2MenusPlugin::OnMetamodQuery(const char *iface, int *ret)
 {
 	if (!strcmp(iface, CS2MENUS_INTERFACE))
