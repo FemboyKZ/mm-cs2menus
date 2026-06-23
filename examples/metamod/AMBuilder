@@ -1,0 +1,32 @@
+# vim: set sts=2 ts=8 sw=2 tw=99 et ft=python:
+import os
+
+# Builds the native test consumer as a separate binary, reusing the cs2menus SDK setup.
+# Intentionally NOT appended to MMSPlugin.binaries, so PackageScript keeps it out of release archives.
+# The output lands in the build tree for manual testing.
+for sdk_target in MMSPlugin.sdk_targets:
+    sdk = sdk_target.sdk
+    cxx = sdk_target.cxx
+
+    binary = MMSPlugin.HL2Library(builder, cxx, f'cs2menus_consumer.{sdk["name"]}', sdk)
+
+    # So consumer.cpp can #include "public/ics2menus.h".
+    binary.compiler.cxxincludes += [os.path.join(builder.sourcePath, "src")]
+
+    # Generate the protobuf headers the SDK pulls in (eiface.h -> network_connection.pb.h).
+    # Same set the main plugin builds.
+    binary.custom = [
+        builder.tools.Protoc(
+            protoc=sdk_target.protoc,
+            sources=[
+                os.path.join(sdk["path"], "common", "network_connection.proto"),
+                os.path.join(sdk["path"], "common", "networkbasetypes.proto"),
+                os.path.join(sdk["path"], "game", "shared", "usermessages.proto"),
+                os.path.join(sdk["path"], "game", "shared", "gameevents.proto"),
+            ],
+        )
+    ]
+
+    binary.sources += ["consumer.cpp"]
+
+    builder.Add(binary)

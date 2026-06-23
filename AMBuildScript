@@ -411,7 +411,7 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
             ]
             cxx.cflags += [
                 "/W3",
-                #"/Zi",
+                # "/Zi",
                 "/std:c++17",
                 "/wd4146",
                 "/wd4244",
@@ -520,5 +520,10 @@ BuildScripts = [
     "AMBuilder",
     "PackageScript",
 ]
+
+# Opt-in native test consumer (examples/metamod).
+# Enable with CS2MENUS_BUILD_EXAMPLES=1 at configure time.
+if os.environ.get("CS2MENUS_BUILD_EXAMPLES"):
+    BuildScripts += ["examples/metamod/AMBuilder"]
 
 builder.Build(BuildScripts, {"MMSPlugin": MMSPlugin})

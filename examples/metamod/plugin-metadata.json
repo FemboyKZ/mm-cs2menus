@@ -1,0 +1,11 @@
+{
+    "name": "cs2menus_consumer",
+    "alias": "cs2menus_consumer",
+    "display_name": "CS2 Menu API Consumer Example",
+    "description": "Test consumer for the cs2menus C++ interface",
+    "author": "jvnipers",
+    "url": "http://github.com/FemboyKZ/mm-cs2menus",
+    "log_tag": "MENU-TEST",
+    "license": "GPLv3",
+    "version": "1.0.0"
+}

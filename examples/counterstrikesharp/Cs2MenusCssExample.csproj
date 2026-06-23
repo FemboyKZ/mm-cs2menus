@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<AssemblyName>Cs2MenusCssExample</AssemblyName>
+		<RootNamespace>Cs2MenusCssExample</RootNamespace>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CounterStrikeSharp.API" Version="*" ExcludeAssets="runtime"
+			PrivateAssets="all" />
+		<!-- Bundles the bridge dll into this test plugin so it runs without a separate shared install. 
+				 In production, install the bridge to addons/counterstrikesharp/shared and reference it with <Private>false</Private> instead. -->
+		<ProjectReference
+			Include="../../bridges/counterstrikesharp/CounterStrikeSharp.Cs2Menus/CounterStrikeSharp.Cs2Menus.csproj" />
+	</ItemGroup>
+
+</Project>
