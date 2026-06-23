@@ -340,6 +340,24 @@ static void EvaluateHtmlAvailability()
 	META_CONPRINTF("[CS2Menus] HTML menus %s.\n", available ? "available" : "unavailable (falling back to chat)");
 }
 
+// True for a "#rrggbb" hex color. Malformed values would silently break the
+// HTML markup, so we reject them and keep the built-in default.
+static bool IsValidHexColor(const std::string &s)
+{
+	if (s.size() != 7 || s[0] != '#')
+	{
+		return false;
+	}
+	for (size_t i = 1; i < s.size(); i++)
+	{
+		if (!isxdigit(static_cast<unsigned char>(s[i])))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 // Reload cfg/cs2menus/core.cfg and push the settings into the menu manager.
 static void LoadAndApplyConfig()
 {
@@ -358,9 +376,18 @@ static void LoadAndApplyConfig()
 	settings.defaultExitButton = g_MenusConfig.menu.exitButton;
 	settings.htmlVisibleItems = g_MenusConfig.menu.htmlVisibleItems;
 	settings.defaultExitItem = g_MenusConfig.menu.htmlExitItem;
-	settings.navColor = g_MenusConfig.menu.htmlNavColor;
-	settings.footerColor = g_MenusConfig.menu.htmlFooterColor;
-	settings.disabledColor = g_MenusConfig.menu.htmlDisabledColor;
+	if (IsValidHexColor(g_MenusConfig.menu.htmlNavColor))
+	{
+		settings.navColor = g_MenusConfig.menu.htmlNavColor;
+	}
+	if (IsValidHexColor(g_MenusConfig.menu.htmlFooterColor))
+	{
+		settings.footerColor = g_MenusConfig.menu.htmlFooterColor;
+	}
+	if (IsValidHexColor(g_MenusConfig.menu.htmlDisabledColor))
+	{
+		settings.disabledColor = g_MenusConfig.menu.htmlDisabledColor;
+	}
 
 	// HTML nav keys. "none"/"off"/blank disables the action (mask 0),
 	// an unrecognized name leaves the default binding untouched.
@@ -435,6 +462,10 @@ void CS2MenusPlugin::OnLevelInit(char const * /*pMapName*/, char const * /*pMapE
 {
 	g_pEntitySystem = GameEntitySystem();
 	s_pGameRules = nullptr; // gamerules proxy is recreated each map, re-find lazily
+
+	// Retry the event-manager sig scan in case it missed at load
+	// (server module not yet mapped), then re-probe. Init is a no-op once resolved.
+	center_html::Init();
 
 	// Schema is reliably ready by now.
 	// Re-check in case the load-time probe was early.
@@ -540,22 +571,11 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 		RETURN_META(MRES_IGNORED);
 	}
 
-	// Strip the outer quotes CS2 wraps around the say message.
-	char msg[512];
-	strncpy(msg, rawMsg, sizeof(msg) - 1);
-	msg[sizeof(msg) - 1] = '\0';
-
-	size_t len = strlen(msg);
-	if (len >= 2 && msg[0] == '"' && msg[len - 1] == '"')
-	{
-		memmove(msg, msg + 1, len - 2);
-		msg[len - 2] = '\0';
-	}
-
+	// ProcessInput strips the outer quotes CS2 wraps around the say message.
 	CGlobalVars *globals = GetGameGlobals();
 	float curtime = globals ? globals->curtime : 0.0f;
 
-	if (g_MenuManager.ProcessInput(slot, msg, curtime))
+	if (g_MenuManager.ProcessInput(slot, rawMsg, curtime))
 	{
 		// Suppress the chat line so the number doesn't show.
 		RETURN_META(MRES_SUPERCEDE);
