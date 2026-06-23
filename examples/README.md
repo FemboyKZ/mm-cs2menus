@@ -8,7 +8,7 @@ All require the cs2menus Metamod plugin installed and loaded on the server.
 | Folder               | Host                    | Trigger                           |
 | -------------------- | ----------------------- | --------------------------------- |
 | `metamod`            | Metamod (C++)           | chat `!cs2menu`, `!cs2busy`       |
-| `swiftlys2`          | SwiftlyS2 (C#)          | `css_cs2menu`, `css_cs2menu_busy` |
+| `swiftly`            | SwiftlyS2 (C#)          | `css_cs2menu`, `css_cs2menu_busy` |
 | `counterstrikesharp` | CounterStrikeSharp (C#) | `css_cs2menu`, `css_cs2menu_busy` |
 
 ## metamod (native)
@@ -37,12 +37,12 @@ The binary lands in the build tree as `cs2menus_consumer.*`.
 Drop it next to a normal Metamod plugin and add a `.vdf` pointing at it.
 Type `!cs2menu` in chat.
 
-## swiftlys2 / counterstrikesharp
+## swiftly / counterstrikesharp
 
 Both reference the matching bridge project and bundle its dll, so the test plugin is self-contained:
 
 ```bash
-dotnet build examples/swiftlys2/Cs2MenusSwiftlyExample.csproj -c Release
+dotnet build examples/swiftly/Cs2MenusSwiftlyExample.csproj -c Release
 dotnet build examples/counterstrikesharp/Cs2MenusCssExample.csproj -c Release
 ```
 
