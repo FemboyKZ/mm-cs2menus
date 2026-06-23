@@ -106,7 +106,7 @@ void center_html::Send(int slot, const char *html, int durationSecs)
 	CSingleRecipientFilter filter(slot);
 	g_pGameEventSystem->PostEventAbstract(-1, false, &filter, pMsg, data, 0);
 
-	delete data;
+	g_pNetworkMessages->DeallocateNetMessageAbstract(pMsg, data);
 }
 
 std::string center_html::Escape(const std::string &text)
