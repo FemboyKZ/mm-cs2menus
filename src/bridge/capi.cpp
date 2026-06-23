@@ -4,13 +4,11 @@
 #define CS2MENUS_EXPORTS
 #include "src/public/cs2menus_capi.h"
 #include "src/public/ics2menus.h"
-#include "src/menu/menu_manager.h"
 
 #include <cstring>
 
 // Defined in cs2menus.cpp: the singleton ICS2Menus002 implementation.
-// Routing through it (not g_MenuManager directly) inherits the curtime stamping and
-// off-thread queueing the interface wrapper already does.
+// Routing through it inherits the curtime stamping and off-thread queueing the interface wrapper already does.
 extern ICS2Menus *Cs2Menus_GetLocalAPI();
 
 namespace
@@ -154,13 +152,12 @@ CS2M_API int CS2M_CALL cs2m_get_selected_item(int slot)
 
 CS2M_API void CS2M_CALL cs2m_set_external_busy(int slot, int busy)
 {
-	// Not on ICS2Menus, call the manager directly.
-	g_MenuManager.SetExternalBusy(slot, busy != 0);
+	API()->SetExternalBusy(slot, busy != 0);
 }
 
 CS2M_API int CS2M_CALL cs2m_get_external_busy(int slot)
 {
-	return g_MenuManager.GetExternalBusy(slot) ? 1 : 0;
+	return API()->GetExternalBusy(slot) ? 1 : 0;
 }
 
 CS2M_API void CS2M_CALL cs2m_destroy(cs2m_handle menu)

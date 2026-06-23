@@ -213,6 +213,19 @@ public:
 	// The parent's onSelect is not called for this item. Returns the new item's index, or -1 on failure.
 	// `child` must be a live handle distinct from `parent`.
 	virtual int AddSubMenu(MenuHandle parent, const char *text, MenuHandle child, const char *info) = 0;
+
+	// --- Host coordination ---
+
+	// Yield a slot to another menu system (e.g. a managed SwiftlyS2 / CS# menu).
+	// While busy, any cs2menus menu on the slot is cancelled and further DisplayMenu calls for it are refused,
+	// so cs2menus won't fight for chat input or the center-HTML channel.
+	// The caller drives this off the other system's menu open/close.
+	// cs2menus never auto-reopens when cleared.
+	// Pairs with GetActiveMenuType/HasMenu so the other system can yield in turn.
+	virtual void SetExternalBusy(int slot, bool busy) = 0;
+
+	// Whether `slot` is currently yielded to an external menu system.
+	virtual bool GetExternalBusy(int slot) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_

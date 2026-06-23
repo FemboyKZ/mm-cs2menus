@@ -285,6 +285,16 @@ class CS2MenusAPI : public ICS2Menus
 	{
 		return g_MenuManager.AddSubMenu(parent, text, child, info);
 	}
+
+	void SetExternalBusy(int slot, bool busy) override
+	{
+		g_MenuManager.SetExternalBusy(slot, busy);
+	}
+
+	bool GetExternalBusy(int slot) override
+	{
+		return g_MenuManager.GetExternalBusy(slot);
+	}
 };
 
 static CS2MenusAPI g_CS2MenusAPI;

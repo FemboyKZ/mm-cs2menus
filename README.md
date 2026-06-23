@@ -94,8 +94,11 @@ Beyond the basics shown above, the API also covers:
 - **Live mutation** - `SetItemText` / `SetItemInfo` / `SetItemDisabled` / `RemoveItem` / `RemoveAllItems` re-render any active viewers in place.
 - **Introspection** - `GetItemCount`, `GetSelectedItem`, `HasMenu`, `GetActiveMenu`, `GetActiveMenuType`.
 - **Per-menu behavior** - `SetCloseOnSelect`, `SetStartItem`, `SetExitItem`.
+- **Host coordination** - `SetExternalBusy(slot, busy)` makes cs2menus yield a slot to another menu system (e.g. SwiftlyS2 / CS#) so they never fight for input or the center-HTML channel. `GetExternalBusy(slot)` reads it back.
 
 The full surface is documented in [`ics2menus.h`](src/public/ics2menus.h).
+
+Managed plugins (SwiftlyS2, CounterStrikeSharp) consume this via the flat C ABI bridge in [`bridges/`](bridges/).
 
 ### Contracts - read these
 
