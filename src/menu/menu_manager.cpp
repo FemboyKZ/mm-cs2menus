@@ -265,7 +265,7 @@ void MenuManager::SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton b
 	ScopedLock lock(m_mutex);
 	MenuDef *def = Find(menu);
 	int idx = static_cast<int>(action);
-	if (!def || idx < 0 || idx > 3)
+	if (!def || idx < 0 || idx > static_cast<int>(MenuNavAction::Back))
 	{
 		return;
 	}
@@ -291,7 +291,7 @@ bool MenuManager::HtmlShowsExitRow(const MenuDef &def) const
 {
 	// Must be exitable, and either explicitly requested or forced because the Back
 	// key is disabled (otherwise the player would have no way out but the timeout).
-	return def.exitButton && (def.exitItem || EffectiveNavMask(def, 3) == 0);
+	return def.exitButton && (def.exitItem || EffectiveNavMask(def, MenuNavAction::Back) == 0);
 }
 
 int MenuManager::HtmlRowCount(const MenuDef &def) const
@@ -299,9 +299,9 @@ int MenuManager::HtmlRowCount(const MenuDef &def) const
 	return static_cast<int>(def.items.size()) + (HtmlShowsExitRow(def) ? 1 : 0);
 }
 
-uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, int action) const
+uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, MenuNavAction action) const
 {
-	uint64_t override_ = def.navOverride[action].mask;
+	uint64_t override_ = def.navOverride[static_cast<int>(action)].mask;
 	if (override_ == kNavDisabledSentinel)
 	{
 		return 0; // explicitly disabled for this menu (MenuButton::None)
@@ -312,30 +312,30 @@ uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, int action) const
 	}
 	switch (action)
 	{
-		case 0:
+		case MenuNavAction::Up:
 			return m_settings.keyUp;
-		case 1:
+		case MenuNavAction::Down:
 			return m_settings.keyDown;
-		case 2:
+		case MenuNavAction::Select:
 			return m_settings.keySelect;
 		default:
 			return m_settings.keyBack;
 	}
 }
 
-std::string MenuManager::EffectiveNavLabel(const MenuDef &def, int action) const
+std::string MenuManager::EffectiveNavLabel(const MenuDef &def, MenuNavAction action) const
 {
-	if (def.navOverride[action].mask != 0)
+	if (def.navOverride[static_cast<int>(action)].mask != 0)
 	{
-		return def.navOverride[action].label;
+		return def.navOverride[static_cast<int>(action)].label;
 	}
 	switch (action)
 	{
-		case 0:
+		case MenuNavAction::Up:
 			return m_settings.keyUpLabel;
-		case 1:
+		case MenuNavAction::Down:
 			return m_settings.keyDownLabel;
-		case 2:
+		case MenuNavAction::Select:
 			return m_settings.keySelectLabel;
 		default:
 			return m_settings.keyBackLabel;
@@ -775,15 +775,15 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
 		return;
 	}
 
-	if (newly & EffectiveNavMask(*def, 0))
+	if (newly & EffectiveNavMask(*def, MenuNavAction::Up))
 	{
 		HtmlMoveCursor(slot, -1);
 	}
-	else if (newly & EffectiveNavMask(*def, 1))
+	else if (newly & EffectiveNavMask(*def, MenuNavAction::Down))
 	{
 		HtmlMoveCursor(slot, +1);
 	}
-	else if (newly & EffectiveNavMask(*def, 2))
+	else if (newly & EffectiveNavMask(*def, MenuNavAction::Select))
 	{
 		// Selecting the inline Exit row closes the menu.
 		if (HtmlShowsExitRow(*def) && pm.cursor == static_cast<int>(def->items.size()))
@@ -795,7 +795,7 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
 			Select(slot, pm.cursor);
 		}
 	}
-	else if (newly & EffectiveNavMask(*def, 3))
+	else if (newly & EffectiveNavMask(*def, MenuNavAction::Back))
 	{
 		if (def->exitButton)
 		{
@@ -1099,10 +1099,10 @@ void MenuManager::RenderHtml(int slot)
 
 	// Footer key hints, adapting when a direction is disabled
 	// (a single-key scroll shows "Scroll: KEY").
-	bool upOn = EffectiveNavMask(*def, 0) != 0;
-	bool downOn = EffectiveNavMask(*def, 1) != 0;
-	bool selectOn = EffectiveNavMask(*def, 2) != 0;
-	bool backOn = def->exitButton && EffectiveNavMask(*def, 3) != 0;
+	bool upOn = EffectiveNavMask(*def, MenuNavAction::Up) != 0;
+	bool downOn = EffectiveNavMask(*def, MenuNavAction::Down) != 0;
+	bool selectOn = EffectiveNavMask(*def, MenuNavAction::Select) != 0;
+	bool backOn = def->exitButton && EffectiveNavMask(*def, MenuNavAction::Back) != 0;
 
 	std::string footer;
 	auto addSegment = [&footer](const std::string &seg)
@@ -1120,23 +1120,23 @@ void MenuManager::RenderHtml(int slot)
 
 	if (upOn && downOn)
 	{
-		addSegment("Move: " + EffectiveNavLabel(*def, 0) + "/" + EffectiveNavLabel(*def, 1));
+		addSegment("Move: " + EffectiveNavLabel(*def, MenuNavAction::Up) + "/" + EffectiveNavLabel(*def, MenuNavAction::Down));
 	}
 	else if (downOn)
 	{
-		addSegment("Scroll: " + EffectiveNavLabel(*def, 1));
+		addSegment("Scroll: " + EffectiveNavLabel(*def, MenuNavAction::Down));
 	}
 	else if (upOn)
 	{
-		addSegment("Scroll: " + EffectiveNavLabel(*def, 0));
+		addSegment("Scroll: " + EffectiveNavLabel(*def, MenuNavAction::Up));
 	}
 	if (selectOn)
 	{
-		addSegment("Select: " + EffectiveNavLabel(*def, 2));
+		addSegment("Select: " + EffectiveNavLabel(*def, MenuNavAction::Select));
 	}
 	if (backOn)
 	{
-		addSegment("Exit: " + EffectiveNavLabel(*def, 3));
+		addSegment("Exit: " + EffectiveNavLabel(*def, MenuNavAction::Back));
 	}
 
 	html += "<font color='";

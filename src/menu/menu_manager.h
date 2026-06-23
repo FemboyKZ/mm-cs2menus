@@ -174,8 +174,8 @@ private:
 	void HtmlMoveCursor(int slot, int delta);
 
 	// Effective nav binding for an action (per-menu override, else server config).
-	uint64_t EffectiveNavMask(const MenuDef &def, int action) const;
-	std::string EffectiveNavLabel(const MenuDef &def, int action) const;
+	uint64_t EffectiveNavMask(const MenuDef &def, MenuNavAction action) const;
+	std::string EffectiveNavLabel(const MenuDef &def, MenuNavAction action) const;
 
 	// HTML: whether to render the selectable "Exit" row (after the last item).
 	// Shown when the menu is exitable and either the toggle is on or the Back key
