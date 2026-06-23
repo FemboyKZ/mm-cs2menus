@@ -2,6 +2,7 @@
 #include "src/common.h"
 #include "src/gamedata.h"
 #include "src/sigscan/module.h"
+#include "src/utils/recipient_filter.h"
 
 #include <igameevents.h>
 #include <engine/igameeventsystem.h>
@@ -14,43 +15,6 @@
 
 // Resolved by signature in Init(); declared extern in common.h.
 IGameEventManager2 *g_pGameEventManager = nullptr;
-
-namespace
-{
-	class CSingleRecipientFilter : public IRecipientFilter
-	{
-	public:
-		explicit CSingleRecipientFilter(int slot)
-		{
-			m_recipients.Set(slot);
-		}
-
-		~CSingleRecipientFilter() override {}
-
-		NetChannelBufType_t GetNetworkBufType() const override
-		{
-			return BUF_RELIABLE;
-		}
-
-		bool IsInitMessage() const override
-		{
-			return false;
-		}
-
-		const CPlayerBitVec &GetRecipients() const override
-		{
-			return m_recipients;
-		}
-
-		CPlayerSlot GetPredictedPlayerSlot() const override
-		{
-			return CPlayerSlot(-1);
-		}
-
-	private:
-		CPlayerBitVec m_recipients;
-	};
-} // namespace
 
 bool center_html::Init()
 {
