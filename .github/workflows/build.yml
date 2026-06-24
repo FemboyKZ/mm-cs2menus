@@ -165,6 +165,118 @@ jobs:
           name: cs2menus-css-bridge
           path: staging-css
 
+  build-examples:
+    name: Examples (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            runner: ubuntu-latest
+          - os: windows
+            runner: windows-latest
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.os == 'linux' && 'registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest' || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'linux'
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+          apt-get update -y
+          apt-get install -y python3 python3-pip zip
+          git clone https://github.com/alliedmodders/ambuild.git
+          pip3 install ./ambuild
+
+      - name: Set up Python (Windows)
+        if: matrix.os == 'windows'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Set up MSVC (Windows)
+        if: matrix.os == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+
+      - name: Install AMBuild (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          git clone https://github.com/alliedmodders/ambuild.git
+          pip install ./ambuild
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Configure metamod example (Linux)
+        if: matrix.os == 'linux'
+        env:
+          CS2MENUS_BUILD_EXAMPLES: "1"
+        run: |
+          mkdir -p build && cd build
+          python3 ../configure.py \
+            --sdks cs2 \
+            --targets x86_64 \
+            --mms_path ../metamod-source \
+            --hl2sdk-manifests ../metamod-source/hl2sdk-manifests \
+            --enable-optimize
+
+      - name: Configure metamod example (Windows)
+        if: matrix.os == 'windows'
+        env:
+          CS2MENUS_BUILD_EXAMPLES: "1"
+        run: |
+          mkdir -Force build | Out-Null; cd build
+          python ../configure.py `
+            --sdks cs2 `
+            --targets x86_64 `
+            --mms_path ../metamod-source `
+            --hl2sdk-manifests ../metamod-source/hl2sdk-manifests `
+            --enable-optimize
+
+      - name: Build metamod example
+        working-directory: build
+        run: ambuild
+
+      - name: Build .NET examples
+        run: |
+          dotnet build examples/swiftly/Cs2MenusSwiftlyExample.csproj -c Release -o build-example-swiftly
+          dotnet build examples/counterstrikesharp/Cs2MenusCssExample.csproj -c Release -o build-example-css
+
+      - name: Stage examples (Linux)
+        if: matrix.os == 'linux'
+        run: |
+          mkdir -p staging/metamod staging/swiftly staging/counterstrikesharp
+          find build -name 'cs2menus_consumer.*' -type f -exec cp {} staging/metamod/ \;
+          cp examples/metamod/plugin-metadata.json staging/metamod/ || true
+          cp -r build-example-swiftly/* staging/swiftly/
+          cp -r build-example-css/* staging/counterstrikesharp/
+
+      - name: Stage examples (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          New-Item -ItemType Directory -Force -Path staging/metamod, staging/swiftly, staging/counterstrikesharp | Out-Null
+          Get-ChildItem -Path build -Recurse -Filter 'cs2menus_consumer.*' -File |
+            ForEach-Object { Copy-Item $_.FullName staging/metamod/ }
+          Copy-Item examples/metamod/plugin-metadata.json staging/metamod/ -ErrorAction SilentlyContinue
+          Copy-Item -Recurse build-example-swiftly/* staging/swiftly/
+          Copy-Item -Recurse build-example-css/* staging/counterstrikesharp/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cs2menus-examples-${{ matrix.os }}
+          path: staging
+
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/')
