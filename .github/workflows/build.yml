@@ -255,21 +255,36 @@ jobs:
       - name: Stage examples (Linux)
         if: matrix.os == 'linux'
         run: |
-          mkdir -p staging/metamod staging/swiftly staging/counterstrikesharp
-          find build -name 'cs2menus_consumer.*' -type f -exec cp {} staging/metamod/ \;
-          cp examples/metamod/plugin-metadata.json staging/metamod/ || true
-          cp -r build-example-swiftly/* staging/swiftly/
-          cp -r build-example-css/* staging/counterstrikesharp/
+          # Metamod native consumer: addons/<name>/bin/<platform>/<name>.so + vdf.
+          bindir=staging/addons/cs2menus_consumer/bin/linuxsteamrt64
+          mkdir -p "$bindir" staging/addons/metamod
+          src=$(find build -name 'cs2menus_consumer.*.so' -type f | head -n1)
+          cp "$src" "$bindir/cs2menus_consumer.so"
+          printf '"Metamod Plugin"\n{\n\t"alias"\t"cs2menus_consumer"\n\t"file"\t"addons/cs2menus_consumer/bin/linuxsteamrt64/cs2menus_consumer"\n}\n' > staging/addons/metamod/cs2menus_consumer.vdf
+          # .NET example plugins, each in its host's plugin folder.
+          mkdir -p staging/addons/swiftlys2/plugins/Cs2MenusSwiftlyExample
+          mkdir -p staging/addons/counterstrikesharp/plugins/Cs2MenusCssExample
+          cp -r build-example-swiftly/* staging/addons/swiftlys2/plugins/Cs2MenusSwiftlyExample/
+          cp -r build-example-css/* staging/addons/counterstrikesharp/plugins/Cs2MenusCssExample/
 
       - name: Stage examples (Windows)
         if: matrix.os == 'windows'
         run: |
-          New-Item -ItemType Directory -Force -Path staging/metamod, staging/swiftly, staging/counterstrikesharp | Out-Null
-          Get-ChildItem -Path build -Recurse -Filter 'cs2menus_consumer.*' -File |
-            ForEach-Object { Copy-Item $_.FullName staging/metamod/ }
-          Copy-Item examples/metamod/plugin-metadata.json staging/metamod/ -ErrorAction SilentlyContinue
-          Copy-Item -Recurse build-example-swiftly/* staging/swiftly/
-          Copy-Item -Recurse build-example-css/* staging/counterstrikesharp/
+          $bindir = "staging/addons/cs2menus_consumer/bin/win64"
+          New-Item -ItemType Directory -Force -Path $bindir, staging/addons/metamod | Out-Null
+          $src = Get-ChildItem -Path build -Recurse -Filter 'cs2menus_consumer.*.dll' -File | Select-Object -First 1
+          Copy-Item $src.FullName "$bindir/cs2menus_consumer.dll"
+          $vdf = @(
+            '"Metamod Plugin"',
+            '{',
+            "`t`"alias`"`t`"cs2menus_consumer`"",
+            "`t`"file`"`t`"addons/cs2menus_consumer/bin/win64/cs2menus_consumer`"",
+            '}'
+          ) -join "`n"
+          Set-Content -Path staging/addons/metamod/cs2menus_consumer.vdf -Value $vdf
+          New-Item -ItemType Directory -Force -Path staging/addons/swiftlys2/plugins/Cs2MenusSwiftlyExample, staging/addons/counterstrikesharp/plugins/Cs2MenusCssExample | Out-Null
+          Copy-Item -Recurse build-example-swiftly/* staging/addons/swiftlys2/plugins/Cs2MenusSwiftlyExample/
+          Copy-Item -Recurse build-example-css/* staging/addons/counterstrikesharp/plugins/Cs2MenusCssExample/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
