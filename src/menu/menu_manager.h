@@ -111,6 +111,16 @@ public:
 	// Drives HTML-menu navigation on newly-pressed nav keys.
 	void PollButtons(int slot, uint64_t heldButtons, float curtime);
 
+	// Drive the open menu from a console/chat command (backup for button input).
+	// No-op without an open menu.
+	// Up/Down/Select apply to HTML menus only, Back closes either menu type.
+	void CommandNav(int slot, MenuNavAction action, float curtime);
+
+	// Select by number (backup for chat menus, e.g. bind a key to "mm_menu_select 3").
+	// Routes the number through chat-menu paging/selection (clamped to the page).
+	// HTML menus ignore the number and select the cursor row.
+	void CommandSelectNumber(int slot, int number, float curtime);
+
 	// Expire timed-out menus and re-send HTML. Call every GameFrame.
 	void Tick(float curtime);
 
@@ -228,6 +238,12 @@ private:
 
 	// html navigation
 	void HtmlMoveCursor(int slot, int delta);
+	// Activate the cursor row (exit row closes, else selects the item). HTML only.
+	void HtmlNavSelect(int slot);
+	// Step back to the parent submenu, or exit the menu. Chat or HTML.
+	void NavClose(int slot);
+	// Apply a chat-menu number (1..page select, Next/Prev/Exit reserved). True if consumed.
+	bool ApplyChatNumber(int slot, int num);
 
 	// Effective nav binding for an action (per-menu override, else server config).
 	uint64_t EffectiveNavMask(const MenuDef &def, MenuNavAction action) const;

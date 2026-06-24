@@ -918,6 +918,17 @@ bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
 	{
 		return false;
 	}
+	return ApplyChatNumber(slot, num);
+}
+
+bool MenuManager::ApplyChatNumber(int slot, int num)
+{
+	PlayerMenu &pm = m_players[slot];
+	MenuDef *def = Find(pm.handle);
+	if (!def || def->type != MenuType::Chat)
+	{
+		return false;
+	}
 
 	const auto &items = def->items;
 	int pageCount = (static_cast<int>(items.size()) + m_itemsPerPage - 1) / m_itemsPerPage;
@@ -1042,27 +1053,128 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
 	}
 	else if (newly & EffectiveNavMask(*def, MenuNavAction::Select))
 	{
-		// Selecting the inline Exit row closes the menu.
-		if (HtmlShowsExitRow(*def) && pm.cursor == static_cast<int>(def->items.size()))
-		{
-			EndDisplay(slot, MenuEndReason::Exit);
-		}
-		else
-		{
-			Select(slot, pm.cursor);
-		}
+		HtmlNavSelect(slot);
 	}
 	else if (newly & EffectiveNavMask(*def, MenuNavAction::Back))
 	{
-		// Back steps up to the parent in a submenu, else exits.
-		if (def->parent != kInvalidMenuHandle && Find(def->parent))
-		{
-			SwitchMenu(slot, def->parent);
-		}
-		else if (def->exitButton)
-		{
-			EndDisplay(slot, MenuEndReason::Exit);
-		}
+		NavClose(slot);
+	}
+}
+
+void MenuManager::HtmlNavSelect(int slot)
+{
+	PlayerMenu &pm = m_players[slot];
+	MenuDef *def = Find(pm.handle);
+	if (!def)
+	{
+		return;
+	}
+	// Selecting the inline Exit row closes the menu, otherwise pick the cursor item.
+	if (HtmlShowsExitRow(*def) && pm.cursor == static_cast<int>(def->items.size()))
+	{
+		EndDisplay(slot, MenuEndReason::Exit);
+	}
+	else
+	{
+		Select(slot, pm.cursor);
+	}
+}
+
+void MenuManager::NavClose(int slot)
+{
+	PlayerMenu &pm = m_players[slot];
+	MenuDef *def = Find(pm.handle);
+	if (!def)
+	{
+		return;
+	}
+	// Step up to the parent in a submenu, else exit (if exitable).
+	if (def->parent != kInvalidMenuHandle && Find(def->parent))
+	{
+		SwitchMenu(slot, def->parent);
+	}
+	else if (def->exitButton)
+	{
+		EndDisplay(slot, MenuEndReason::Exit);
+	}
+}
+
+void MenuManager::CommandNav(int slot, MenuNavAction action, float curtime)
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active)
+	{
+		return;
+	}
+	MenuDef *def = Find(pm.handle);
+	if (!def)
+	{
+		return;
+	}
+	m_curtime = curtime;
+
+	// Up/Down/Select drive the HTML cursor (chat menus use typed numbers).
+	// Back/close works for both render types.
+	bool html = (def->type != MenuType::Chat);
+	switch (action)
+	{
+		case MenuNavAction::Up:
+			if (html)
+			{
+				HtmlMoveCursor(slot, -1);
+			}
+			break;
+		case MenuNavAction::Down:
+			if (html)
+			{
+				HtmlMoveCursor(slot, +1);
+			}
+			break;
+		case MenuNavAction::Select:
+			if (html)
+			{
+				HtmlNavSelect(slot);
+			}
+			break;
+		case MenuNavAction::Back:
+			NavClose(slot);
+			break;
+	}
+}
+
+void MenuManager::CommandSelectNumber(int slot, int number, float curtime)
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active)
+	{
+		return;
+	}
+	MenuDef *def = Find(pm.handle);
+	if (!def)
+	{
+		return;
+	}
+	m_curtime = curtime;
+
+	// Numbers map to chat-menu entries (clamped to the current page).
+	// HTML menus show no numbers, so the number is ignored and the cursor row is selected instead.
+	if (def->type == MenuType::Chat)
+	{
+		ApplyChatNumber(slot, number);
+	}
+	else
+	{
+		HtmlNavSelect(slot);
 	}
 }
 

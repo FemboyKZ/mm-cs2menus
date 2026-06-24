@@ -14,6 +14,7 @@
 
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -675,6 +676,148 @@ void CS2MenusPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnecti
 	RETURN_META(MRES_IGNORED);
 }
 
+// Map a bare command body to a nav action. "menu_close" also answers to exit/back.
+static bool MatchMenuNavBody(const char *body, MenuNavAction &action)
+{
+	if (!strcmp(body, "menu_up"))
+	{
+		action = MenuNavAction::Up;
+		return true;
+	}
+	if (!strcmp(body, "menu_down"))
+	{
+		action = MenuNavAction::Down;
+		return true;
+	}
+	if (!strcmp(body, "menu_select"))
+	{
+		action = MenuNavAction::Select;
+		return true;
+	}
+	if (!strcmp(body, "menu_close") || !strcmp(body, "menu_exit") || !strcmp(body, "menu_back"))
+	{
+		action = MenuNavAction::Back;
+		return true;
+	}
+	return false;
+}
+
+// Parse a say message like "!menu_up", "/menu_close" or "!menu_select 3" into a nav
+// action plus an optional number (-1 if none, used by menu_select on chat menus).
+// `silent` is set when the silent prefix matched (only then is the chat line hidden).
+// Requires the configured chat or silent prefix, returns false otherwise.
+static bool ParseChatMenuNav(const char *rawMsg, MenuNavAction &action, int &number, bool &silent)
+{
+	number = -1;
+	silent = false;
+	std::string msg = rawMsg ? rawMsg : "";
+	// CS2 wraps the say argument in quotes.
+	if (msg.size() >= 2 && msg.front() == '"' && msg.back() == '"')
+	{
+		msg = msg.substr(1, msg.size() - 2);
+	}
+	size_t a = msg.find_first_not_of(" \t");
+	size_t b = msg.find_last_not_of(" \t");
+	if (a == std::string::npos)
+	{
+		return false;
+	}
+	msg = msg.substr(a, b - a + 1);
+
+	const std::string &p1 = g_MenusConfig.general.commandPrefix;
+	const std::string &p2 = g_MenusConfig.general.silentCommandPrefix;
+	std::string body;
+	if (!p1.empty() && msg.rfind(p1, 0) == 0)
+	{
+		body = msg.substr(p1.size());
+	}
+	else if (!p2.empty() && msg.rfind(p2, 0) == 0)
+	{
+		body = msg.substr(p2.size());
+		silent = true; // only the silent prefix hides the chat line
+	}
+	else
+	{
+		return false;
+	}
+
+	// Split "menu_select 3" into command + optional argument.
+	std::string cmd = body;
+	std::string arg;
+	size_t sp = body.find_first_of(" \t");
+	if (sp != std::string::npos)
+	{
+		cmd = body.substr(0, sp);
+		size_t argStart = body.find_first_not_of(" \t", sp);
+		if (argStart != std::string::npos)
+		{
+			arg = body.substr(argStart);
+		}
+	}
+	for (char &c : cmd)
+	{
+		c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+	}
+	if (!MatchMenuNavBody(cmd.c_str(), action))
+	{
+		return false;
+	}
+	if (!arg.empty())
+	{
+		number = atoi(arg.c_str());
+	}
+	return true;
+}
+
+// Client console backup for menu navigation.
+// Server console has no player slot and no menu, so it returns.
+static void RunMenuNavCommand(const CCommandContext &context, MenuNavAction action)
+{
+	int slot = context.GetPlayerSlot().Get();
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	CGlobalVars *globals = GetGameGlobals();
+	g_MenuManager.CommandNav(slot, action, globals ? globals->curtime : 0.0f);
+}
+
+CON_COMMAND_F(mm_menu_up, "Move the open menu's cursor up.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+{
+	RunMenuNavCommand(context, MenuNavAction::Up);
+}
+
+CON_COMMAND_F(mm_menu_down, "Move the open menu's cursor down.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+{
+	RunMenuNavCommand(context, MenuNavAction::Down);
+}
+
+// "mm_menu_select" selects the highlighted HTML row, or "mm_menu_select 3" picks chat entry 3.
+// Server console returns.
+CON_COMMAND_F(mm_menu_select, "Select a menu item: no arg = highlighted row, a number = that chat entry.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+{
+	int slot = context.GetPlayerSlot().Get();
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	CGlobalVars *globals = GetGameGlobals();
+	float curtime = globals ? globals->curtime : 0.0f;
+	if (args.ArgC() > 1)
+	{
+		g_MenuManager.CommandSelectNumber(slot, atoi(args.Arg(1)), curtime);
+	}
+	else
+	{
+		g_MenuManager.CommandNav(slot, MenuNavAction::Select, curtime);
+	}
+}
+
+CON_COMMAND_F(mm_menu_close, "Close / exit the open menu.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+{
+	RunMenuNavCommand(context, MenuNavAction::Back);
+}
+
 void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args)
 {
 	const char *cmdName = args.Arg(0);
@@ -709,6 +852,24 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 	// ProcessInput strips the outer quotes CS2 wraps around the say message.
 	CGlobalVars *globals = GetGameGlobals();
 	float curtime = globals ? globals->curtime : 0.0f;
+
+	// Backup nav via chat: "!menu_up" / "/menu_close" / "!menu_select 3".
+	// The silent prefix hides the chat line, the normal prefix leaves it visible.
+	MenuNavAction navAction;
+	int navNumber;
+	bool navSilent;
+	if (ParseChatMenuNav(rawMsg, navAction, navNumber, navSilent))
+	{
+		if (navAction == MenuNavAction::Select && navNumber >= 0)
+		{
+			g_MenuManager.CommandSelectNumber(slot, navNumber, curtime);
+		}
+		else
+		{
+			g_MenuManager.CommandNav(slot, navAction, curtime);
+		}
+		RETURN_META(navSilent ? MRES_SUPERCEDE : MRES_IGNORED);
+	}
 
 	if (g_MenuManager.ProcessInput(slot, rawMsg, curtime))
 	{
