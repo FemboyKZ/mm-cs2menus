@@ -27,6 +27,8 @@ internal static unsafe class Cs2MenusNative
 	private static delegate* unmanaged[Cdecl]<uint, nint, void*, void> _setEndCallback;
 	private static delegate* unmanaged[Cdecl]<uint, int, void> _setExitItem;
 	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setMenuKey;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setMenuLabel;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getMenuLabel;
 	private static delegate* unmanaged[Cdecl]<uint, int, void> _setStartItem;
 	private static delegate* unmanaged[Cdecl]<uint, byte*, uint, byte*, int> _addSubmenu;
 
@@ -85,6 +87,8 @@ internal static unsafe class Cs2MenusNative
 			_setEndCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)Get(lib, "cs2m_set_end_callback");
 			_setExitItem = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_set_exit_item");
 			_setMenuKey = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_menu_key");
+			_setMenuLabel = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)Get(lib, "cs2m_set_menu_label");
+			_getMenuLabel = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_menu_label");
 			_setStartItem = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_set_start_item");
 			_addSubmenu = (delegate* unmanaged[Cdecl]<uint, byte*, uint, byte*, int>)Get(lib, "cs2m_add_submenu");
 			_display = (delegate* unmanaged[Cdecl]<uint, int, float, int>)Get(lib, "cs2m_display");
@@ -154,6 +158,14 @@ internal static unsafe class Cs2MenusNative
 	public static void SetEndCallback(uint menu, nint onEnd, void* user) => _setEndCallback(menu, onEnd, user);
 	public static void SetExitItem(uint menu, bool v) => _setExitItem(menu, v ? 1 : 0);
 	public static void SetMenuKey(uint menu, int action, int button) => _setMenuKey(menu, action, button);
+
+	public static void SetMenuLabel(uint menu, int label, ReadOnlySpan<char> text)
+	{
+		fixed (byte* t = Utf8(text)) _setMenuLabel(menu, label, t);
+	}
+
+	public static string GetMenuLabel(uint menu, int label) => ReadString(_getMenuLabel, menu, label);
+
 	public static void SetStartItem(uint menu, int item) => _setStartItem(menu, item);
 
 	public static int AddSubmenu(uint parent, ReadOnlySpan<char> text, uint child, ReadOnlySpan<char> info)

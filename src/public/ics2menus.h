@@ -81,6 +81,18 @@ enum class MenuNavAction : int
 	Back,   // close / exit
 };
 
+// Built-in text that SetMenuLabel can rename per menu.
+enum class MenuLabel : int
+{
+	Exit = 0, // exit row / footer hint
+	NextPage, // chat next-page row
+	PrevPage, // chat previous-page row
+	Move,     // HTML footer, shown when both up and down are bound
+	Scroll,   // HTML footer, shown when only one of up/down is bound
+	Select,   // HTML footer select hint
+	Count,    // label count, not a valid argument
+};
+
 // Fired when a player selects an item.
 // `item` is the absolute index into the menu (0-based, across pages), not the on-screen 1-9 slot.
 // Use GetItemInfo / GetItemText to recover what was chosen.
@@ -226,6 +238,16 @@ public:
 
 	// Whether `slot` is currently yielded to an external menu system.
 	virtual bool GetExternalBusy(int slot) = 0;
+
+	// Rename one built-in label for this menu (Exit, page nav, footer hints).
+	// Pass "" to restore the server-configured default. See MenuLabel.
+	// Appended at the end of the interface so older consumers stay vtable-compatible.
+	virtual void SetMenuLabel(MenuHandle menu, MenuLabel label, const char *text) = 0;
+
+	// This menu's current label key for `label` (the value last set, or the built-in default).
+	// It's a phrase key / literal, not the translated text.
+	// Aliases internal storage, copy it, don't cache. Returns "" for an invalid handle/label.
+	virtual const char *GetMenuLabel(MenuHandle menu, MenuLabel label) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_

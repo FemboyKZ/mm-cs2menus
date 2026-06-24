@@ -5,9 +5,12 @@
 #include "entity/ccsplayercontroller.h"
 #include "entity/cgamerules.h"
 #include "gamedata.h"
+#include "lang/translations.h"
 #include "menu/menu_manager.h"
 #include "public/ics2menus.h"
 #include "render/center_html.h"
+
+#include "vendor/clientcvarvalue/public/iclientcvarvalue.h"
 
 #include <cctype>
 #include <cstdio>
@@ -30,6 +33,16 @@ IServerGameClients *g_pGameClients = nullptr;
 IVEngineServer *g_pEngine = nullptr;
 ICvar *g_pICvar = nullptr;
 IGameEventSystem *g_pGameEventSystem = nullptr;
+
+static IClientCvarValue *g_pClientCvarValue = nullptr;
+
+// Language key for the player in `slot`, mapped from their cl_language.
+// Empty string when unavailable, which makes Translate use the default language.
+static std::string SlotLanguage(int slot)
+{
+	const char *raw = g_pClientCvarValue ? g_pClientCvarValue->GetClientLanguage(CPlayerSlot(slot)) : nullptr;
+	return g_Translations.MapClientLanguage(raw);
+}
 
 CGameEntitySystem *g_pEntitySystem = nullptr;
 
@@ -157,6 +170,16 @@ class CS2MenusAPI : public ICS2Menus
 	void SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton button) override
 	{
 		g_MenuManager.SetMenuKey(menu, action, button);
+	}
+
+	void SetMenuLabel(MenuHandle menu, MenuLabel label, const char *text) override
+	{
+		g_MenuManager.SetMenuLabel(menu, label, text);
+	}
+
+	const char *GetMenuLabel(MenuHandle menu, MenuLabel label) override
+	{
+		return g_MenuManager.GetMenuLabel(menu, label);
 	}
 
 	bool DisplayMenu(MenuHandle menu, int slot, float duration) override
@@ -503,6 +526,13 @@ static void LoadAndApplyConfig()
 	applyNav(g_MenusConfig.menu.navBack, settings.keyBack, settings.keyBackLabel);
 
 	g_MenuManager.Configure(settings);
+
+	// Label translations. Re-acquire ClientCvarValue (optional, may load after us),
+	// reload the phrase files, and wire per-viewer language resolution.
+	g_pClientCvarValue = static_cast<IClientCvarValue *>(g_SMAPI->MetaFactory(CLIENTCVARVALUE_INTERFACE, nullptr, nullptr));
+	g_Translations.Load(g_SMAPI->GetBaseDir());
+	g_Translations.SetDefaultLanguage(g_MenusConfig.menu.defaultLanguage);
+	g_MenuManager.SetLanguageResolver([](int slot) { return SlotLanguage(slot); });
 }
 
 // Server console / rcon command to reapply core.cfg without waiting for a map change.

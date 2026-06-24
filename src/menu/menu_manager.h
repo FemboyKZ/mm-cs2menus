@@ -63,6 +63,8 @@ public:
 	void SetMenuEndCallback(MenuHandle menu, MenuEndFn onEnd);
 	void SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton button);
 	void SetExitItem(MenuHandle menu, bool enabled);
+	void SetMenuLabel(MenuHandle menu, MenuLabel label, const char *text);
+	const char *GetMenuLabel(MenuHandle menu, MenuLabel label) const;
 
 	// Live item mutation. Any player currently viewing the menu is re-rendered.
 	void SetItemText(MenuHandle menu, int item, const char *text);
@@ -138,6 +140,11 @@ public:
 	// When false, CreateMenu downgrades any HTML menu to chat so it stays usable.
 	void SetHtmlAvailable(bool available);
 
+	// Resolve a viewing player's language key for label translation.
+	// Set by the plugin from the optional ClientCvarValue interface.
+	// When unset (or it returns ""), the translation default language is used.
+	void SetLanguageResolver(std::function<std::string(int slot)> resolver);
+
 private:
 	struct MenuItem
 	{
@@ -170,6 +177,8 @@ private:
 		// Set when this menu is reached as a submenu, so Back returns to the parent.
 		MenuHandle parent = kInvalidMenuHandle;
 		NavOverride navOverride[4];
+		// Built-in labels, seeded from settings at CreateMenu, indexed by MenuLabel.
+		std::string labels[static_cast<int>(MenuLabel::Count)];
 	};
 
 	struct PlayerMenu
@@ -224,6 +233,12 @@ private:
 	uint64_t EffectiveNavMask(const MenuDef &def, MenuNavAction action) const;
 	std::string EffectiveNavLabel(const MenuDef &def, MenuNavAction action) const;
 
+	// Built-in phrase key for a label (seeds MenuDef, restores on SetMenuLabel("")).
+	static const char *DefaultLabelKey(MenuLabel label);
+	// Translate this menu's label for the player viewing in `slot`.
+	// Resolves the viewer's language, then looks the per-menu key up in the phrase table.
+	std::string ResolveLabel(int slot, const MenuDef &def, MenuLabel label) const;
+
 	// HTML: whether to render the selectable "Exit" row (after the last item).
 	// Shown when the menu is exitable and either the toggle is on or the Back key
 	// is disabled, so a menu is never left unexitable.
@@ -255,6 +270,9 @@ private:
 	// Latest game time, refreshed by Tick/PollButtons/DisplayMenu so HTML render
 	// scheduling doesn't need curtime threaded through every call.
 	float m_curtime = 0.0f;
+
+	// Maps a slot to its language key for label translation (see SetLanguageResolver).
+	std::function<std::string(int)> m_langResolver;
 };
 
 extern MenuManager g_MenuManager;

@@ -1,0 +1,29 @@
+// Built-in menu labels. 
+
+"Phrases"
+{
+	"Exit"
+	{
+		"en"	"Exit"
+	}
+	"Next Page"
+	{
+		"en"	"Next Page"
+	}
+	"Previous Page"
+	{
+		"en"	"Previous Page"
+	}
+	"Move"
+	{
+		"en"	"Move"
+	}
+	"Scroll"
+	{
+		"en"	"Scroll"
+	}
+	"Select"
+	{
+		"en"	"Select"
+	}
+}

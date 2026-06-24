@@ -105,6 +105,17 @@ CS2M_API void CS2M_CALL cs2m_set_menu_key(cs2m_handle menu, int action, int butt
 	API()->SetMenuKey(menu, static_cast<MenuNavAction>(action), static_cast<MenuButton>(button));
 }
 
+CS2M_API void CS2M_CALL cs2m_set_menu_label(cs2m_handle menu, int label, const char *text)
+{
+	API()->SetMenuLabel(menu, static_cast<MenuLabel>(label), text ? text : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_menu_label(cs2m_handle menu, int label, char *buf, int buflen)
+{
+	// Copy immediately: the returned pointer aliases live menu storage.
+	return CopyOut(API()->GetMenuLabel(menu, static_cast<MenuLabel>(label)), buf, buflen);
+}
+
 CS2M_API void CS2M_CALL cs2m_set_start_item(cs2m_handle menu, int item)
 {
 	API()->SetStartItem(menu, item);

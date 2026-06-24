@@ -39,6 +39,10 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.defaultType = ToLower(value);
 		}
+		else if (k == "defaultlanguage")
+		{
+			cfg->menu.defaultLanguage = ToLower(value);
+		}
 		else if (k == "itemsperpage")
 		{
 			cfg->menu.itemsPerPage = std::atoi(value.c_str());

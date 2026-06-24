@@ -6,3 +6,6 @@
 	path = hl2sdk-cs2
 	url = https://github.com/alliedmodders/hl2sdk
 	branch = cs2
+[submodule "vendor/ClientCvarValue"]
+	path = vendor/ClientCvarValue
+	url = https://github.com/komashchenko/ClientCvarValue.git

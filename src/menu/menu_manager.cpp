@@ -1,5 +1,6 @@
 #include "menu_manager.h"
 #include "src/entity/in_buttons.h"
+#include "src/lang/translations.h"
 #include "src/render/center_html.h"
 #include "src/utils/print_utils.h"
 
@@ -213,6 +214,10 @@ MenuHandle MenuManager::CreateMenu(MenuType type, const char *title, MenuItemSel
 	def.onSelect = std::move(onSelect);
 	def.exitButton = m_settings.defaultExitButton;
 	def.exitItem = m_settings.defaultExitItem;
+	for (int i = 0; i < static_cast<int>(MenuLabel::Count); i++)
+	{
+		def.labels[i] = DefaultLabelKey(static_cast<MenuLabel>(i));
+	}
 	m_menus.emplace(h, std::move(def));
 	return h;
 }
@@ -309,6 +314,34 @@ void MenuManager::SetExitItem(MenuHandle menu, bool enabled)
 	{
 		def->exitItem = enabled;
 	}
+}
+
+void MenuManager::SetMenuLabel(MenuHandle menu, MenuLabel label, const char *text)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	int idx = static_cast<int>(label);
+	if (!def || idx < 0 || idx >= static_cast<int>(MenuLabel::Count))
+	{
+		return;
+	}
+	// Empty restores the built-in key.
+	// A non-empty value is a phrase key (translated per viewer) or literal text when no phrase matches.
+	def->labels[idx] = (text && text[0]) ? text : DefaultLabelKey(label);
+	RefreshMenu(menu);
+}
+
+// Returned pointer aliases internal storage: valid only until the next mutating call, don't cache it.
+const char *MenuManager::GetMenuLabel(MenuHandle menu, MenuLabel label) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	int idx = static_cast<int>(label);
+	if (!def || idx < 0 || idx >= static_cast<int>(MenuLabel::Count))
+	{
+		return "";
+	}
+	return def->labels[idx].c_str();
 }
 
 void MenuManager::SetItemText(MenuHandle menu, int item, const char *text)
@@ -460,6 +493,34 @@ std::string MenuManager::EffectiveNavLabel(const MenuDef &def, MenuNavAction act
 		default:
 			return m_settings.keyBackLabel;
 	}
+}
+
+const char *MenuManager::DefaultLabelKey(MenuLabel label)
+{
+	// These double as the phrase keys in cs2menus.phrases.txt.
+	switch (label)
+	{
+		case MenuLabel::NextPage:
+			return "Next Page";
+		case MenuLabel::PrevPage:
+			return "Previous Page";
+		case MenuLabel::Move:
+			return "Move";
+		case MenuLabel::Scroll:
+			return "Scroll";
+		case MenuLabel::Select:
+			return "Select";
+		case MenuLabel::Exit:
+		default:
+			return "Exit";
+	}
+}
+
+std::string MenuManager::ResolveLabel(int slot, const MenuDef &def, MenuLabel label) const
+{
+	const std::string &key = def.labels[static_cast<int>(label)];
+	std::string lang = m_langResolver ? m_langResolver(slot) : std::string();
+	return g_Translations.Translate(lang, key);
 }
 
 bool MenuManager::DisplayMenu(MenuHandle menu, int slot, float duration, float curtime)
@@ -1142,6 +1203,12 @@ void MenuManager::SetHtmlAvailable(bool available)
 	m_htmlAvailable = available;
 }
 
+void MenuManager::SetLanguageResolver(std::function<std::string(int)> resolver)
+{
+	ScopedLock lock(m_mutex);
+	m_langResolver = std::move(resolver);
+}
+
 void MenuManager::RefreshMenu(MenuHandle menu)
 {
 	// Rendering touches the engine, defer off-thread callers to GameFrame.
@@ -1247,17 +1314,18 @@ void MenuManager::RenderPage(int slot)
 
 	if (hasMore)
 	{
-		std::string line = "\x01#" + std::to_string(m_itemsPerPage + 1) + " \x04-> Next Page";
+		std::string line = "\x01#" + std::to_string(m_itemsPerPage + 1) + " \x04-> " + ResolveLabel(slot, *def, MenuLabel::NextPage);
 		MENU_PrintToChat(slot, "%s", line.c_str());
 	}
 	if (hasPrev)
 	{
-		std::string line = "\x01#" + std::to_string(m_itemsPerPage + 2) + " \x04-> Previous Page";
+		std::string line = "\x01#" + std::to_string(m_itemsPerPage + 2) + " \x04-> " + ResolveLabel(slot, *def, MenuLabel::PrevPage);
 		MENU_PrintToChat(slot, "%s", line.c_str());
 	}
 	if (def->exitButton)
 	{
-		MENU_PrintToChat(slot, "\x01#0 \x04-> Exit");
+		std::string line = "\x01#0 \x04-> " + ResolveLabel(slot, *def, MenuLabel::Exit);
+		MENU_PrintToChat(slot, "%s", line.c_str());
 	}
 }
 
@@ -1335,7 +1403,9 @@ void MenuManager::RenderHtml(int slot)
 			}
 			html += "<font color='";
 			html += selected ? m_settings.navColor : m_settings.footerColor;
-			html += "' class='fontSize-sm'>Exit</font><br>";
+			html += "' class='fontSize-sm'>";
+			html += center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Exit));
+			html += "</font><br>";
 			continue;
 		}
 
@@ -1378,23 +1448,24 @@ void MenuManager::RenderHtml(int slot)
 
 	if (upOn && downOn)
 	{
-		addSegment("Move: " + EffectiveNavLabel(*def, MenuNavAction::Up) + "/" + EffectiveNavLabel(*def, MenuNavAction::Down));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Move)) + ": " + EffectiveNavLabel(*def, MenuNavAction::Up) + "/"
+				   + EffectiveNavLabel(*def, MenuNavAction::Down));
 	}
 	else if (downOn)
 	{
-		addSegment("Scroll: " + EffectiveNavLabel(*def, MenuNavAction::Down));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Scroll)) + ": " + EffectiveNavLabel(*def, MenuNavAction::Down));
 	}
 	else if (upOn)
 	{
-		addSegment("Scroll: " + EffectiveNavLabel(*def, MenuNavAction::Up));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Scroll)) + ": " + EffectiveNavLabel(*def, MenuNavAction::Up));
 	}
 	if (selectOn)
 	{
-		addSegment("Select: " + EffectiveNavLabel(*def, MenuNavAction::Select));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Select)) + ": " + EffectiveNavLabel(*def, MenuNavAction::Select));
 	}
 	if (backOn)
 	{
-		addSegment("Exit: " + EffectiveNavLabel(*def, MenuNavAction::Back));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Exit)) + ": " + EffectiveNavLabel(*def, MenuNavAction::Back));
 	}
 
 	html += "<font color='";

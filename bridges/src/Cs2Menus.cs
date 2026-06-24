@@ -16,6 +16,8 @@ public enum MenuButton
 
 public enum MenuNavAction { Up = 0, Down = 1, Select = 2, Back = 3 }
 
+public enum MenuLabel { Exit = 0, NextPage = 1, PrevPage = 2, Move = 3, Scroll = 4, Select = 5 }
+
 /// <summary>
 /// Entry point: load cs2menus and create menus. Framework-agnostic core:
 /// each host package adds a <c>LoadDefault</c> partial that resolves the binary path.
@@ -163,6 +165,10 @@ public sealed class Cs2Menu : IDisposable
 	public Cs2Menu SetCloseOnSelect(bool enabled) { Cs2MenusNative.SetCloseOnSelect(Handle, enabled); return this; }
 	public Cs2Menu SetExitItem(bool enabled) { Cs2MenusNative.SetExitItem(Handle, enabled); return this; }
 	public Cs2Menu SetMenuKey(MenuNavAction action, MenuButton button) { Cs2MenusNative.SetMenuKey(Handle, (int)action, (int)button); return this; }
+	/// <summary>Rename a built-in label (Exit, page nav, footer hints). "" restores the configured default.</summary>
+	public Cs2Menu SetMenuLabel(MenuLabel label, string text) { Cs2MenusNative.SetMenuLabel(Handle, (int)label, text); return this; }
+	/// <summary>The label's current key (last set, or the default). This is the key/literal, not the translated text.</summary>
+	public string GetMenuLabel(MenuLabel label) => Cs2MenusNative.GetMenuLabel(Handle, (int)label);
 	public Cs2Menu SetStartItem(int item) { Cs2MenusNative.SetStartItem(Handle, item); return this; }
 
 	// --- Show ---

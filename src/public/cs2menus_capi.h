@@ -31,6 +31,7 @@
 //   reason:  0 Selected, 1 Exit, 2 Timeout, 3 Disconnect, 4 Cancelled, 5 Destroyed
 //   action:  0 Up, 1 Down, 2 Select, 3 Back
 //   button:  0 Default, 1..13 W/A/S/D/Use/Speed/Duck/Jump/Reload/Attack/Attack2/Score/Inspect, 14 None
+//   label:   0 Exit, 1 NextPage, 2 PrevPage, 3 Move, 4 Scroll, 5 Select
 
 typedef uint32_t cs2m_handle; // 0 = invalid
 
@@ -60,6 +61,10 @@ CS2M_API void CS2M_CALL cs2m_set_close_on_select(cs2m_handle menu, int enabled);
 CS2M_API void CS2M_CALL cs2m_set_end_callback(cs2m_handle menu, cs2m_end_cb on_end, void *user);
 CS2M_API void CS2M_CALL cs2m_set_exit_item(cs2m_handle menu, int enabled);
 CS2M_API void CS2M_CALL cs2m_set_menu_key(cs2m_handle menu, int action, int button);
+// Rename a built-in label (see `label` values above). "" restores the configured default.
+CS2M_API void CS2M_CALL cs2m_set_menu_label(cs2m_handle menu, int label, const char *text);
+// Read a built-in label's current key (last set, or the default). Buffer semantics like cs2m_get_item_text.
+CS2M_API int CS2M_CALL cs2m_get_menu_label(cs2m_handle menu, int label, char *buf, int buflen);
 CS2M_API void CS2M_CALL cs2m_set_start_item(cs2m_handle menu, int item);
 CS2M_API int CS2M_CALL cs2m_add_submenu(cs2m_handle parent, const char *text, cs2m_handle child, const char *info);
 

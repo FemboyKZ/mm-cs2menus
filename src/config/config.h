@@ -16,6 +16,11 @@ struct MenuDefaultsCfg
 	// Default render style applied when a consumer creates a menu with
 	// MenuType::Default: "chat" or "html".
 	std::string defaultType = "chat";
+
+	// Fallback language key for built-in label translations, used when a client's
+	// cl_language is unknown or a phrase file lacks it. See translations/.
+	std::string defaultLanguage = "en";
+
 	// Items shown per page in a chat menu
 	// (clamped to 1-7, the remaining keys 8/9/0 drive Next/Prev/Exit).
 	int itemsPerPage = 7;

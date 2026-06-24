@@ -119,12 +119,16 @@ for task in MMSPlugin.binaries:
 
     packages[sdk_name].addBinary(task.binary)
 
-    # Deploy config files to cfg/cs2rtv/
+    # Deploy config files to cfg/cs2menus/
     cfg_src = os.path.join(builder.sourcePath, "configs")
     cfg_dst = "cfg/cs2menus"
     builder.AddFolder(cfg_dst)
     for cfg_file in glob.glob(os.path.join(cfg_src, "*.cfg")):
         builder.AddCopy(cfg_file, os.path.join(cfg_dst, os.path.basename(cfg_file)))
+
+    # Deploy translation files to addons/cs2menus/translations/.
+    # result_path is relative to the plugin folder (addFolder/addFile prepend it).
+    packages[sdk_name].addFolder("translations", "translations")
 
     if task.debug:
         pdb_list.append(task.debug)
