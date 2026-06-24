@@ -15,11 +15,27 @@ It owns player input and rendering so other Metamod plugins can create interacti
 
 Pass `MenuType::Default` to use the server's configured default style.
 
+## Plugins using this library
+
+- [CS2RockTheVote](https://github.com/FemboyKZ/mm-cs2rockthevote)
+- [CS2KZ-Metamod](https://github.com/KZGlobalTeam/cs2kz-metamod)
+
 ## For server owners
 
-1. Install [Metamod:Source 2.0](https://www.metamodsource.net/downloads.php?branch=dev) on a CS2 dedicated server.
-2. Drop the built plugin into `addons/` and the config into `cfg/cs2menus/core.cfg`.
-3. On its own, this plugin does nothing visible, it's a library other plugins use.
+### Dependencies
+
+- CS2 Server
+- [Metamod:Source 2.0](https://www.metamodsource.net/downloads.php?branch=dev)
+- (Optional) [ClientConvarValue](https://github.com/komashchenko/ClientCvarValue) - For client translation support
+
+### Installation
+
+1. Download the [latest release](https://github.com/FemboyKZ/mm-cs2menus/releases/latest).
+2. Extract the downloaded `.zip` file into your server's root folder (`~/game/csgo/`).
+3. (Optional) If you use [CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp) and/or [SwiftlyS2](https://github.com/swiftly-solution/swiftlys2), you might want to install the **bridge** plugins.
+
+> [!note]
+> On its own, this plugin does nothing visible, it's a library other plugins use.
 
 ### Configuration
 
