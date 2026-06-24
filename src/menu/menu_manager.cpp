@@ -94,9 +94,11 @@ static constexpr int kHtmlDurationSecs = 3;
 static constexpr float kHtmlRefreshInterval = 1.0f;
 // Resend an unchanged panel at least this often to beat the decay. Must be < kHtmlDurationSecs.
 static constexpr float kHtmlKeepAlive = 2.0f;
-// Duration for the empty panel we send to clear a closed menu.
-// Must be positive: with 0 the panel never expires and an empty box lingers.
+// Content + duration used to clear a closed menu's panel.
+// An empty loc_token never decays, so we send a non-empty but invisible payload with a short TTL:
+// it renders to nothing and then expires.
 static constexpr int kHtmlClearDurationSecs = 1;
+static const char *kHtmlClearContent = "<font></font>";
 static const char *kHtmlMarker = "\xE2\x96\xB6 "; // ▶
 
 // Cap on nested menu callbacks, so a consumer that re-displays a menu inside its
@@ -687,7 +689,7 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 		{
 			if (wasHtml)
 			{
-				center_html::Send(slot, "", kHtmlClearDurationSecs); // clear the panel immediately
+				center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs); // clear the panel immediately
 			}
 			DepthGuard guard(m_callbackDepth);
 			if (onEnd && guard.enter())
@@ -699,7 +701,7 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 		{
 			// Defer the panel clear to main. The Destroyed callback is skipped:
 			// the consumer initiated this, and running its lambda off-thread is unsafe.
-			m_pending.push_back([this, slot] { center_html::Send(slot, "", kHtmlClearDurationSecs); });
+			m_pending.push_back([this, slot] { center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs); });
 		}
 	}
 }
@@ -752,7 +754,7 @@ void MenuManager::EndDisplay(int slot, MenuEndReason reason)
 	{
 		if (def->type != MenuType::Chat)
 		{
-			center_html::Send(slot, "", kHtmlClearDurationSecs);
+			center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
 		}
 	}
 
@@ -806,7 +808,7 @@ void MenuManager::Select(int slot, int itemIndex)
 		pm.handle = kInvalidMenuHandle;
 		if (wasHtml)
 		{
-			center_html::Send(slot, "", kHtmlClearDurationSecs);
+			center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
 		}
 
 		{
@@ -859,7 +861,7 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle)
 	bool newHtml = newDef->type != MenuType::Chat;
 	if (oldHtml && !newHtml)
 	{
-		center_html::Send(slot, "", kHtmlClearDurationSecs);
+		center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
 	}
 
 	pm.handle = handle;
