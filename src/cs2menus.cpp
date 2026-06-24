@@ -10,7 +10,7 @@
 #include "public/ics2menus.h"
 #include "render/center_html.h"
 
-#include "vendor/clientcvarvalue/public/iclientcvarvalue.h"
+#include "vendor/ClientCvarValue/public/iclientcvarvalue.h"
 
 #include <cctype>
 #include <cstdio>
