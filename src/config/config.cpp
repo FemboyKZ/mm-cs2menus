@@ -43,13 +43,77 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.defaultLanguage = ToLower(value);
 		}
+		else if (k == "exitbutton")
+		{
+			cfg->menu.exitButton = (value != "0");
+		}
 		else if (k == "itemsperpage")
 		{
 			cfg->menu.itemsPerPage = std::atoi(value.c_str());
 		}
-		else if (k == "exitbutton")
+		else if (k == "chattitlecolor")
 		{
-			cfg->menu.exitButton = (value != "0");
+			cfg->menu.chatTitleColor = ToLower(value);
+		}
+		else if (k == "chatpagecolor")
+		{
+			cfg->menu.chatPageColor = ToLower(value);
+		}
+		else if (k == "chatitemcolor")
+		{
+			cfg->menu.chatItemColor = ToLower(value);
+		}
+		else if (k == "chatdisabledcolor")
+		{
+			cfg->menu.chatDisabledColor = ToLower(value);
+		}
+		else if (k == "chatarrowcolor")
+		{
+			cfg->menu.chatArrowColor = ToLower(value);
+		}
+		else if (k == "chatheadercolor")
+		{
+			cfg->menu.chatHeaderColor = ToLower(value);
+		}
+		else if (k == "chattitleprefix")
+		{
+			cfg->menu.chatTitlePrefix = value;
+		}
+		else if (k == "chattitlesuffix")
+		{
+			cfg->menu.chatTitleSuffix = value;
+		}
+		else if (k == "chatnumberprefix")
+		{
+			cfg->menu.chatNumberPrefix = value;
+		}
+		else if (k == "chatnumbersuffix")
+		{
+			cfg->menu.chatNumberSuffix = value;
+		}
+		else if (k == "chatdisabledprefix")
+		{
+			cfg->menu.chatDisabledPrefix = value;
+		}
+		else if (k == "chatarrow")
+		{
+			cfg->menu.chatArrow = value;
+		}
+		else if (k == "chatpageprefix")
+		{
+			cfg->menu.chatPagePrefix = value;
+		}
+		else if (k == "chatpagesuffix")
+		{
+			cfg->menu.chatPageSuffix = value;
+		}
+		else if (k == "chatshowpage")
+		{
+			cfg->menu.chatShowPage = (value != "0");
+		}
+		else if (k == "chatheader")
+		{
+			cfg->menu.chatHeader = value;
 		}
 		else if (k == "htmlvisibleitems")
 		{
@@ -70,6 +134,82 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		else if (k == "htmldisabledcolor")
 		{
 			cfg->menu.htmlDisabledColor = value;
+		}
+		else if (k == "htmltitlecolor")
+		{
+			cfg->menu.htmlTitleColor = value;
+		}
+		else if (k == "htmlitemcolor")
+		{
+			cfg->menu.htmlItemColor = value;
+		}
+		else if (k == "htmlfontface")
+		{
+			cfg->menu.htmlFontFace = value;
+		}
+		else if (k == "htmlmarker")
+		{
+			cfg->menu.htmlMarker = value;
+		}
+		else if (k == "htmlcountercolor")
+		{
+			cfg->menu.htmlCounterColor = value;
+		}
+		else if (k == "htmlfootersize")
+		{
+			cfg->menu.htmlFooterSize = ToLower(value);
+		}
+		else if (k == "htmlshowcounter")
+		{
+			cfg->menu.htmlShowCounter = (value != "0");
+		}
+		else if (k == "htmlshowfooter")
+		{
+			cfg->menu.htmlShowFooter = (value != "0");
+		}
+		else if (k == "htmlsubmenusuffix")
+		{
+			cfg->menu.htmlSubmenuSuffix = value;
+		}
+		else if (k == "htmlfooterseparator")
+		{
+			cfg->menu.htmlFooterSeparator = value;
+		}
+		else if (k == "htmlcounterprefix")
+		{
+			cfg->menu.htmlCounterPrefix = value;
+		}
+		else if (k == "htmlcountersuffix")
+		{
+			cfg->menu.htmlCounterSuffix = value;
+		}
+		else if (k == "htmlhighlighttext")
+		{
+			cfg->menu.htmlHighlightText = (value != "0");
+		}
+		else if (k == "htmldurationsecs")
+		{
+			cfg->menu.htmlDurationSecs = std::atoi(value.c_str());
+		}
+		else if (k == "htmlrefreshinterval")
+		{
+			cfg->menu.htmlRefreshInterval = static_cast<float>(std::atof(value.c_str()));
+		}
+		else if (k == "htmlkeepalive")
+		{
+			cfg->menu.htmlKeepAlive = static_cast<float>(std::atof(value.c_str()));
+		}
+		else if (k == "htmltitlesize")
+		{
+			cfg->menu.htmlTitleSize = ToLower(value);
+		}
+		else if (k == "htmlitemsize")
+		{
+			cfg->menu.htmlItemSize = ToLower(value);
+		}
+		else if (k == "htmlcentered")
+		{
+			cfg->menu.htmlCentered = (value != "0");
 		}
 		else if (k == "htmlfixflashing")
 		{

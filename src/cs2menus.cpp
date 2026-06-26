@@ -183,6 +183,16 @@ class CS2MenusAPI : public ICS2Menus
 		return g_MenuManager.GetMenuLabel(menu, label);
 	}
 
+	void SetMenuStyle(MenuHandle menu, MenuStyle field, const char *value) override
+	{
+		g_MenuManager.SetMenuStyle(menu, field, value);
+	}
+
+	const char *GetMenuStyle(MenuHandle menu, MenuStyle field) override
+	{
+		return g_MenuManager.GetMenuStyle(menu, field);
+	}
+
 	bool DisplayMenu(MenuHandle menu, int slot, float duration) override
 	{
 		// GetGameGlobals is main-thread only. Off-thread passes 0,
@@ -298,6 +308,26 @@ class CS2MenusAPI : public ICS2Menus
 	bool GetItemDisabled(MenuHandle menu, int item) override
 	{
 		return g_MenuManager.GetItemDisabled(menu, item);
+	}
+
+	void SetItemRaw(MenuHandle menu, int item, bool raw) override
+	{
+		g_MenuManager.SetItemRaw(menu, item, raw);
+	}
+
+	bool GetItemRaw(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemRaw(menu, item);
+	}
+
+	void SetItemIcon(MenuHandle menu, int item, const char *url) override
+	{
+		g_MenuManager.SetItemIcon(menu, item, url);
+	}
+
+	const char *GetItemIcon(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemIcon(menu, item);
 	}
 
 	int GetStartItem(MenuHandle menu) override
@@ -473,6 +503,33 @@ static bool IsValidHexColor(const std::string &s)
 	return true;
 }
 
+// Resolve a chat color name to its client control byte (see CHAT_COLOR_* in common.h).
+// Chat has only the fixed client palette, so colors are names, not hex.
+// Names match common.h. Unknown names return `fallback` so a typo keeps the built-in color.
+static std::string ChatColorByte(const std::string &name, const char *fallback)
+{
+	struct Entry
+	{
+		const char *name;
+		const char *code;
+	};
+
+	static const Entry kColors[] = {
+		{"default", CHAT_COLOR_DEFAULT}, {"darkred", CHAT_COLOR_DARKRED},   {"purple", CHAT_COLOR_PURPLE},     {"green", CHAT_COLOR_GREEN},
+		{"olive", CHAT_COLOR_OLIVE},     {"lime", CHAT_COLOR_LIME},         {"red", CHAT_COLOR_RED},           {"grey", CHAT_COLOR_GREY},
+		{"yellow", CHAT_COLOR_YELLOW},   {"bluegrey", CHAT_COLOR_BLUEGREY}, {"blue", CHAT_COLOR_BLUE},         {"darkblue", CHAT_COLOR_DARKBLUE},
+		{"grey2", CHAT_COLOR_GREY2},     {"orchid", CHAT_COLOR_ORCHID},     {"lightred", CHAT_COLOR_LIGHTRED}, {"gold", CHAT_COLOR_GOLD},
+	};
+	for (const Entry &e : kColors)
+	{
+		if (name == e.name)
+		{
+			return e.code;
+		}
+	}
+	return fallback;
+}
+
 // Reload cfg/cs2menus/core.cfg and push the settings into the menu manager.
 static void LoadAndApplyConfig()
 {
@@ -485,10 +542,29 @@ static void LoadAndApplyConfig()
 	}
 
 	MenuManagerSettings settings;
+	const MenuDefaultsCfg &m = g_MenusConfig.menu;
 	settings.acceptedPrefixes = g_MenusConfig.general.commandPrefix + g_MenusConfig.general.silentCommandPrefix;
 	settings.itemsPerPage = g_MenusConfig.menu.itemsPerPage;
 	settings.defaultType = ParseMenuType(g_MenusConfig.menu.defaultType);
 	settings.defaultExitButton = g_MenusConfig.menu.exitButton;
+
+	// Chat styling: resolve color names to control bytes, copy decoration as-is.
+	settings.chatTitleColor = ChatColorByte(m.chatTitleColor, CHAT_COLOR_GREEN);
+	settings.chatPageColor = ChatColorByte(m.chatPageColor, CHAT_COLOR_DEFAULT);
+	settings.chatItemColor = ChatColorByte(m.chatItemColor, CHAT_COLOR_DEFAULT);
+	settings.chatDisabledColor = ChatColorByte(m.chatDisabledColor, CHAT_COLOR_GREY);
+	settings.chatArrowColor = ChatColorByte(m.chatArrowColor, CHAT_COLOR_GREEN);
+	settings.chatHeaderColor = ChatColorByte(m.chatHeaderColor, CHAT_COLOR_DEFAULT);
+	settings.chatTitlePrefix = m.chatTitlePrefix;
+	settings.chatTitleSuffix = m.chatTitleSuffix;
+	settings.chatNumberPrefix = m.chatNumberPrefix;
+	settings.chatNumberSuffix = m.chatNumberSuffix;
+	settings.chatDisabledPrefix = m.chatDisabledPrefix;
+	settings.chatArrow = m.chatArrow;
+	settings.chatPagePrefix = m.chatPagePrefix;
+	settings.chatPageSuffix = m.chatPageSuffix;
+	settings.chatShowPage = m.chatShowPage;
+	settings.chatHeader = m.chatHeader;
 	settings.htmlVisibleItems = g_MenusConfig.menu.htmlVisibleItems;
 	settings.defaultExitItem = g_MenusConfig.menu.htmlExitItem;
 	if (IsValidHexColor(g_MenusConfig.menu.htmlNavColor))
@@ -503,6 +579,56 @@ static void LoadAndApplyConfig()
 	{
 		settings.disabledColor = g_MenusConfig.menu.htmlDisabledColor;
 	}
+	// Size tokens accepted by the renderer. An unknown value keeps the built-in default.
+	auto isSizeToken = [](const std::string &t) { return t == "s" || t == "sm" || t == "m" || t == "ml" || t == "l"; };
+	if (IsValidHexColor(g_MenusConfig.menu.htmlTitleColor))
+	{
+		settings.titleColor = g_MenusConfig.menu.htmlTitleColor;
+	}
+	if (IsValidHexColor(g_MenusConfig.menu.htmlItemColor))
+	{
+		settings.itemColor = g_MenusConfig.menu.htmlItemColor;
+	}
+	// Font face is an arbitrary Panorama class, accepted as-is (empty keeps the game default).
+	settings.fontFace = g_MenusConfig.menu.htmlFontFace;
+	settings.marker = g_MenusConfig.menu.htmlMarker;
+	if (IsValidHexColor(g_MenusConfig.menu.htmlCounterColor))
+	{
+		settings.counterColor = g_MenusConfig.menu.htmlCounterColor;
+	}
+	if (isSizeToken(g_MenusConfig.menu.htmlFooterSize))
+	{
+		settings.footerSize = g_MenusConfig.menu.htmlFooterSize;
+	}
+	settings.showCounter = g_MenusConfig.menu.htmlShowCounter;
+	settings.showFooter = g_MenusConfig.menu.htmlShowFooter;
+	settings.submenuSuffix = g_MenusConfig.menu.htmlSubmenuSuffix;
+	settings.footerSeparator = g_MenusConfig.menu.htmlFooterSeparator;
+	settings.counterPrefix = g_MenusConfig.menu.htmlCounterPrefix;
+	settings.counterSuffix = g_MenusConfig.menu.htmlCounterSuffix;
+	settings.highlightText = g_MenusConfig.menu.htmlHighlightText;
+	// Resend cadence: keep sane and keepAlive strictly below the decay duration, else the panel blinks.
+	if (g_MenusConfig.menu.htmlDurationSecs >= 1)
+	{
+		settings.htmlDurationSecs = g_MenusConfig.menu.htmlDurationSecs;
+	}
+	if (g_MenusConfig.menu.htmlRefreshInterval > 0.0f)
+	{
+		settings.htmlRefreshInterval = g_MenusConfig.menu.htmlRefreshInterval;
+	}
+	if (g_MenusConfig.menu.htmlKeepAlive > 0.0f && g_MenusConfig.menu.htmlKeepAlive < settings.htmlDurationSecs)
+	{
+		settings.htmlKeepAlive = g_MenusConfig.menu.htmlKeepAlive;
+	}
+	if (isSizeToken(g_MenusConfig.menu.htmlTitleSize))
+	{
+		settings.titleSize = g_MenusConfig.menu.htmlTitleSize;
+	}
+	if (isSizeToken(g_MenusConfig.menu.htmlItemSize))
+	{
+		settings.itemSize = g_MenusConfig.menu.htmlItemSize;
+	}
+	settings.centered = g_MenusConfig.menu.htmlCentered;
 
 	// HTML nav keys. "none"/"off"/blank disables the action (mask 0),
 	// an unrecognized name leaves the default binding untouched.

@@ -21,15 +21,43 @@ struct MenuDefaultsCfg
 	// cl_language is unknown or a phrase file lacks it. See translations/.
 	std::string defaultLanguage = "en";
 
-	// Items shown per page in a chat menu
-	// (clamped to 1-7, the remaining keys 8/9/0 drive Next/Prev/Exit).
-	int itemsPerPage = 7;
 	// Default state of the "0. Exit" entry for newly created menus.
 	bool exitButton = true;
 
+	// --- CHAT menus ---
+
+	// Items shown per page in a chat menu
+	// (clamped to 1-7, the remaining keys 8/9/0 drive Next/Prev/Exit).
+	int itemsPerPage = 7;
+
+	// Chat line colors, by name (the fixed client palette, not hex).
+	// Names match the CHAT_COLOR_* set in common.h: default, darkred, purple, green, olive, lime, red,
+	// grey, yellow, bluegrey, blue, darkblue, grey2, orchid, lightred, gold.
+	// Unknown names keep the default.
+	std::string chatTitleColor = "orchid";   // title text + its decoration
+	std::string chatPageColor = "default";   // the "(page x/y)" indicator
+	std::string chatItemColor = "default";   // enabled item number + text
+	std::string chatDisabledColor = "grey";  // disabled item line
+	std::string chatArrowColor = "orchid";   // Next/Prev/Exit arrow + label
+	std::string chatHeaderColor = "default"; // optional header line (see ChatHeader)
+
+	// Chat decoration strings.
+	std::string chatTitlePrefix = "-- ";  // before the title text
+	std::string chatTitleSuffix = " --";  // after the title (and page indicator)
+	std::string chatNumberPrefix = "#";   // before an item's selection number
+	std::string chatNumberSuffix = " ";   // between the number and the text
+	std::string chatDisabledPrefix = "#"; // replaces the number prefix on disabled rows
+	std::string chatArrow = "-> ";        // before Next/Prev/Exit labels
+	std::string chatPagePrefix = "(page ";
+	std::string chatPageSuffix = ")";
+	bool chatShowPage = true; // show the "(page x/y)" indicator on multi-page menus
+	// Optional branded line printed above the title (may use embedded color codes). Empty = none.
+	std::string chatHeader;
+
 	// --- HTML menus ---
-	// Rows visible at once in an HTML menu (scrolling window, clamped 1-6).
-	int htmlVisibleItems = 6;
+
+	// Rows visible at once in an HTML menu (scrolling window, clamped 1-20).
+	int htmlVisibleItems = 7;
 	// Show a selectable "Exit" row in HTML menus.
 	// Auto-forced on anyway when the Back key is disabled, so the menu is never left unexitable.
 	bool htmlExitItem = false;
@@ -37,6 +65,32 @@ struct MenuDefaultsCfg
 	std::string htmlNavColor = "#ff2ee7";      // cursor row + marker
 	std::string htmlFooterColor = "#909090";   // key-hint footer
 	std::string htmlDisabledColor = "#808080"; // greyed-out items
+	std::string htmlTitleColor = "#ff00e1";    // title accent
+	std::string htmlItemColor = "#FFFFFF";     // normal item text
+	// Size tokens (s/sm/m/ml/l) and whether every line is centered in the panel.
+	std::string htmlTitleSize = "l";
+	std::string htmlItemSize = "sm";
+	bool htmlCentered = true;
+	// Panorama font class for every line (empty = game default), and the cursor marker text.
+	std::string htmlFontFace;
+	std::string htmlMarker = "\xE2\x96\xB6 "; // ▶
+	// Position counter color + size of the key-hint footer, and whether each is shown.
+	std::string htmlCounterColor = "#9aa0a6";
+	std::string htmlFooterSize = "s";
+	bool htmlShowCounter = true;
+	bool htmlShowFooter = true;
+	// Submenu-item suffix, footer segment separator, counter brackets, and whether the
+	// cursor row's text is recolored (vs. marked only by the marker).
+	std::string htmlSubmenuSuffix = " >";
+	std::string htmlFooterSeparator = " | ";
+	std::string htmlCounterPrefix = "[";
+	std::string htmlCounterSuffix = "]";
+	bool htmlHighlightText = true;
+	// Center-panel resend cadence (the message decays, re-sent while open).
+	// KeepAlive must stay below DurationSecs or the panel can blink.
+	int htmlDurationSecs = 3;
+	float htmlRefreshInterval = 1.0f;
+	float htmlKeepAlive = 2.0f;
 
 	// Workaround for the center-HTML (show_survival_respawn_status) panel flashing:
 	// fake CCSGameRules::m_bGameRestart while an HTML menu is shown.

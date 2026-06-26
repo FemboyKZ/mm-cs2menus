@@ -23,6 +23,7 @@
 #endif
 
 // Bump when the C ABI below changes incompatibly. Hosts gate on this.
+// New exports appended at the end are backward-compatible (old hosts simply don't call them).
 #define CS2M_ABI_VERSION 1
 
 // Mirrors MenuType / MenuEndReason / MenuButton / MenuNavAction (ics2menus.h),
@@ -32,6 +33,9 @@
 //   action:  0 Up, 1 Down, 2 Select, 3 Back
 //   button:  0 Default, 1..13 W/A/S/D/Use/Speed/Duck/Jump/Reload/Attack/Attack2/Score/Inspect, 14 None
 //   label:   0 Exit, 1 NextPage, 2 PrevPage, 3 Move, 4 Scroll, 5 Select
+//   style:   0 TitleColor, 1 TitleSize, 2 ItemSize, 3 NavColor, 4 FooterColor, 5 DisabledColor, 6 Centered,
+//            7 FontFace, 8 ItemColor, 9 Marker, 10 CounterColor, 11 ShowCounter, 12 FooterSize, 13 ShowFooter,
+//            14 SubmenuSuffix, 15 FooterSeparator, 16 CounterPrefix, 17 CounterSuffix, 18 HighlightText
 
 typedef uint32_t cs2m_handle; // 0 = invalid
 
@@ -67,6 +71,11 @@ CS2M_API void CS2M_CALL cs2m_set_menu_label(cs2m_handle menu, int label, const c
 CS2M_API int CS2M_CALL cs2m_get_menu_label(cs2m_handle menu, int label, char *buf, int buflen);
 CS2M_API void CS2M_CALL cs2m_set_start_item(cs2m_handle menu, int item);
 CS2M_API int CS2M_CALL cs2m_add_submenu(cs2m_handle parent, const char *text, cs2m_handle child, const char *info);
+// Override one HTML style field (see `style` values above). "" inherits the server default.
+// Sizes take a token ("s" "sm" "m" "ml" "l"), colors "#RRGGBB", Centered "1"/"0".
+CS2M_API void CS2M_CALL cs2m_set_menu_style(cs2m_handle menu, int field, const char *value);
+// Read a style field's effective value. Buffer semantics like cs2m_get_item_text.
+CS2M_API int CS2M_CALL cs2m_get_menu_style(cs2m_handle menu, int field, char *buf, int buflen);
 
 // --- Show / hide ---
 
@@ -103,6 +112,12 @@ CS2M_API void CS2M_CALL cs2m_set_item_text(cs2m_handle menu, int item, const cha
 CS2M_API void CS2M_CALL cs2m_set_item_info(cs2m_handle menu, int item, const char *info);
 CS2M_API void CS2M_CALL cs2m_set_item_disabled(cs2m_handle menu, int item, int disabled);
 CS2M_API int CS2M_CALL cs2m_get_item_disabled(cs2m_handle menu, int item);
+// HTML menus: render an item's text as raw Panorama markup (unescaped). See ICS2Menus::SetItemRaw.
+CS2M_API void CS2M_CALL cs2m_set_item_raw(cs2m_handle menu, int item, int raw);
+CS2M_API int CS2M_CALL cs2m_get_item_raw(cs2m_handle menu, int item);
+// HTML menus: show an image before the item's text (icon URL / packaged path). "" removes it.
+CS2M_API void CS2M_CALL cs2m_set_item_icon(cs2m_handle menu, int item, const char *url);
+CS2M_API int CS2M_CALL cs2m_get_item_icon(cs2m_handle menu, int item, char *buf, int buflen);
 CS2M_API void CS2M_CALL cs2m_remove_item(cs2m_handle menu, int item);
 CS2M_API void CS2M_CALL cs2m_remove_all_items(cs2m_handle menu);
 CS2M_API int CS2M_CALL cs2m_get_start_item(cs2m_handle menu);

@@ -10,12 +10,9 @@
 //   ICS2Menus *menus = (ICS2Menus *)g_SMAPI->MetaFactory(
 //       CS2MENUS_INTERFACE, nullptr, nullptr);
 //
-// cs2menus owns player chat input: while a player has an open menu, the plugin
-// intercepts their "say"/"say_team" numeric input, drives the menu, and suppresses the chat line.
+// cs2menus owns player chat input: while a player has an open menu,
+// it intercepts their "say"/"say_team" numeric input, drives the menu, and suppresses the chat line.
 // Consumers only build menus and react to selections.
-//
-// ABI note: this interface is consumed by sibling plugins built with the SAME toolchain as cs2menus,
-// so passing std::function / std::string across the boundary is safe here
 //
 // Threading: every method is safe from the main (game) thread or a worker thread.
 //  - Build/query calls (CreateMenu, AddItem, SetX, GetX...) run inline under a lock.
@@ -91,6 +88,33 @@ enum class MenuLabel : int
 	Scroll,   // HTML footer, shown when only one of up/down is bound
 	Select,   // HTML footer select hint
 	Count,    // label count, not a valid argument
+};
+
+// Per-menu HTML style fields settable via SetMenuStyle.
+// Each overrides the matching server default for this one menu.
+// Pass "" to clear the override (inherit).
+// HTML menus only, ignored for chat menus.
+enum class MenuStyle : int
+{
+	TitleColor = 0,  // hex "#RRGGBB" for the title line
+	TitleSize,       // size token: "s" "sm" "m" "ml" "l"
+	ItemSize,        // size token for item + cursor rows
+	NavColor,        // hex for the cursor row + marker
+	FooterColor,     // hex for the key-hint footer
+	DisabledColor,   // hex for greyed-out items
+	Centered,        // "1" center every line, "0" left-align
+	FontFace,        // Panorama font class, e.g. "stratum-bold" / "stratum-light-mono". "" = game default
+	ItemColor,       // hex for normal (unselected, enabled) item text
+	Marker,          // literal text drawn before the cursor row (default "▶ ")
+	CounterColor,    // hex for the "[n/m]" position counter
+	ShowCounter,     // "1" show the "[n/m]" counter on the title line, "0" hide it
+	FooterSize,      // size token for the key-hint footer
+	ShowFooter,      // "1" show the key-hint footer, "0" hide it
+	SubmenuSuffix,   // text appended to items that open a submenu (default " >"). A space = none
+	FooterSeparator, // text between footer hint segments (default " | ")
+	CounterPrefix,   // text before the counter number (default "[")
+	CounterSuffix,   // text after the counter number (default "]")
+	HighlightText,   // "1" recolor the cursor row's text to NavColor, "0" only the marker marks it
 };
 
 // Fired when a player selects an item.
@@ -241,13 +265,41 @@ public:
 
 	// Rename one built-in label for this menu (Exit, page nav, footer hints).
 	// Pass "" to restore the server-configured default. See MenuLabel.
-	// Appended at the end of the interface so older consumers stay vtable-compatible.
 	virtual void SetMenuLabel(MenuHandle menu, MenuLabel label, const char *text) = 0;
 
 	// This menu's current label key for `label` (the value last set, or the built-in default).
 	// It's a phrase key / literal, not the translated text.
 	// Aliases internal storage, copy it, don't cache. Returns "" for an invalid handle/label.
 	virtual const char *GetMenuLabel(MenuHandle menu, MenuLabel label) = 0;
+
+	// Override one HTML style field for this menu (see MenuStyle). Pass "" to inherit the server default.
+	// Re-renders any player currently viewing the menu. No-op for chat menus.
+	virtual void SetMenuStyle(MenuHandle menu, MenuStyle field, const char *value) = 0;
+
+	// This menu's effective value for a style field (the override if set, else the server default).
+	// Sizes come back as the token, colors as "#RRGGBB", Centered as "1"/"0".
+	// Aliases internal storage, copy it, don't cache. Returns "" for an invalid handle/field.
+	virtual const char *GetMenuStyle(MenuHandle menu, MenuStyle field) = 0;
+
+	// HTML menus: mark an item's text as raw markup instead of plain text (default off).
+	// Raw text is NOT escaped and chat color codes are NOT translated, so it can embed
+	// Panorama HTML directly, e.g. "<img src='https://.../icon.png'> Rank".
+	// The item is still wrapped in the row's size/face/color, which the raw markup may override.
+	// You own the markup: keep it well-formed or it can break the panel. No-op for chat menus.
+	virtual void SetItemRaw(MenuHandle menu, int item, bool raw) = 0;
+
+	// True if the item is flagged as raw markup. False for an invalid handle/index.
+	virtual bool GetItemRaw(MenuHandle menu, int item) = 0;
+
+	// HTML menus: show an image just before the item's text, e.g. a rank or role icon.
+	// `url` is a Panorama image source: an "http(s)://..." URL or a packaged material path.
+	// Composes with the normal (escaped) item text, so you don't need SetItemRaw for a plain
+	// "icon + label" row. Pass "" to remove it. No-op for chat menus.
+	virtual void SetItemIcon(MenuHandle menu, int item, const char *url) = 0;
+
+	// The item's icon URL (see SetItemIcon), or "" if none / invalid handle.
+	// Aliases internal storage, copy it, don't cache.
+	virtual const char *GetItemIcon(MenuHandle menu, int item) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_

@@ -87,19 +87,44 @@ static void MenuButtonToBinding(MenuButton button, uint64_t &outMask, const char
 	}
 }
 
+// Map an HTML size token (s/sm/m/ml/l) to its Panorama fontSize class.
+// An already-qualified "fontSize-..." string passes through. Unknown -> "".
+static std::string SizeClass(const std::string &tok)
+{
+	if (tok.rfind("fontSize-", 0) == 0)
+	{
+		return tok;
+	}
+	if (tok == "s")
+	{
+		return "fontSize-s";
+	}
+	if (tok == "sm")
+	{
+		return "fontSize-sm";
+	}
+	if (tok == "m")
+	{
+		return "fontSize-m";
+	}
+	if (tok == "ml")
+	{
+		return "fontSize-ml";
+	}
+	if (tok == "l")
+	{
+		return "fontSize-l";
+	}
+	return "";
+}
+
 MenuManager g_MenuManager;
 
-// HTML menus decay, we re-send with this duration and refresh a bit faster.
-static constexpr int kHtmlDurationSecs = 3;
-static constexpr float kHtmlRefreshInterval = 1.0f;
-// Resend an unchanged panel at least this often to beat the decay. Must be < kHtmlDurationSecs.
-static constexpr float kHtmlKeepAlive = 2.0f;
 // Content + duration used to clear a closed menu's panel.
 // An empty loc_token never decays, so we send a non-empty but invisible payload with a short TTL:
 // it renders to nothing and then expires.
 static constexpr int kHtmlClearDurationSecs = 1;
 static const char *kHtmlClearContent = "<font></font>";
-static const char *kHtmlMarker = "\xE2\x96\xB6 "; // ▶
 
 // Cap on nested menu callbacks, so a consumer that re-displays a menu inside its
 // own onSelect/onEnd can't recurse the server into a stack overflow.
@@ -346,6 +371,143 @@ const char *MenuManager::GetMenuLabel(MenuHandle menu, MenuLabel label) const
 	return def->labels[idx].c_str();
 }
 
+void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *value)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def)
+	{
+		return;
+	}
+	std::string v = value ? value : "";
+	StyleOverride &s = def->style;
+	switch (field)
+	{
+		case MenuStyle::TitleColor:
+			s.titleColor = v;
+			break;
+		case MenuStyle::NavColor:
+			s.navColor = v;
+			break;
+		case MenuStyle::FooterColor:
+			s.footerColor = v;
+			break;
+		case MenuStyle::DisabledColor:
+			s.disabledColor = v;
+			break;
+		case MenuStyle::ItemColor:
+			s.itemColor = v;
+			break;
+		case MenuStyle::FontFace:
+			s.fontFace = v;
+			break;
+		case MenuStyle::Marker:
+			s.marker = v;
+			break;
+		case MenuStyle::CounterColor:
+			s.counterColor = v;
+			break;
+		case MenuStyle::SubmenuSuffix:
+			s.submenuSuffix = v;
+			break;
+		case MenuStyle::FooterSeparator:
+			s.footerSeparator = v;
+			break;
+		case MenuStyle::CounterPrefix:
+			s.counterPrefix = v;
+			break;
+		case MenuStyle::CounterSuffix:
+			s.counterSuffix = v;
+			break;
+		case MenuStyle::TitleSize:
+			// Empty clears the override, an unknown token is ignored so a typo can't blank the size.
+			if (v.empty() || !SizeClass(v).empty())
+			{
+				s.titleSize = v;
+			}
+			break;
+		case MenuStyle::ItemSize:
+			if (v.empty() || !SizeClass(v).empty())
+			{
+				s.itemSize = v;
+			}
+			break;
+		case MenuStyle::FooterSize:
+			if (v.empty() || !SizeClass(v).empty())
+			{
+				s.footerSize = v;
+			}
+			break;
+		case MenuStyle::Centered:
+			s.centered = v.empty() ? -1 : (v != "0" ? 1 : 0);
+			break;
+		case MenuStyle::ShowCounter:
+			s.showCounter = v.empty() ? -1 : (v != "0" ? 1 : 0);
+			break;
+		case MenuStyle::ShowFooter:
+			s.showFooter = v.empty() ? -1 : (v != "0" ? 1 : 0);
+			break;
+		case MenuStyle::HighlightText:
+			s.highlightText = v.empty() ? -1 : (v != "0" ? 1 : 0);
+			break;
+	}
+	RefreshMenu(menu);
+}
+
+// Returned pointer aliases internal storage: valid only until the next mutating call, don't cache it.
+const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	if (!def)
+	{
+		return "";
+	}
+	const StyleOverride &s = def->style;
+	switch (field)
+	{
+		case MenuStyle::TitleColor:
+			return s.titleColor.empty() ? m_settings.titleColor.c_str() : s.titleColor.c_str();
+		case MenuStyle::NavColor:
+			return s.navColor.empty() ? m_settings.navColor.c_str() : s.navColor.c_str();
+		case MenuStyle::FooterColor:
+			return s.footerColor.empty() ? m_settings.footerColor.c_str() : s.footerColor.c_str();
+		case MenuStyle::DisabledColor:
+			return s.disabledColor.empty() ? m_settings.disabledColor.c_str() : s.disabledColor.c_str();
+		case MenuStyle::ItemColor:
+			return s.itemColor.empty() ? m_settings.itemColor.c_str() : s.itemColor.c_str();
+		case MenuStyle::FontFace:
+			return s.fontFace.empty() ? m_settings.fontFace.c_str() : s.fontFace.c_str();
+		case MenuStyle::Marker:
+			return s.marker.empty() ? m_settings.marker.c_str() : s.marker.c_str();
+		case MenuStyle::CounterColor:
+			return s.counterColor.empty() ? m_settings.counterColor.c_str() : s.counterColor.c_str();
+		case MenuStyle::SubmenuSuffix:
+			return s.submenuSuffix.empty() ? m_settings.submenuSuffix.c_str() : s.submenuSuffix.c_str();
+		case MenuStyle::FooterSeparator:
+			return s.footerSeparator.empty() ? m_settings.footerSeparator.c_str() : s.footerSeparator.c_str();
+		case MenuStyle::CounterPrefix:
+			return s.counterPrefix.empty() ? m_settings.counterPrefix.c_str() : s.counterPrefix.c_str();
+		case MenuStyle::CounterSuffix:
+			return s.counterSuffix.empty() ? m_settings.counterSuffix.c_str() : s.counterSuffix.c_str();
+		case MenuStyle::TitleSize:
+			return s.titleSize.empty() ? m_settings.titleSize.c_str() : s.titleSize.c_str();
+		case MenuStyle::ItemSize:
+			return s.itemSize.empty() ? m_settings.itemSize.c_str() : s.itemSize.c_str();
+		case MenuStyle::FooterSize:
+			return s.footerSize.empty() ? m_settings.footerSize.c_str() : s.footerSize.c_str();
+		case MenuStyle::Centered:
+			return (s.centered < 0 ? m_settings.centered : s.centered != 0) ? "1" : "0";
+		case MenuStyle::ShowCounter:
+			return (s.showCounter < 0 ? m_settings.showCounter : s.showCounter != 0) ? "1" : "0";
+		case MenuStyle::ShowFooter:
+			return (s.showFooter < 0 ? m_settings.showFooter : s.showFooter != 0) ? "1" : "0";
+		case MenuStyle::HighlightText:
+			return (s.highlightText < 0 ? m_settings.highlightText : s.highlightText != 0) ? "1" : "0";
+	}
+	return "";
+}
+
 void MenuManager::SetItemText(MenuHandle menu, int item, const char *text)
 {
 	ScopedLock lock(m_mutex);
@@ -389,6 +551,53 @@ void MenuManager::SetItemDisabled(MenuHandle menu, int item, bool disabled)
 		return;
 	}
 	def->items[item].disabled = disabled;
+	RefreshMenu(menu);
+}
+
+bool MenuManager::GetItemRaw(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	{
+		return false;
+	}
+	return def->items[item].raw;
+}
+
+void MenuManager::SetItemRaw(MenuHandle menu, int item, bool raw)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	{
+		return;
+	}
+	def->items[item].raw = raw;
+	RefreshMenu(menu);
+}
+
+// Returned pointer aliases internal storage: valid only until the next mutating call, don't cache it.
+const char *MenuManager::GetItemIcon(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	{
+		return "";
+	}
+	return def->items[item].iconUrl.c_str();
+}
+
+void MenuManager::SetItemIcon(MenuHandle menu, int item, const char *url)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	{
+		return;
+	}
+	def->items[item].iconUrl = url ? url : "";
 	RefreshMenu(menu);
 }
 
@@ -1407,39 +1616,53 @@ void MenuManager::RenderPage(int slot)
 	int pageEnd = (std::min)(pageStart + m_itemsPerPage, static_cast<int>(items.size()));
 	int pageItems = pageEnd - pageStart;
 
-	// Built as std::string so long titles/items aren't truncated by a fixed buffer.
-	std::string title = "\x04-- " + def->title;
-	if (pageCount > 1)
+	const MenuManagerSettings &s = m_settings;
+
+	// Optional branded header line above the title.
+	if (!s.chatHeader.empty())
 	{
-		title += " \x01(page " + std::to_string(pm.page + 1) + "/" + std::to_string(pageCount) + ")";
+		std::string header = s.chatHeaderColor + s.chatHeader;
+		MENU_PrintToChat(slot, "%s", header.c_str());
 	}
-	title += " --";
+
+	// Built as std::string so long titles/items aren't truncated by a fixed buffer.
+	std::string title = s.chatTitleColor + s.chatTitlePrefix + def->title;
+	if (pageCount > 1 && s.chatShowPage)
+	{
+		title += " " + s.chatPageColor + s.chatPagePrefix + std::to_string(pm.page + 1) + "/" + std::to_string(pageCount) + s.chatPageSuffix;
+	}
+	title += s.chatTitleColor + s.chatTitleSuffix;
 	MENU_PrintToChat(slot, "%s", title.c_str());
 
+	// Item rows: color + number + text. The number is the on-screen 1..N selection key.
 	for (int i = 0; i < pageItems; i++)
 	{
 		const MenuItem &item = items[pageStart + i];
-		std::string line = item.disabled ? "\x08#" : "\x01#";
+		std::string line = item.disabled ? (s.chatDisabledColor + s.chatDisabledPrefix) : (s.chatItemColor + s.chatNumberPrefix);
 		line += std::to_string(i + 1);
-		line += " ";
+		line += s.chatNumberSuffix;
 		line += item.text;
 		MENU_PrintToChat(slot, "%s", line.c_str());
 	}
 
+	// Nav/exit rows: item-colored number, then arrow-colored arrow + label.
+	auto navRow = [&](int key, MenuLabel label)
+	{
+		std::string line = s.chatItemColor + s.chatNumberPrefix + std::to_string(key) + s.chatNumberSuffix;
+		line += s.chatArrowColor + s.chatArrow + ResolveLabel(slot, *def, label);
+		MENU_PrintToChat(slot, "%s", line.c_str());
+	};
 	if (hasMore)
 	{
-		std::string line = "\x01#" + std::to_string(m_itemsPerPage + 1) + " \x04-> " + ResolveLabel(slot, *def, MenuLabel::NextPage);
-		MENU_PrintToChat(slot, "%s", line.c_str());
+		navRow(m_itemsPerPage + 1, MenuLabel::NextPage);
 	}
 	if (hasPrev)
 	{
-		std::string line = "\x01#" + std::to_string(m_itemsPerPage + 2) + " \x04-> " + ResolveLabel(slot, *def, MenuLabel::PrevPage);
-		MENU_PrintToChat(slot, "%s", line.c_str());
+		navRow(m_itemsPerPage + 2, MenuLabel::PrevPage);
 	}
 	if (def->exitButton)
 	{
-		std::string line = "\x01#0 \x04-> " + ResolveLabel(slot, *def, MenuLabel::Exit);
-		MENU_PrintToChat(slot, "%s", line.c_str());
+		navRow(0, MenuLabel::Exit);
 	}
 }
 
@@ -1459,7 +1682,7 @@ void MenuManager::RenderHtml(int slot)
 		return;
 	}
 
-	pm.nextHtmlRender = m_curtime + kHtmlRefreshInterval;
+	pm.nextHtmlRender = m_curtime + m_settings.htmlRefreshInterval;
 
 	const auto &items = def->items;
 	int itemCount = static_cast<int>(items.size());
@@ -1475,16 +1698,47 @@ void MenuManager::RenderHtml(int slot)
 		pm.cursor = count - 1;
 	}
 
+	// Resolve effective style: per-menu override, else the server default.
+	const StyleOverride &st = def->style;
+	const std::string &titleColor = st.titleColor.empty() ? m_settings.titleColor : st.titleColor;
+	const std::string &navColor = st.navColor.empty() ? m_settings.navColor : st.navColor;
+	const std::string &footerColor = st.footerColor.empty() ? m_settings.footerColor : st.footerColor;
+	const std::string &disabledColor = st.disabledColor.empty() ? m_settings.disabledColor : st.disabledColor;
+	const std::string &itemColor = st.itemColor.empty() ? m_settings.itemColor : st.itemColor;
+	const std::string &fontFace = st.fontFace.empty() ? m_settings.fontFace : st.fontFace;
+	const std::string &marker = st.marker.empty() ? m_settings.marker : st.marker;
+	const std::string &counterColor = st.counterColor.empty() ? m_settings.counterColor : st.counterColor;
+	const std::string &submenuSuffix = st.submenuSuffix.empty() ? m_settings.submenuSuffix : st.submenuSuffix;
+	const std::string &footerSep = st.footerSeparator.empty() ? m_settings.footerSeparator : st.footerSeparator;
+	const std::string &counterPrefix = st.counterPrefix.empty() ? m_settings.counterPrefix : st.counterPrefix;
+	const std::string &counterSuffix = st.counterSuffix.empty() ? m_settings.counterSuffix : st.counterSuffix;
+	bool centered = (st.centered < 0) ? m_settings.centered : (st.centered != 0);
+	bool showCounter = (st.showCounter < 0) ? m_settings.showCounter : (st.showCounter != 0);
+	bool showFooter = (st.showFooter < 0) ? m_settings.showFooter : (st.showFooter != 0);
+	bool highlightText = (st.highlightText < 0) ? m_settings.highlightText : (st.highlightText != 0);
+	// Suffix appended to every class list: centering, then an optional font face.
+	std::string commonCls = centered ? " horizontal-center" : "";
+	if (!fontFace.empty())
+	{
+		commonCls += " " + fontFace;
+	}
+	const std::string titleCls = SizeClass(st.titleSize.empty() ? m_settings.titleSize : st.titleSize) + commonCls;
+	const std::string itemCls = SizeClass(st.itemSize.empty() ? m_settings.itemSize : st.itemSize) + commonCls;
+	const std::string footerCls = SizeClass(st.footerSize.empty() ? m_settings.footerSize : st.footerSize) + commonCls;
+	const std::string markerHtml = center_html::Escape(marker);
+
 	std::string html;
 	html.reserve(512);
 
-	// Title + position counter.
-	html += center_html::ColorizeChat(def->title, "#FFFFFF", "fontSize-m");
-	if (count > 0)
+	// Title + position counter (counter dimmed so the title reads first).
+	html += center_html::ColorizeChat(def->title, titleColor.c_str(), titleCls.c_str());
+	if (showCounter && count > 0)
 	{
-		char counter[64];
-		snprintf(counter, sizeof(counter), " <font class='fontSize-s' color='#FFFFFF'>[%d/%d]</font>", pm.cursor + 1, count);
-		html += counter;
+		html += " <font class='fontSize-s" + commonCls + "' color='" + counterColor + "'>";
+		html += center_html::Escape(counterPrefix);
+		html += std::to_string(pm.cursor + 1) + "/" + std::to_string(count);
+		html += center_html::Escape(counterSuffix);
+		html += "</font>";
 	}
 	html += "<br>";
 
@@ -1510,14 +1764,14 @@ void MenuManager::RenderHtml(int slot)
 			if (selected)
 			{
 				html += "<font color='";
-				html += m_settings.navColor;
-				html += "' class='fontSize-sm'>";
-				html += kHtmlMarker;
+				html += navColor;
+				html += "' class='" + itemCls + "'>";
+				html += markerHtml;
 				html += "</font>";
 			}
 			html += "<font color='";
-			html += selected ? m_settings.navColor : m_settings.footerColor;
-			html += "' class='fontSize-sm'>";
+			html += (selected && highlightText) ? navColor : footerColor;
+			html += "' class='" + itemCls + "'>";
 			html += center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Exit));
 			html += "</font><br>";
 			continue;
@@ -1528,14 +1782,41 @@ void MenuManager::RenderHtml(int slot)
 		if (selected)
 		{
 			html += "<font color='";
-			html += m_settings.navColor;
-			html += "' class='fontSize-sm'>";
-			html += kHtmlMarker;
+			html += navColor;
+			html += "' class='" + itemCls + "'>";
+			html += markerHtml;
 			html += "</font>";
 		}
 
-		const char *base = item.disabled ? m_settings.disabledColor.c_str() : (selected ? m_settings.navColor.c_str() : "#FFFFFF");
-		html += center_html::ColorizeChat(item.text, base, "fontSize-sm");
+		if (!item.iconUrl.empty())
+		{
+			html += "<img src='" + center_html::Escape(item.iconUrl) + "'> ";
+		}
+
+		const char *base = item.disabled ? disabledColor.c_str() : ((selected && highlightText) ? navColor.c_str() : itemColor.c_str());
+		if (item.raw)
+		{
+			// Raw markup: keep the row's size/face/color wrapper but emit the text verbatim,
+			// so it can embed <img>/<font>/etc. The consumer owns well-formedness.
+			html += "<font color='";
+			html += base;
+			html += "' class='" + itemCls + "'>";
+			html += item.text;
+			html += "</font>";
+		}
+		else
+		{
+			html += center_html::ColorizeChat(item.text, base, itemCls.c_str());
+		}
+		// Trailing affordance so a submenu item reads as "opens another menu".
+		if (item.submenu != kInvalidMenuHandle && !submenuSuffix.empty())
+		{
+			html += "<font color='";
+			html += base;
+			html += "' class='" + itemCls + "'>";
+			html += center_html::Escape(submenuSuffix);
+			html += "</font>";
+		}
 		html += "<br>";
 	}
 
@@ -1546,8 +1827,9 @@ void MenuManager::RenderHtml(int slot)
 	bool selectOn = EffectiveNavMask(*def, MenuNavAction::Select) != 0;
 	bool backOn = def->exitButton && EffectiveNavMask(*def, MenuNavAction::Back) != 0;
 
+	std::string footerSepEsc = center_html::Escape(footerSep);
 	std::string footer;
-	auto addSegment = [&footer](const std::string &seg)
+	auto addSegment = [&footer, &footerSepEsc](const std::string &seg)
 	{
 		if (seg.empty())
 		{
@@ -1555,7 +1837,7 @@ void MenuManager::RenderHtml(int slot)
 		}
 		if (!footer.empty())
 		{
-			footer += " | ";
+			footer += footerSepEsc;
 		}
 		footer += seg;
 	};
@@ -1582,19 +1864,22 @@ void MenuManager::RenderHtml(int slot)
 		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Exit)) + ": " + EffectiveNavLabel(*def, MenuNavAction::Back));
 	}
 
-	html += "<font color='";
-	html += m_settings.footerColor;
-	html += "' class='fontSize-s'>";
-	html += footer;
-	html += "</font>";
+	if (showFooter && !footer.empty())
+	{
+		html += "<font color='";
+		html += footerColor;
+		html += "' class='" + footerCls + "'>";
+		html += footer;
+		html += "</font>";
+	}
 
 	// Skip the network send when nothing changed, except a periodic keep-alive so the
 	// decaying panel doesn't blink. Saves bandwidth with many viewers idling on a menu.
 	bool changed = (html != pm.lastHtml);
-	bool keepAliveDue = (m_curtime - pm.lastHtmlSend) >= kHtmlKeepAlive;
+	bool keepAliveDue = (m_curtime - pm.lastHtmlSend) >= m_settings.htmlKeepAlive;
 	if (changed || keepAliveDue)
 	{
-		center_html::Send(slot, html.c_str(), kHtmlDurationSecs);
+		center_html::Send(slot, html.c_str(), m_settings.htmlDurationSecs);
 		pm.lastHtml = html;
 		pm.lastHtmlSend = m_curtime;
 	}

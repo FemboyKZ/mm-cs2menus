@@ -14,7 +14,9 @@
 
 // Hard ceiling on chat-menu items per page: keys 1-7 select, 8/9 page, 0 exits.
 static constexpr int MENU_MAX_ITEMS_PER_PAGE = 7;
-static constexpr int MENU_MAX_HTML_VISIBLE = 7;
+// HTML menus scroll with movement keys, so they aren't bound by the 1-7 chat key limit.
+// This is just a sanity ceiling on the on-screen window.
+static constexpr int MENU_MAX_HTML_VISIBLE = 20;
 
 // Settings parsed from core.cfg and pushed in via Configure.
 struct MenuManagerSettings
@@ -23,6 +25,23 @@ struct MenuManagerSettings
 	std::string acceptedPrefixes = "!/";
 	// Chat: items per page (clamped 1..MENU_MAX_ITEMS_PER_PAGE).
 	int itemsPerPage = MENU_MAX_ITEMS_PER_PAGE;
+	// Chat styling. Colors are resolved control-byte strings (CHAT_COLOR_*), decoration is literal text.
+	std::string chatTitleColor = CHAT_COLOR_ORCHID;
+	std::string chatPageColor = CHAT_COLOR_DEFAULT;
+	std::string chatItemColor = CHAT_COLOR_DEFAULT;
+	std::string chatDisabledColor = CHAT_COLOR_GREY;
+	std::string chatArrowColor = CHAT_COLOR_ORCHID;
+	std::string chatHeaderColor = CHAT_COLOR_DEFAULT;
+	std::string chatTitlePrefix = "-- ";
+	std::string chatTitleSuffix = " --";
+	std::string chatNumberPrefix = "#";
+	std::string chatNumberSuffix = " ";
+	std::string chatDisabledPrefix = "#";
+	std::string chatArrow = "-> ";
+	std::string chatPagePrefix = "(page ";
+	std::string chatPageSuffix = ")";
+	bool chatShowPage = true;
+	std::string chatHeader;
 	// Resolves MenuType::Default at CreateMenu time.
 	MenuType defaultType = MenuType::Chat;
 	// Exit-button default for new menus.
@@ -31,7 +50,7 @@ struct MenuManagerSettings
 	bool defaultExitItem = false;
 
 	// HTML: rows visible at once (clamped 1..MENU_MAX_HTML_VISIBLE).
-	int htmlVisibleItems = MENU_MAX_HTML_VISIBLE;
+	int htmlVisibleItems = 7;
 	// HTML: button bitmasks (IN_*) for navigation. Defaults = WASD.
 	uint64_t keyUp = 0x8;       // W (IN_FORWARD)
 	uint64_t keyDown = 0x10;    // S (IN_BACK)
@@ -46,6 +65,33 @@ struct MenuManagerSettings
 	std::string navColor = "#ff2ee7";
 	std::string footerColor = "#909090";
 	std::string disabledColor = "#808080";
+	// HTML: title accent color, size tokens (s/sm/m/ml/l), and whether lines are centered.
+	std::string titleColor = "#ff00e1";
+	std::string titleSize = "l";
+	std::string itemSize = "sm";
+	bool centered = true;
+	// HTML: normal item text color, cursor marker text, and an optional Panorama font
+	// class applied to every line (empty = the game's default font).
+	std::string itemColor = "#FFFFFF";
+	std::string marker = "\xE2\x96\xB6 "; // ▶
+	std::string fontFace;
+	// HTML: position counter + key-hint footer styling and visibility.
+	std::string counterColor = "#9aa0a6";
+	std::string footerSize = "s";
+	bool showCounter = true;
+	bool showFooter = true;
+	// HTML: submenu-item suffix, footer segment separator, counter brackets, and whether
+	// the cursor row's text is recolored (vs. marked only by the marker).
+	std::string submenuSuffix = " >"; // »
+	std::string footerSeparator = " | ";
+	std::string counterPrefix = "[";
+	std::string counterSuffix = "]";
+	bool highlightText = true;
+	// HTML: center-panel resend cadence (the message decays, so it's re-sent while open).
+	// keepAlive must stay below durationSecs or the panel can blink.
+	int htmlDurationSecs = 3;
+	float htmlRefreshInterval = 1.0f;
+	float htmlKeepAlive = 2.0f;
 };
 
 // Backing store for the public ICS2Menus API. Holds menus by handle plus
@@ -65,6 +111,8 @@ public:
 	void SetExitItem(MenuHandle menu, bool enabled);
 	void SetMenuLabel(MenuHandle menu, MenuLabel label, const char *text);
 	const char *GetMenuLabel(MenuHandle menu, MenuLabel label) const;
+	void SetMenuStyle(MenuHandle menu, MenuStyle field, const char *value);
+	const char *GetMenuStyle(MenuHandle menu, MenuStyle field) const;
 
 	// Live item mutation. Any player currently viewing the menu is re-rendered.
 	void SetItemText(MenuHandle menu, int item, const char *text);
@@ -74,6 +122,10 @@ public:
 	void RemoveAllItems(MenuHandle menu);
 
 	bool GetItemDisabled(MenuHandle menu, int item) const;
+	void SetItemRaw(MenuHandle menu, int item, bool raw);
+	bool GetItemRaw(MenuHandle menu, int item) const;
+	void SetItemIcon(MenuHandle menu, int item, const char *url);
+	const char *GetItemIcon(MenuHandle menu, int item) const;
 
 	// Item the menu opens on (HTML cursor / chat page). Clamped at display.
 	void SetStartItem(MenuHandle menu, int item);
@@ -161,6 +213,10 @@ private:
 		std::string text;
 		std::string info;
 		bool disabled = false;
+		// HTML: text is raw Panorama markup, rendered unescaped (see SetItemRaw).
+		bool raw = false;
+		// HTML: optional image drawn before the text (see SetItemIcon).
+		std::string iconUrl;
 		// Selecting this item navigates into another menu instead of firing onSelect.
 		MenuHandle submenu = kInvalidMenuHandle;
 	};
@@ -171,6 +227,30 @@ private:
 	{
 		uint64_t mask = 0;
 		std::string label;
+	};
+
+	// Per-menu HTML style overrides. Empty string / centered<0 means inherit the server default.
+	struct StyleOverride
+	{
+		std::string titleColor;
+		std::string titleSize; // size token (s/sm/m/ml/l)
+		std::string itemSize;
+		std::string navColor;
+		std::string footerColor;
+		std::string disabledColor;
+		std::string itemColor;
+		std::string fontFace;
+		std::string marker; // empty = inherit (use a space for "no marker")
+		std::string counterColor;
+		std::string footerSize;
+		std::string submenuSuffix; // empty = inherit (a space = no suffix)
+		std::string footerSeparator;
+		std::string counterPrefix;
+		std::string counterSuffix;
+		int centered = -1;      // -1 inherit, 0 off, 1 on
+		int showCounter = -1;   // -1 inherit, 0 off, 1 on
+		int showFooter = -1;    // -1 inherit, 0 off, 1 on
+		int highlightText = -1; // -1 inherit, 0 off, 1 on
 	};
 
 	struct MenuDef
@@ -189,6 +269,7 @@ private:
 		NavOverride navOverride[4];
 		// Built-in labels, seeded from settings at CreateMenu, indexed by MenuLabel.
 		std::string labels[static_cast<int>(MenuLabel::Count)];
+		StyleOverride style;
 	};
 
 	struct PlayerMenu
