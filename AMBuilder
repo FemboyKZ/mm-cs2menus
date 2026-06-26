@@ -13,6 +13,7 @@ for sdk_target in MMSPlugin.sdk_targets:
         "src/cs2menus.cpp",
         "src/bridge/capi.cpp",
         "src/config/config.cpp",
+        "src/db/prefs_db.cpp",
         "src/entity/schema.cpp",
         "src/lang/translations.cpp",
         "src/menu/menu_manager.cpp",

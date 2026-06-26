@@ -18,9 +18,12 @@ public: // IMetamodListener
 	void OnLevelInit(char const *pMapName, char const *pMapEntities, char const *pOldLevel, char const *pLandmarkName, bool loadGame,
 					 bool background);
 	void OnLevelShutdown();
+	void AllPluginsLoaded();
 
 public: // SourceHook hook handlers
 	void Hook_GameFrame(bool simulating, bool bFirstTick, bool bLastTick);
+	void Hook_OnClientConnected(CPlayerSlot slot, const char *pszName, uint64 xuid, const char *pszNetworkID, const char *pszAddress,
+								bool bFakePlayer);
 	void Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectionReason reason, const char *pszName, uint64 xuid, const char *pszNetworkID);
 	void Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args);
 

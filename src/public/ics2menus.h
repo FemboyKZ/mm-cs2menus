@@ -104,10 +104,10 @@ enum class MenuStyle : int
 	DisabledColor,   // hex for greyed-out items
 	Align,           // line alignment: "left" / "center" / "right"
 	FontFace,        // Panorama classes applied to every line, space-separated. "" = game default.
-	                 // Faces: stratum-{thin,light,regular,medium,bold,black}[-italic/-condensed],
-	                 // mono: stratum-{light,regular,bold}-mono / mono-spaced-font[-bold].
-	                 // Effects stack too: text-uppercase, text-letterspace-2px, text-shadow-basic.
-	                 // e.g. "stratum-bold text-uppercase text-shadow-basic".
+					 // Faces: stratum-{thin,light,regular,medium,bold,black}[-italic/-condensed],
+					 // mono: stratum-{light,regular,bold}-mono / mono-spaced-font[-bold].
+					 // Effects stack too: text-uppercase, text-letterspace-2px, text-shadow-basic.
+					 // e.g. "stratum-bold text-uppercase text-shadow-basic".
 	ItemColor,       // hex for normal (unselected, enabled) item text
 	Marker,          // literal text drawn before the cursor row (default "▶ ")
 	CounterColor,    // hex for the "[n/m]" position counter
@@ -304,6 +304,13 @@ public:
 	// The item's icon URL (see SetItemIcon), or "" if none / invalid handle.
 	// Aliases internal storage, copy it, don't cache.
 	virtual const char *GetItemIcon(MenuHandle menu, int item) = 0;
+
+	// By default a menu's render type (chat vs html) yields to the viewing player's saved preference,
+	// when the server has per-player preferences enabled.
+	// Call this with `force` = true to lock this menu to the type it was created with, so the player preference can't change it.
+	// Use it when the menu depends on a specific type, e.g. HTML-only item icons or raw markup.
+	// Default: not forced.
+	virtual void SetMenuForceType(MenuHandle menu, bool force) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_

@@ -2,6 +2,7 @@
 #include "common.h"
 
 #include "config/config.h"
+#include "db/prefs_db.h"
 #include "entity/ccsplayercontroller.h"
 #include "entity/cgamerules.h"
 #include "gamedata.h"
@@ -9,6 +10,7 @@
 #include "menu/menu_manager.h"
 #include "public/ics2menus.h"
 #include "render/center_html.h"
+#include "utils/print_utils.h"
 
 #include "vendor/ClientCvarValue/public/iclientcvarvalue.h"
 
@@ -25,6 +27,7 @@
 #include <schemasystem/schemasystem.h>
 
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
+SH_DECL_HOOK6_void(IServerGameClients, OnClientConnected, SH_NOATTRIB, 0, CPlayerSlot, const char *, uint64, const char *, const char *, bool);
 SH_DECL_HOOK5_void(IServerGameClients, ClientDisconnect, SH_NOATTRIB, 0, CPlayerSlot, ENetworkDisconnectionReason, const char *, uint64,
 				   const char *);
 SH_DECL_HOOK3_void(ICvar, DispatchConCommand, SH_NOATTRIB, 0, ConCommandRef, const CCommandContext &, const CCommand &);
@@ -191,6 +194,11 @@ class CS2MenusAPI : public ICS2Menus
 	const char *GetMenuStyle(MenuHandle menu, MenuStyle field) override
 	{
 		return g_MenuManager.GetMenuStyle(menu, field);
+	}
+
+	void SetMenuForceType(MenuHandle menu, bool force) override
+	{
+		g_MenuManager.SetMenuForceType(menu, force);
 	}
 
 	bool DisplayMenu(MenuHandle menu, int slot, float duration) override
@@ -679,6 +687,422 @@ CON_COMMAND_F(cs2menus_version, "Print the cs2menus plugin and menu-API interfac
 	META_CONPRINTF("[CS2Menus] Plugin version %s, interface %s.\n", PLUGIN_FULL_VERSION, CS2MENUS_INTERFACE);
 }
 
+// Per-player menu preferences (optional, sql_mm)
+//
+// The DB stores key choices by name (e.g. "shift"), so cs2menus keeps each slot's chosen names
+// here as the source of truth for saving, and pushes the translated mask/label into the menu manager for rendering.
+// The manager itself never deals in key names.
+
+namespace
+{
+	// One slot's chosen preference names. Empty string = no preference (server default).
+	struct SlotPrefs
+	{
+		uint64_t xuid = 0;
+		std::string type; // "", "chat", "html"
+		std::string up;   // key names, "" / "default" / "none" / "w" / ...
+		std::string down;
+		std::string select;
+		std::string back;
+	};
+
+	SlotPrefs s_prefs[MAXPLAYERS + 1];
+	// The slot's open preference menu, so commands can refresh its rows live. 0 = none.
+	MenuHandle s_prefsMenu[MAXPLAYERS + 1] = {};
+
+	// Key names the in-game menu cycles through. "default" clears (use server config),
+	// "none" disables the action. The rest map through ParseNavKey.
+	const char *const kKeyCycle[] = {"default", "w", "s", "a", "d", "e", "shift", "ctrl", "space", "r", "mouse1", "mouse2", "tab", "f", "none"};
+	constexpr int kKeyCycleCount = static_cast<int>(sizeof(kKeyCycle) / sizeof(kKeyCycle[0]));
+
+	bool ParseNavActionName(const char *name, MenuNavAction &out)
+	{
+		if (!name)
+		{
+			return false;
+		}
+		if (!strcmp(name, "up"))
+		{
+			out = MenuNavAction::Up;
+			return true;
+		}
+		if (!strcmp(name, "down"))
+		{
+			out = MenuNavAction::Down;
+			return true;
+		}
+		if (!strcmp(name, "select"))
+		{
+			out = MenuNavAction::Select;
+			return true;
+		}
+		if (!strcmp(name, "back") || !strcmp(name, "exit"))
+		{
+			out = MenuNavAction::Back;
+			return true;
+		}
+		return false;
+	}
+
+	// Human-readable label for a stored key name.
+	std::string KeyDisplay(const std::string &name)
+	{
+		if (name.empty() || name == "default")
+		{
+			return "Default";
+		}
+		if (name == "none" || name == "off")
+		{
+			return "Disabled";
+		}
+		return NavKeyLabel(name); // uppercased key name, e.g. "SHIFT"
+	}
+
+	std::string TypeDisplay(const std::string &type)
+	{
+		if (type == "chat")
+		{
+			return "Chat";
+		}
+		if (type == "html")
+		{
+			return "HTML";
+		}
+		return "Server default";
+	}
+
+	// Push one action's stored name into the manager as a per-player nav preference.
+	void ApplyOneNav(int slot, MenuNavAction action, const std::string &name)
+	{
+		if (name.empty() || name == "default")
+		{
+			g_MenuManager.ClearPlayerNavPref(slot, action);
+			return;
+		}
+		if (name == "none" || name == "off")
+		{
+			g_MenuManager.SetPlayerNavDisabled(slot, action);
+			return;
+		}
+		uint64_t mask = ParseNavKey(name);
+		if (mask != 0)
+		{
+			g_MenuManager.SetPlayerNavPref(slot, action, mask, NavKeyLabel(name).c_str());
+		}
+		else
+		{
+			g_MenuManager.ClearPlayerNavPref(slot, action); // unknown name, fall back to server config
+		}
+	}
+
+	// Push a slot's stored preference names into the menu manager.
+	void ApplyPrefsToManager(int slot)
+	{
+		const SlotPrefs &p = s_prefs[slot];
+		MenuType type = MenuType::Default;
+		if (p.type == "chat")
+		{
+			type = MenuType::Chat;
+		}
+		else if (p.type == "html")
+		{
+			type = MenuType::Html;
+		}
+		g_MenuManager.SetPlayerTypePref(slot, type);
+		ApplyOneNav(slot, MenuNavAction::Up, p.up);
+		ApplyOneNav(slot, MenuNavAction::Down, p.down);
+		ApplyOneNav(slot, MenuNavAction::Select, p.select);
+		ApplyOneNav(slot, MenuNavAction::Back, p.back);
+	}
+
+	// Persist a slot's current preference names to the database.
+	void SaveSlotPrefs(int slot)
+	{
+		if (!g_MenuPrefsDB.IsConnected() || s_prefs[slot].xuid == 0)
+		{
+			return;
+		}
+		MenuPrefsRow row;
+		row.type = s_prefs[slot].type;
+		row.keyUp = s_prefs[slot].up;
+		row.keyDown = s_prefs[slot].down;
+		row.keySelect = s_prefs[slot].select;
+		row.keyBack = s_prefs[slot].back;
+		g_MenuPrefsDB.SavePrefs(s_prefs[slot].xuid, row);
+	}
+
+	// Next value when cycling the type item: Default -> Chat -> (HTML) -> Default.
+	std::string CycleType(const std::string &cur)
+	{
+		if (cur == "chat")
+		{
+			return g_MenuManager.HasHtml() ? "html" : "";
+		}
+		if (cur == "html")
+		{
+			return "";
+		}
+		return "chat"; // "" / "default" / unknown
+	}
+
+	// Next value when cycling a key item, wrapping through kKeyCycle.
+	std::string CycleKey(const std::string &cur)
+	{
+		std::string c = (cur.empty()) ? "default" : cur;
+		for (int i = 0; i < kKeyCycleCount; i++)
+		{
+			if (c == kKeyCycle[i])
+			{
+				return kKeyCycle[(i + 1) % kKeyCycleCount];
+			}
+		}
+		return kKeyCycle[0];
+	}
+
+	// Refresh the slot's open preference menu rows (no-op if it isn't open).
+	void RefreshPrefsItems(int slot)
+	{
+		MenuHandle menu = s_prefsMenu[slot];
+		if (menu == kInvalidMenuHandle)
+		{
+			return;
+		}
+		const SlotPrefs &p = s_prefs[slot];
+		char buf[128];
+		snprintf(buf, sizeof(buf), "Menu style: %s", TypeDisplay(p.type).c_str());
+		g_MenuManager.SetItemText(menu, 0, buf);
+		snprintf(buf, sizeof(buf), "Up key: %s", KeyDisplay(p.up).c_str());
+		g_MenuManager.SetItemText(menu, 1, buf);
+		snprintf(buf, sizeof(buf), "Down key: %s", KeyDisplay(p.down).c_str());
+		g_MenuManager.SetItemText(menu, 2, buf);
+		snprintf(buf, sizeof(buf), "Select key: %s", KeyDisplay(p.select).c_str());
+		g_MenuManager.SetItemText(menu, 3, buf);
+		snprintf(buf, sizeof(buf), "Back key: %s", KeyDisplay(p.back).c_str());
+		g_MenuManager.SetItemText(menu, 4, buf);
+	}
+
+	// Selection handler shared by every row of the preference menu.
+	void OnPrefsSelect(MenuHandle /*menu*/, int slot, int item)
+	{
+		SlotPrefs &p = s_prefs[slot];
+		switch (item)
+		{
+			case 0:
+				p.type = CycleType(p.type);
+				break;
+			case 1:
+				p.up = CycleKey(p.up);
+				break;
+			case 2:
+				p.down = CycleKey(p.down);
+				break;
+			case 3:
+				p.select = CycleKey(p.select);
+				break;
+			case 4:
+				p.back = CycleKey(p.back);
+				break;
+			default:
+				return;
+		}
+		ApplyPrefsToManager(slot);
+		SaveSlotPrefs(slot);
+		RefreshPrefsItems(slot); // live re-render with the new value
+	}
+
+	void OpenPrefsMenu(int slot)
+	{
+		if (!g_MenuPrefsDB.IsConnected())
+		{
+			MENU_PrintToChat(slot, "Menu preferences are not available on this server.");
+			return;
+		}
+
+		MenuHandle menu = g_MenuManager.CreateMenu(MenuType::Default, "Menu Preferences", OnPrefsSelect);
+		if (menu == kInvalidMenuHandle)
+		{
+			return;
+		}
+		g_MenuManager.SetCloseOnSelect(menu, false); // stay open, cycle values in place
+		g_MenuManager.AddItem(menu, "", "type", false);
+		g_MenuManager.AddItem(menu, "", "up", false);
+		g_MenuManager.AddItem(menu, "", "down", false);
+		g_MenuManager.AddItem(menu, "", "select", false);
+		g_MenuManager.AddItem(menu, "", "back", false);
+		g_MenuManager.SetMenuEndCallback(menu,
+										 [](MenuHandle endedMenu, int endSlot, MenuEndReason /*reason*/)
+										 {
+											 // Only forget the tracked handle if it's still this menu.
+											 if (endSlot >= 0 && endSlot <= MAXPLAYERS && s_prefsMenu[endSlot] == endedMenu)
+											 {
+												 s_prefsMenu[endSlot] = kInvalidMenuHandle;
+											 }
+											 g_MenuManager.DestroyMenu(endedMenu);
+										 });
+		s_prefsMenu[slot] = menu;
+		RefreshPrefsItems(slot);
+		// Opened from a command / say hook on the main thread, so curtime is available.
+		CGlobalVars *globals = GetGameGlobals();
+		g_MenuManager.DisplayMenu(menu, slot, 0.0f, globals ? globals->curtime : 0.0f);
+	}
+
+	// Reset a slot and load its stored preferences from the database (async).
+	void LoadSlot(int slot, uint64_t xuid)
+	{
+		if (slot < 0 || slot > MAXPLAYERS)
+		{
+			return;
+		}
+		s_prefs[slot] = SlotPrefs {};
+		s_prefs[slot].xuid = xuid;
+		g_MenuManager.ClearPlayerPrefs(slot);
+		if (!g_MenuPrefsDB.IsConnected() || xuid == 0)
+		{
+			return;
+		}
+		g_MenuPrefsDB.LoadPrefs(xuid,
+								[slot, xuid](bool found, const MenuPrefsRow &row)
+								{
+									// The slot may have a different occupant by the time this returns.
+									if (s_prefs[slot].xuid != xuid || !found)
+									{
+										return;
+									}
+									s_prefs[slot].type = row.type;
+									s_prefs[slot].up = row.keyUp;
+									s_prefs[slot].down = row.keyDown;
+									s_prefs[slot].select = row.keySelect;
+									s_prefs[slot].back = row.keyBack;
+									ApplyPrefsToManager(slot);
+								});
+	}
+} // namespace
+
+// Open the preference menu: "mm_menu_prefs" (client console) or the "!menu" chat alias.
+CON_COMMAND_F(mm_menu_prefs, "Open your personal menu-preferences menu.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+{
+	int slot = context.GetPlayerSlot().Get();
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	OpenPrefsMenu(slot);
+}
+
+CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | default.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+{
+	int slot = context.GetPlayerSlot().Get();
+	if (slot < 0 || slot > MAXPLAYERS || args.ArgC() < 2)
+	{
+		return;
+	}
+	if (!g_MenuPrefsDB.IsConnected())
+	{
+		MENU_PrintToChat(slot, "Menu preferences are not available on this server.");
+		return;
+	}
+	std::string v = args.Arg(1);
+	for (char &c : v)
+	{
+		c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+	}
+	if (v == "chat" || v == "html")
+	{
+		s_prefs[slot].type = v;
+	}
+	else if (v == "default" || v == "server")
+	{
+		s_prefs[slot].type = "";
+	}
+	else
+	{
+		MENU_PrintToChat(slot, "Usage: mm_pref_type chat | html | default");
+		return;
+	}
+	ApplyPrefsToManager(slot);
+	SaveSlotPrefs(slot);
+	RefreshPrefsItems(slot);
+	MENU_PrintToChat(slot, "Menu style set to %s.", TypeDisplay(s_prefs[slot].type).c_str());
+}
+
+CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|select|back> <key|default|none>.",
+			  FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+{
+	int slot = context.GetPlayerSlot().Get();
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	if (args.ArgC() < 3)
+	{
+		MENU_PrintToChat(slot, "Usage: mm_pref_key <up|down|select|back> <key|default|none>");
+		return;
+	}
+	if (!g_MenuPrefsDB.IsConnected())
+	{
+		MENU_PrintToChat(slot, "Menu preferences are not available on this server.");
+		return;
+	}
+	std::string actionName = args.Arg(1);
+	std::string keyName = args.Arg(2);
+	for (char &c : actionName)
+	{
+		c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+	}
+	for (char &c : keyName)
+	{
+		c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+	}
+	MenuNavAction action;
+	if (!ParseNavActionName(actionName.c_str(), action))
+	{
+		MENU_PrintToChat(slot, "Unknown action. Use up, down, select or back.");
+		return;
+	}
+	// Validate the key: a name ParseNavKey accepts, or the special "default"/"none".
+	if (keyName != "default" && keyName != "none" && keyName != "off" && ParseNavKey(keyName) == 0)
+	{
+		MENU_PrintToChat(slot, "Unknown key \"%s\".", keyName.c_str());
+		return;
+	}
+	switch (action)
+	{
+		case MenuNavAction::Up:
+			s_prefs[slot].up = keyName;
+			break;
+		case MenuNavAction::Down:
+			s_prefs[slot].down = keyName;
+			break;
+		case MenuNavAction::Select:
+			s_prefs[slot].select = keyName;
+			break;
+		default:
+			s_prefs[slot].back = keyName;
+			break;
+	}
+	ApplyPrefsToManager(slot);
+	SaveSlotPrefs(slot);
+	RefreshPrefsItems(slot);
+	MENU_PrintToChat(slot, "%s key set to %s.", actionName.c_str(), KeyDisplay(keyName).c_str());
+}
+
+CON_COMMAND_F(mm_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+{
+	int slot = context.GetPlayerSlot().Get();
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	if (!g_MenuPrefsDB.IsConnected())
+	{
+		MENU_PrintToChat(slot, "Menu preferences are not available on this server.");
+		return;
+	}
+	const SlotPrefs &p = s_prefs[slot];
+	MENU_PrintToChat(slot, "Style: %s | Up: %s | Down: %s | Select: %s | Back: %s", TypeDisplay(p.type).c_str(), KeyDisplay(p.up).c_str(),
+					 KeyDisplay(p.down).c_str(), KeyDisplay(p.select).c_str(), KeyDisplay(p.back).c_str());
+}
+
 bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
 	PLUGIN_SAVEVARS();
@@ -700,6 +1124,7 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	g_SMAPI->AddListener(this, this);
 
 	SH_ADD_HOOK(IServerGameDLL, GameFrame, g_pServerGameDLL, SH_MEMBER(this, &CS2MenusPlugin::Hook_GameFrame), true);
+	SH_ADD_HOOK(IServerGameClients, OnClientConnected, g_pGameClients, SH_MEMBER(this, &CS2MenusPlugin::Hook_OnClientConnected), false);
 	SH_ADD_HOOK(IServerGameClients, ClientDisconnect, g_pGameClients, SH_MEMBER(this, &CS2MenusPlugin::Hook_ClientDisconnect), true);
 	SH_ADD_HOOK(ICvar, DispatchConCommand, g_pICvar, SH_MEMBER(this, &CS2MenusPlugin::Hook_DispatchConCommand), false);
 
@@ -748,14 +1173,47 @@ void CS2MenusPlugin::OnLevelShutdown()
 	s_pGameRules = nullptr;
 }
 
+void CS2MenusPlugin::AllPluginsLoaded()
+{
+	// Per-player preferences are opt-in and need sql_mm, which must be fully loaded by now.
+	if (!g_MenusConfig.database.enabled)
+	{
+		return;
+	}
+	if (!g_MenuPrefsDB.Init())
+	{
+		META_CONPRINTF("[CS2Menus] Preference database unavailable, per-player preferences disabled.\n");
+		return;
+	}
+	g_MenuPrefsDB.Connect(
+		[](bool success)
+		{
+			if (!success)
+			{
+				return;
+			}
+			// Late load: pick up players already connected.
+			for (int slot = 0; slot <= MAXPLAYERS; slot++)
+			{
+				uint64 xuid = g_pEngine->GetClientXUID(CPlayerSlot(slot));
+				if (xuid != 0)
+				{
+					LoadSlot(slot, xuid);
+				}
+			}
+		});
+}
+
 bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 {
 	SH_REMOVE_HOOK(IServerGameDLL, GameFrame, g_pServerGameDLL, SH_MEMBER(this, &CS2MenusPlugin::Hook_GameFrame), true);
+	SH_REMOVE_HOOK(IServerGameClients, OnClientConnected, g_pGameClients, SH_MEMBER(this, &CS2MenusPlugin::Hook_OnClientConnected), false);
 	SH_REMOVE_HOOK(IServerGameClients, ClientDisconnect, g_pGameClients, SH_MEMBER(this, &CS2MenusPlugin::Hook_ClientDisconnect), true);
 	SH_REMOVE_HOOK(ICvar, DispatchConCommand, g_pICvar, SH_MEMBER(this, &CS2MenusPlugin::Hook_DispatchConCommand), false);
 
 	// Drop all menus + displays without firing callbacks into consumer plugins.
 	g_MenuManager.Shutdown();
+	g_MenuPrefsDB.Shutdown();
 
 	return true;
 }
@@ -799,10 +1257,28 @@ void CS2MenusPlugin::Hook_GameFrame(bool /*simulating*/, bool /*bFirstTick*/, bo
 	RETURN_META(MRES_IGNORED);
 }
 
+void CS2MenusPlugin::Hook_OnClientConnected(CPlayerSlot slot, const char * /*pszName*/, uint64 xuid, const char * /*pszNetworkID*/,
+											const char * /*pszAddress*/, bool bFakePlayer)
+{
+	int s = slot.Get();
+	if (!bFakePlayer && s >= 0 && s <= MAXPLAYERS)
+	{
+		LoadSlot(s, xuid);
+	}
+	RETURN_META(MRES_IGNORED);
+}
+
 void CS2MenusPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectionReason /*reason*/, const char * /*pszName*/, uint64 /*xuid*/,
 										   const char * /*pszNetworkID*/)
 {
-	g_MenuManager.OnPlayerDisconnect(slot.Get());
+	int s = slot.Get();
+	g_MenuManager.OnPlayerDisconnect(s);
+	if (s >= 0 && s <= MAXPLAYERS)
+	{
+		g_MenuManager.ClearPlayerPrefs(s);
+		s_prefs[s] = SlotPrefs {};
+		s_prefsMenu[s] = kInvalidMenuHandle;
+	}
 	RETURN_META(MRES_IGNORED);
 }
 
@@ -948,6 +1424,52 @@ CON_COMMAND_F(mm_menu_close, "Close / exit the open menu.", FCVAR_CLIENT_CAN_EXE
 	RunMenuNavCommand(context, MenuNavAction::Back);
 }
 
+// Strip the outer quotes / surrounding whitespace / configured prefix from a say message
+// and return the lowercased first word. Returns false if no prefix matched.
+// `silent` is set when the silent prefix matched.
+static bool ParseChatPrefixWord(const char *rawMsg, std::string &word, bool &silent)
+{
+	silent = false;
+	word.clear();
+	std::string msg = rawMsg ? rawMsg : "";
+	if (msg.size() >= 2 && msg.front() == '"' && msg.back() == '"')
+	{
+		msg = msg.substr(1, msg.size() - 2);
+	}
+	size_t a = msg.find_first_not_of(" \t");
+	size_t b = msg.find_last_not_of(" \t");
+	if (a == std::string::npos)
+	{
+		return false;
+	}
+	msg = msg.substr(a, b - a + 1);
+
+	const std::string &p1 = g_MenusConfig.general.commandPrefix;
+	const std::string &p2 = g_MenusConfig.general.silentCommandPrefix;
+	std::string body;
+	if (!p1.empty() && msg.rfind(p1, 0) == 0)
+	{
+		body = msg.substr(p1.size());
+	}
+	else if (!p2.empty() && msg.rfind(p2, 0) == 0)
+	{
+		body = msg.substr(p2.size());
+		silent = true;
+	}
+	else
+	{
+		return false;
+	}
+
+	size_t sp = body.find_first_of(" \t");
+	word = (sp == std::string::npos) ? body : body.substr(0, sp);
+	for (char &c : word)
+	{
+		c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+	}
+	return true;
+}
+
 void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args)
 {
 	const char *cmdName = args.Arg(0);
@@ -966,6 +1488,20 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 	if (slot < 0 || slot > MAXPLAYERS)
 	{
 		RETURN_META(MRES_IGNORED);
+	}
+
+	// "!menu" / "!prefs" opens the preference menu, with or without a menu already open.
+	// Only active when the preference database is connected, so with the feature off cs2menus
+	// never touches these say words (a consumer plugin may use them for its own purpose).
+	if (g_MenuPrefsDB.IsConnected())
+	{
+		std::string word;
+		bool silent;
+		if (ParseChatPrefixWord(args.ArgS(), word, silent) && (word == "menu" || word == "prefs" || word == "menuprefs"))
+		{
+			OpenPrefsMenu(slot);
+			RETURN_META(silent ? MRES_SUPERCEDE : MRES_IGNORED);
+		}
 	}
 
 	if (!g_MenuManager.HasMenu(slot))

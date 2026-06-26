@@ -27,6 +27,7 @@ Pass `MenuType::Default` to use the server's configured default style.
 - CS2 Server
 - [Metamod:Source 2.0](https://www.metamodsource.net/downloads.php?branch=dev)
 - (Optional) [ClientConvarValue](https://github.com/komashchenko/ClientCvarValue) - For client translation support
+- (Optional) [sql_mm](https://github.com/zer0k-z/sql_mm) - For per-player menu preferences (see below)
 
 ### Installation
 
@@ -40,6 +41,8 @@ Pass `MenuType::Default` to use the server's configured default style.
 ### Configuration
 
 `cfg/cs2menus/core.cfg`, reloaded automatically on every map change.
+
+TBA...
 
 ## For plugin developers
 

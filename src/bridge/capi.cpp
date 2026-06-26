@@ -127,6 +127,11 @@ CS2M_API int CS2M_CALL cs2m_get_menu_style(cs2m_handle menu, int field, char *bu
 	return CopyOut(API()->GetMenuStyle(menu, static_cast<MenuStyle>(field)), buf, buflen);
 }
 
+CS2M_API void CS2M_CALL cs2m_set_force_type(cs2m_handle menu, int force)
+{
+	API()->SetMenuForceType(menu, force != 0);
+}
+
 CS2M_API void CS2M_CALL cs2m_set_start_item(cs2m_handle menu, int item)
 {
 	API()->SetStartItem(menu, item);

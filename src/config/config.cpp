@@ -232,6 +232,45 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 			cfg->menu.navBack = ToLower(value);
 		}
 	}
+	else if (sec == "database")
+	{
+		if (k == "enabled")
+		{
+			cfg->database.enabled = (value != "0");
+		}
+		else if (k == "type")
+		{
+			cfg->database.type = ToLower(value);
+		}
+		else if (k == "prefix")
+		{
+			cfg->database.prefix = value;
+		}
+		else if (k == "path")
+		{
+			cfg->database.path = value;
+		}
+		else if (k == "host")
+		{
+			cfg->database.host = value;
+		}
+		else if (k == "user")
+		{
+			cfg->database.user = value;
+		}
+		else if (k == "pass" || k == "password")
+		{
+			cfg->database.pass = value;
+		}
+		else if (k == "name" || k == "database")
+		{
+			cfg->database.name = value;
+		}
+		else if (k == "port")
+		{
+			cfg->database.port = std::atoi(value.c_str());
+		}
+	}
 }
 
 bool MENU_LoadConfig(const char *path, MenusConfig &config)

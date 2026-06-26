@@ -241,12 +241,10 @@ MenuHandle MenuManager::CreateMenu(MenuType type, const char *title, MenuItemSel
 	ScopedLock lock(m_mutex);
 	MenuHandle h = m_nextHandle++;
 	MenuDef def;
-	def.type = (type == MenuType::Default) ? m_settings.defaultType : type;
-	// If HTML rendering or input is unavailable, fall back to chat menus.
-	if (def.type != MenuType::Chat && !m_htmlAvailable)
-	{
-		def.type = MenuType::Chat;
-	}
+	// Store the base type as-is (including the Default sentinel).
+	// The effective type is resolved per viewer at display time (see ResolveType),
+	// where the player's preference and HTML availability are applied.
+	def.type = type;
 	def.title = title ? title : "";
 	def.onSelect = std::move(onSelect);
 	def.exitButton = m_settings.defaultExitButton;
@@ -350,6 +348,15 @@ void MenuManager::SetExitItem(MenuHandle menu, bool enabled)
 	if (MenuDef *def = Find(menu))
 	{
 		def->exitItem = enabled;
+	}
+}
+
+void MenuManager::SetMenuForceType(MenuHandle menu, bool force)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->forced = force;
 	}
 }
 
@@ -669,20 +676,21 @@ int MenuManager::GetStartItem(MenuHandle menu) const
 	return def ? def->startItem : 0;
 }
 
-bool MenuManager::HtmlShowsExitRow(const MenuDef &def) const
+bool MenuManager::HtmlShowsExitRow(const MenuDef &def, int slot) const
 {
 	// Must be exitable, and either explicitly requested or forced because the Back
 	// key is disabled (otherwise the player would have no way out but the timeout).
-	return def.exitButton && (def.exitItem || EffectiveNavMask(def, MenuNavAction::Back) == 0);
+	return def.exitButton && (def.exitItem || EffectiveNavMask(def, slot, MenuNavAction::Back) == 0);
 }
 
-int MenuManager::HtmlRowCount(const MenuDef &def) const
+int MenuManager::HtmlRowCount(const MenuDef &def, int slot) const
 {
-	return static_cast<int>(def.items.size()) + (HtmlShowsExitRow(def) ? 1 : 0);
+	return static_cast<int>(def.items.size()) + (HtmlShowsExitRow(def, slot) ? 1 : 0);
 }
 
-uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, MenuNavAction action) const
+uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, int slot, MenuNavAction action) const
 {
+	// 1. Per-menu override set by the consumer (wins, including an explicit disable).
 	uint64_t override_ = def.navOverride[static_cast<int>(action)].mask;
 	if (override_ == kNavDisabledSentinel)
 	{
@@ -692,6 +700,20 @@ uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, MenuNavAction action)
 	{
 		return override_;
 	}
+	// 2. This player's preference (displaces only the server default binding).
+	if (slot >= 0 && slot <= MAXPLAYERS)
+	{
+		uint64_t pref = m_prefs[slot].nav[static_cast<int>(action)].mask;
+		if (pref == kNavDisabledSentinel)
+		{
+			return 0;
+		}
+		if (pref != 0)
+		{
+			return pref;
+		}
+	}
+	// 3. Server config.
 	switch (action)
 	{
 		case MenuNavAction::Up:
@@ -705,11 +727,19 @@ uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, MenuNavAction action)
 	}
 }
 
-std::string MenuManager::EffectiveNavLabel(const MenuDef &def, MenuNavAction action) const
+std::string MenuManager::EffectiveNavLabel(const MenuDef &def, int slot, MenuNavAction action) const
 {
 	if (def.navOverride[static_cast<int>(action)].mask != 0)
 	{
 		return def.navOverride[static_cast<int>(action)].label;
+	}
+	if (slot >= 0 && slot <= MAXPLAYERS)
+	{
+		const NavOverride &pref = m_prefs[slot].nav[static_cast<int>(action)];
+		if (pref.mask != 0)
+		{
+			return pref.label;
+		}
 	}
 	switch (action)
 	{
@@ -722,6 +752,22 @@ std::string MenuManager::EffectiveNavLabel(const MenuDef &def, MenuNavAction act
 		default:
 			return m_settings.keyBackLabel;
 	}
+}
+
+MenuType MenuManager::ResolveType(const MenuDef &def, int slot) const
+{
+	MenuType base = (def.type == MenuType::Default) ? m_settings.defaultType : def.type;
+	MenuType result = base;
+	if (!def.forced && slot >= 0 && slot <= MAXPLAYERS && m_prefs[slot].type != MenuType::Default)
+	{
+		result = m_prefs[slot].type;
+	}
+	// HTML must be available to render + receive input, else fall back to chat.
+	if (result != MenuType::Chat && !m_htmlAvailable)
+	{
+		result = MenuType::Chat;
+	}
+	return result;
 }
 
 const char *MenuManager::DefaultLabelKey(MenuLabel label)
@@ -806,6 +852,9 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	PlayerMenu &pm = m_players[slot];
 	pm.active = true;
 	pm.handle = menu;
+	// Resolve the render type for this viewer (forced menu, else their preference, then HTML availability).
+	// Fixed for the life of this display.
+	pm.type = ResolveType(*def, slot);
 	// Open on the configured start item (clamped at render time).
 	pm.cursor = def->startItem;
 	pm.page = (m_itemsPerPage > 0) ? def->startItem / m_itemsPerPage : 0;
@@ -864,8 +913,8 @@ MenuType MenuManager::GetActiveMenuType(int slot) const
 	{
 		return MenuType::Chat;
 	}
-	const MenuDef *def = Find(m_players[slot].handle);
-	return def ? def->type : MenuType::Chat;
+	// Report the resolved per-viewer type so callers see chat vs html as actually rendered.
+	return m_players[slot].type;
 }
 
 int MenuManager::GetSelectedItem(int slot) const
@@ -878,7 +927,7 @@ int MenuManager::GetSelectedItem(int slot) const
 	const PlayerMenu &pm = m_players[slot];
 	const MenuDef *def = Find(pm.handle);
 	// HTML only, and only when the cursor sits on a real item (not the Exit row).
-	if (!def || def->type == MenuType::Chat || pm.cursor < 0 || pm.cursor >= static_cast<int>(def->items.size()))
+	if (!def || pm.type == MenuType::Chat || pm.cursor < 0 || pm.cursor >= static_cast<int>(def->items.size()))
 	{
 		return -1;
 	}
@@ -977,12 +1026,9 @@ void MenuManager::EndDisplay(int slot, MenuEndReason reason)
 	pm.handle = kInvalidMenuHandle;
 
 	// Clear any HTML panel so it doesn't linger for its remaining duration.
-	if (const MenuDef *def = Find(handle))
+	if (Find(handle) && pm.type != MenuType::Chat)
 	{
-		if (def->type != MenuType::Chat)
-		{
-			center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
-		}
+		center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
 	}
 
 	// Copy the callback before invoking: the handler may DisplayMenu/DestroyMenu.
@@ -1027,7 +1073,7 @@ void MenuManager::Select(int slot, int itemIndex)
 	MenuHandle handle = pm.handle;
 	MenuItemSelectFn onSelect = def->onSelect;
 	bool closeOnSelect = def->closeOnSelect;
-	bool wasHtml = (def->type != MenuType::Chat);
+	bool wasHtml = (pm.type != MenuType::Chat);
 
 	if (closeOnSelect)
 	{
@@ -1076,16 +1122,18 @@ void MenuManager::Select(int slot, int itemIndex)
 void MenuManager::SwitchMenu(int slot, MenuHandle handle)
 {
 	PlayerMenu &pm = m_players[slot];
-	const MenuDef *oldDef = Find(pm.handle);
 	const MenuDef *newDef = Find(handle);
 	if (!newDef)
 	{
 		return;
 	}
 
-	// Clear the HTML panel only when leaving HTML for chat, otherwise the re-render overwrites it.
-	bool oldHtml = oldDef && oldDef->type != MenuType::Chat;
-	bool newHtml = newDef->type != MenuType::Chat;
+	// Re-resolve the render type for the menu we're switching to (a submenu may be forced to a different type than the parent).
+	// Clear the HTML panel only when leaving HTML for chat,
+	// otherwise the re-render overwrites it.
+	bool oldHtml = pm.type != MenuType::Chat;
+	pm.type = ResolveType(*newDef, slot);
+	bool newHtml = pm.type != MenuType::Chat;
 	if (oldHtml && !newHtml)
 	{
 		center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
@@ -1127,7 +1175,7 @@ bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
 	}
 
 	// Chat input only drives chat menus, HTML menus use button polling.
-	if (def->type != MenuType::Chat)
+	if (pm.type != MenuType::Chat)
 	{
 		return false;
 	}
@@ -1152,7 +1200,7 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 {
 	PlayerMenu &pm = m_players[slot];
 	MenuDef *def = Find(pm.handle);
-	if (!def || def->type != MenuType::Chat)
+	if (!def || pm.type != MenuType::Chat)
 	{
 		return false;
 	}
@@ -1213,8 +1261,8 @@ bool MenuManager::WantsButtonInput(int slot) const
 	{
 		return false;
 	}
-	const MenuDef *def = Find(m_players[slot].handle);
-	return def && def->type != MenuType::Chat;
+	// Use the resolved per-viewer type, not the menu's base type.
+	return m_players[slot].type != MenuType::Chat;
 }
 
 bool MenuManager::AnyHtmlMenuActive() const
@@ -1222,12 +1270,7 @@ bool MenuManager::AnyHtmlMenuActive() const
 	ScopedLock lock(m_mutex);
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
-		if (!m_players[i].active)
-		{
-			continue;
-		}
-		const MenuDef *def = Find(m_players[i].handle);
-		if (def && def->type != MenuType::Chat)
+		if (m_players[i].active && m_players[i].type != MenuType::Chat)
 		{
 			return true;
 		}
@@ -1248,7 +1291,7 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
 		return;
 	}
 	MenuDef *def = Find(pm.handle);
-	if (!def || def->type == MenuType::Chat)
+	if (!def || pm.type == MenuType::Chat)
 	{
 		return;
 	}
@@ -1270,19 +1313,19 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
 		return;
 	}
 
-	if (newly & EffectiveNavMask(*def, MenuNavAction::Up))
+	if (newly & EffectiveNavMask(*def, slot, MenuNavAction::Up))
 	{
 		HtmlMoveCursor(slot, -1);
 	}
-	else if (newly & EffectiveNavMask(*def, MenuNavAction::Down))
+	else if (newly & EffectiveNavMask(*def, slot, MenuNavAction::Down))
 	{
 		HtmlMoveCursor(slot, +1);
 	}
-	else if (newly & EffectiveNavMask(*def, MenuNavAction::Select))
+	else if (newly & EffectiveNavMask(*def, slot, MenuNavAction::Select))
 	{
 		HtmlNavSelect(slot);
 	}
-	else if (newly & EffectiveNavMask(*def, MenuNavAction::Back))
+	else if (newly & EffectiveNavMask(*def, slot, MenuNavAction::Back))
 	{
 		NavClose(slot);
 	}
@@ -1297,7 +1340,7 @@ void MenuManager::HtmlNavSelect(int slot)
 		return;
 	}
 	// Selecting the inline Exit row closes the menu, otherwise pick the cursor item.
-	if (HtmlShowsExitRow(*def) && pm.cursor == static_cast<int>(def->items.size()))
+	if (HtmlShowsExitRow(*def, slot) && pm.cursor == static_cast<int>(def->items.size()))
 	{
 		EndDisplay(slot, MenuEndReason::Exit);
 	}
@@ -1347,7 +1390,7 @@ void MenuManager::CommandNav(int slot, MenuNavAction action, float curtime)
 
 	// Up/Down/Select drive the HTML cursor (chat menus use typed numbers).
 	// Back/close works for both render types.
-	bool html = (def->type != MenuType::Chat);
+	bool html = (pm.type != MenuType::Chat);
 	switch (action)
 	{
 		case MenuNavAction::Up:
@@ -1395,7 +1438,7 @@ void MenuManager::CommandSelectNumber(int slot, int number, float curtime)
 
 	// Numbers map to chat-menu entries (clamped to the current page).
 	// HTML menus show no numbers, so the number is ignored and the cursor row is selected instead.
-	if (def->type == MenuType::Chat)
+	if (pm.type == MenuType::Chat)
 	{
 		ApplyChatNumber(slot, number);
 	}
@@ -1414,7 +1457,7 @@ void MenuManager::HtmlMoveCursor(int slot, int delta)
 		return;
 	}
 
-	int count = HtmlRowCount(*def); // includes the inline Exit row, if any
+	int count = HtmlRowCount(*def, slot); // includes the inline Exit row, if any
 	if (count <= 0)
 	{
 		return;
@@ -1460,7 +1503,7 @@ void MenuManager::Tick(float curtime)
 		}
 		// HTML messages decay, refresh periodically.
 		const MenuDef *def = Find(pm.handle);
-		if (def && def->type != MenuType::Chat && curtime >= pm.nextHtmlRender)
+		if (def && pm.type != MenuType::Chat && curtime >= pm.nextHtmlRender)
 		{
 			RenderHtml(i);
 		}
@@ -1550,6 +1593,109 @@ void MenuManager::SetLanguageResolver(std::function<std::string(int)> resolver)
 	m_langResolver = std::move(resolver);
 }
 
+bool MenuManager::HasHtml() const
+{
+	ScopedLock lock(m_mutex);
+	return m_htmlAvailable;
+}
+
+// A live nav-pref change re-renders the player's open menu so footer key hints update at once.
+// Render touches the engine, so it only runs on the main thread,
+// off-thread the pref still applies the next time the menu renders.
+void MenuManager::SetPlayerTypePref(int slot, MenuType type)
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	m_prefs[slot].loaded = true;
+	m_prefs[slot].type = type;
+	// Type changes take effect the next time a menu is opened, not on the current display
+	// (switching the chat/HTML channel mid-display would be jarring).
+}
+
+MenuType MenuManager::GetPlayerTypePref(int slot) const
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return MenuType::Default;
+	}
+	return m_prefs[slot].type;
+}
+
+void MenuManager::SetPlayerNavPref(int slot, MenuNavAction action, uint64_t mask, const char *label)
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	NavOverride &nav = m_prefs[slot].nav[static_cast<int>(action)];
+	nav.mask = mask;
+	nav.label = label ? label : "";
+	m_prefs[slot].loaded = true;
+	if (m_players[slot].active && OnMainThread())
+	{
+		Render(slot);
+	}
+}
+
+void MenuManager::SetPlayerNavDisabled(int slot, MenuNavAction action)
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	NavOverride &nav = m_prefs[slot].nav[static_cast<int>(action)];
+	nav.mask = kNavDisabledSentinel;
+	nav.label = "";
+	m_prefs[slot].loaded = true;
+	if (m_players[slot].active && OnMainThread())
+	{
+		Render(slot);
+	}
+}
+
+void MenuManager::ClearPlayerNavPref(int slot, MenuNavAction action)
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	NavOverride &nav = m_prefs[slot].nav[static_cast<int>(action)];
+	nav.mask = 0;
+	nav.label = "";
+	if (m_players[slot].active && OnMainThread())
+	{
+		Render(slot);
+	}
+}
+
+std::string MenuManager::GetPlayerNavLabel(int slot, MenuNavAction action) const
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return "";
+	}
+	const NavOverride &nav = m_prefs[slot].nav[static_cast<int>(action)];
+	return nav.mask != 0 ? nav.label : "";
+}
+
+void MenuManager::ClearPlayerPrefs(int slot)
+{
+	ScopedLock lock(m_mutex);
+	if (slot < 0 || slot > MAXPLAYERS)
+	{
+		return;
+	}
+	m_prefs[slot] = PlayerPrefs {};
+}
+
 void MenuManager::RefreshMenu(MenuHandle menu)
 {
 	// Rendering touches the engine, defer off-thread callers to GameFrame.
@@ -1588,7 +1734,7 @@ void MenuManager::Render(int slot)
 	{
 		return;
 	}
-	if (def->type == MenuType::Chat)
+	if (m_players[slot].type == MenuType::Chat)
 	{
 		RenderPage(slot);
 	}
@@ -1704,7 +1850,7 @@ void MenuManager::RenderHtml(int slot)
 
 	const auto &items = def->items;
 	int itemCount = static_cast<int>(items.size());
-	bool exitRow = HtmlShowsExitRow(*def);
+	bool exitRow = HtmlShowsExitRow(*def, slot);
 	int count = itemCount + (exitRow ? 1 : 0); // navigable rows (Exit is the last)
 
 	if (pm.cursor < 0)
@@ -1840,10 +1986,10 @@ void MenuManager::RenderHtml(int slot)
 
 	// Footer key hints, adapting when a direction is disabled
 	// (a single-key scroll shows "Scroll: KEY").
-	bool upOn = EffectiveNavMask(*def, MenuNavAction::Up) != 0;
-	bool downOn = EffectiveNavMask(*def, MenuNavAction::Down) != 0;
-	bool selectOn = EffectiveNavMask(*def, MenuNavAction::Select) != 0;
-	bool backOn = def->exitButton && EffectiveNavMask(*def, MenuNavAction::Back) != 0;
+	bool upOn = EffectiveNavMask(*def, slot, MenuNavAction::Up) != 0;
+	bool downOn = EffectiveNavMask(*def, slot, MenuNavAction::Down) != 0;
+	bool selectOn = EffectiveNavMask(*def, slot, MenuNavAction::Select) != 0;
+	bool backOn = def->exitButton && EffectiveNavMask(*def, slot, MenuNavAction::Back) != 0;
 
 	std::string footerSepEsc = center_html::Escape(footerSep);
 	std::string footer;
@@ -1862,24 +2008,24 @@ void MenuManager::RenderHtml(int slot)
 
 	if (upOn && downOn)
 	{
-		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Move)) + ": " + EffectiveNavLabel(*def, MenuNavAction::Up) + "/"
-				   + EffectiveNavLabel(*def, MenuNavAction::Down));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Move)) + ": " + EffectiveNavLabel(*def, slot, MenuNavAction::Up) + "/"
+				   + EffectiveNavLabel(*def, slot, MenuNavAction::Down));
 	}
 	else if (downOn)
 	{
-		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Scroll)) + ": " + EffectiveNavLabel(*def, MenuNavAction::Down));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Scroll)) + ": " + EffectiveNavLabel(*def, slot, MenuNavAction::Down));
 	}
 	else if (upOn)
 	{
-		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Scroll)) + ": " + EffectiveNavLabel(*def, MenuNavAction::Up));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Scroll)) + ": " + EffectiveNavLabel(*def, slot, MenuNavAction::Up));
 	}
 	if (selectOn)
 	{
-		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Select)) + ": " + EffectiveNavLabel(*def, MenuNavAction::Select));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Select)) + ": " + EffectiveNavLabel(*def, slot, MenuNavAction::Select));
 	}
 	if (backOn)
 	{
-		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Exit)) + ": " + EffectiveNavLabel(*def, MenuNavAction::Back));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Exit)) + ": " + EffectiveNavLabel(*def, slot, MenuNavAction::Back));
 	}
 
 	if (showFooter && !footer.empty())

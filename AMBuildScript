@@ -41,8 +41,10 @@ def additionalIncludes(context, binary, sdk):
         # os.path.join(sdk['path'], 'public', 'entity2'),
         # 'D:/absolute/path/to/include/folder/'
         os.path.join(builder.sourcePath, "src"),
-        # Admin bridge needs ICS2Admin interface header from the vendor submodule
-        os.path.join(builder.sourcePath, "vendor", "mm-cs2admin", "src"),
+        # sql_mm public headers for the optional player-preference store
+        os.path.join(builder.sourcePath, "vendor", "sql_mm", "src", "public"),
+        # clientcvarvalue public headers for the optional client translations
+        os.path.join(builder.sourcePath, "vendor", "ClientCvarValue", "public"),
     ]
 
 

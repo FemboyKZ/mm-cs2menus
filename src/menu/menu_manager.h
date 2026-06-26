@@ -113,6 +113,8 @@ public:
 	const char *GetMenuLabel(MenuHandle menu, MenuLabel label) const;
 	void SetMenuStyle(MenuHandle menu, MenuStyle field, const char *value);
 	const char *GetMenuStyle(MenuHandle menu, MenuStyle field) const;
+	// Lock this menu's render type so the per-player type preference can't override it.
+	void SetMenuForceType(MenuHandle menu, bool force);
 
 	// Live item mutation. Any player currently viewing the menu is re-rendered.
 	void SetItemText(MenuHandle menu, int item, const char *text);
@@ -207,6 +209,25 @@ public:
 	// When unset (or it returns ""), the translation default language is used.
 	void SetLanguageResolver(std::function<std::string(int slot)> resolver);
 
+	// Per-player preferences (optional)
+	// A player's preferred render type, applied to every menu the consumer didn't force.
+	// MenuType::Default clears the preference (fall back to the server default).
+	void SetPlayerTypePref(int slot, MenuType type);
+	MenuType GetPlayerTypePref(int slot) const;
+	// A player's preferred HTML nav key for one action. mask 0 clears it (fall back to server config).
+	// label is the footer hint text (e.g. "E"). Use the disabled sentinel via SetPlayerNavDisabled.
+	void SetPlayerNavPref(int slot, MenuNavAction action, uint64_t mask, const char *label);
+	// Disable an action for this player (no key bound). Footer hint omitted.
+	void SetPlayerNavDisabled(int slot, MenuNavAction action);
+	// Clear a player's nav preference for one action (fall back to server config).
+	void ClearPlayerNavPref(int slot, MenuNavAction action);
+	// Footer label of the player's preferred key for an action, or "" if no preference.
+	std::string GetPlayerNavLabel(int slot, MenuNavAction action) const;
+	// Drop a player's loaded preferences (call on disconnect).
+	void ClearPlayerPrefs(int slot);
+	// Whether HTML menus can currently render + receive input (see SetHtmlAvailable).
+	bool HasHtml() const;
+
 private:
 	struct MenuItem
 	{
@@ -255,7 +276,11 @@ private:
 
 	struct MenuDef
 	{
+		// The menu's base type. Holds the MenuType::Default sentinel for menus created with Default,
+		// resolved per viewer at display time (see ResolveType).
 		MenuType type = MenuType::Chat;
+		// When set, the per-player type preference can't override this menu (see SetMenuForceType).
+		bool forced = false;
 		std::string title;
 		std::vector<MenuItem> items;
 		MenuItemSelectFn onSelect;
@@ -272,10 +297,20 @@ private:
 		StyleOverride style;
 	};
 
+	// Per-player menu preferences. Empty/unset fields fall back to the server config.
+	struct PlayerPrefs
+	{
+		bool loaded = false;
+		MenuType type = MenuType::Default; // Default = no preference
+		NavOverride nav[4];                // by MenuNavAction; mask 0 = no preference
+	};
+
 	struct PlayerMenu
 	{
 		bool active = false;
 		MenuHandle handle = kInvalidMenuHandle;
+		// Resolved render type for this display (see ResolveType). Set in DisplayLocked.
+		MenuType type = MenuType::Chat;
 		int page = 0;            // chat pagination
 		int cursor = 0;          // html selected option (abs index)
 		float expireTime = 0.0f; // absolute game time, 0 = no expire
@@ -326,9 +361,15 @@ private:
 	// Apply a chat-menu number (1..page select, Next/Prev/Exit reserved). True if consumed.
 	bool ApplyChatNumber(int slot, int num);
 
-	// Effective nav binding for an action (per-menu override, else server config).
-	uint64_t EffectiveNavMask(const MenuDef &def, MenuNavAction action) const;
-	std::string EffectiveNavLabel(const MenuDef &def, MenuNavAction action) const;
+	// Effective nav binding for an action:
+	// per-menu override, else this player's preference, else server config.
+	uint64_t EffectiveNavMask(const MenuDef &def, int slot, MenuNavAction action) const;
+	std::string EffectiveNavLabel(const MenuDef &def, int slot, MenuNavAction action) const;
+
+	// Resolve the render type for `def` as seen by `slot`: a forced menu keeps its base type,
+	// otherwise the player's type preference applies, then HTML availability is enforced
+	// (HTML result downgrades to chat when HTML is unavailable).
+	MenuType ResolveType(const MenuDef &def, int slot) const;
 
 	// Built-in phrase key for a label (seeds MenuDef, restores on SetMenuLabel("")).
 	static const char *DefaultLabelKey(MenuLabel label);
@@ -339,13 +380,15 @@ private:
 	// HTML: whether to render the selectable "Exit" row (after the last item).
 	// Shown when the menu is exitable and either the toggle is on or the Back key
 	// is disabled, so a menu is never left unexitable.
-	bool HtmlShowsExitRow(const MenuDef &def) const;
+	// Exit-row visibility depends on the Back binding, which can be per-player, so pass slot.
+	bool HtmlShowsExitRow(const MenuDef &def, int slot) const;
 	// HTML: total navigable rows = items + (exit row ? 1 : 0).
-	int HtmlRowCount(const MenuDef &def) const;
+	int HtmlRowCount(const MenuDef &def, int slot) const;
 
 	std::unordered_map<MenuHandle, MenuDef> m_menus;
 	MenuHandle m_nextHandle = 1;
 	PlayerMenu m_players[MAXPLAYERS + 1];
+	PlayerPrefs m_prefs[MAXPLAYERS + 1];
 
 	// Guards all of the above. Recursive: a callback fired while held may re-enter the API.
 	mutable std::recursive_mutex m_mutex;

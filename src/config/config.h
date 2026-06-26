@@ -111,10 +111,30 @@ struct MenuDefaultsCfg
 	std::string navBack = "a";
 };
 
+// Optional sql_mm-backed store for per-player menu preferences (type + HTML nav keys).
+// Off by default. When disabled, cs2menus uses only the server config (no per-player overrides).
+struct MenuDatabaseCfg
+{
+	bool enabled = false;
+	// "sqlite" or "mysql".
+	std::string type = "sqlite";
+	// Table-name prefix (the prefs table is "<prefix>_prefs").
+	std::string prefix = "cs2menus";
+	// SQLite: path relative to the game dir (e.g. game/csgo/).
+	std::string path = "addons/cs2menus/cs2menus.db";
+	// MySQL connection.
+	std::string host = "localhost";
+	std::string user = "root";
+	std::string pass;
+	std::string name = "cs2menus";
+	int port = 3306;
+};
+
 struct MenusConfig
 {
 	MenuGeneralCfg general;
 	MenuDefaultsCfg menu;
+	MenuDatabaseCfg database;
 };
 
 // Parse cfg/cs2menus/core.cfg into `config`. Returns true on success,

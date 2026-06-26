@@ -23,7 +23,9 @@
 #endif
 
 // Bump when the C ABI below changes incompatibly. Hosts gate on this.
-// New exports appended at the end are backward-compatible (old hosts simply don't call them).
+// New exports appended at the end are backward-compatible (old hosts simply don't call them),
+// so adding one does NOT bump this.
+// Hosts probe a newer export by symbol (e.g. via NativeLibrary.TryGetExport) rather than gating on the version.
 #define CS2M_ABI_VERSION 1
 
 // Mirrors MenuType / MenuEndReason / MenuButton / MenuNavAction (ics2menus.h),
@@ -74,6 +76,9 @@ CS2M_API int CS2M_CALL cs2m_add_submenu(cs2m_handle parent, const char *text, cs
 // Override one HTML style field (see `style` values above). "" inherits the server default.
 // Sizes take a token ("s" "sm" "m" "ml" "l"), colors "#RRGGBB", Centered "1"/"0".
 CS2M_API void CS2M_CALL cs2m_set_menu_style(cs2m_handle menu, int field, const char *value);
+// Lock the menu's render type so the viewer's per-player preference can't change it (force!=0).
+// See ICS2Menus::SetMenuForceType. Appended export: probe by symbol, older binaries lack it.
+CS2M_API void CS2M_CALL cs2m_set_force_type(cs2m_handle menu, int force);
 // Read a style field's effective value. Buffer semantics like cs2m_get_item_text.
 CS2M_API int CS2M_CALL cs2m_get_menu_style(cs2m_handle menu, int field, char *buf, int buflen);
 

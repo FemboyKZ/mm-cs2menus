@@ -19,6 +19,34 @@ public enum MenuNavAction { Up = 0, Down = 1, Select = 2, Back = 3 }
 public enum MenuLabel { Exit = 0, NextPage = 1, PrevPage = 2, Move = 3, Scroll = 4, Select = 5 }
 
 /// <summary>
+/// Per-menu HTML style fields settable via <see cref="Cs2Menu.SetMenuStyle"/>.
+/// Each overrides the matching server default for one menu. Pass "" to inherit. HTML menus only.
+/// Sizes take a token ("xs" "s" "sm" "m" "ml" "l" "xl" "xxl" "xxxl"), colors "#RRGGBB", toggles "1"/"0".
+/// </summary>
+public enum MenuStyle
+{
+	TitleColor = 0,
+	TitleSize,
+	ItemSize,
+	NavColor,
+	FooterColor,
+	DisabledColor,
+	Align,
+	FontFace,
+	ItemColor,
+	Marker,
+	CounterColor,
+	ShowCounter,
+	FooterSize,
+	ShowFooter,
+	SubmenuSuffix,
+	FooterSeparator,
+	CounterPrefix,
+	CounterSuffix,
+	HighlightText
+}
+
+/// <summary>
 /// Entry point: load cs2menus and create menus. Framework-agnostic core:
 /// each host package adds a <c>LoadDefault</c> partial that resolves the binary path.
 ///
@@ -171,6 +199,17 @@ public sealed class Cs2Menu : IDisposable
 	public string GetMenuLabel(MenuLabel label) => Cs2MenusNative.GetMenuLabel(Handle, (int)label);
 	public Cs2Menu SetStartItem(int item) { Cs2MenusNative.SetStartItem(Handle, item); return this; }
 
+	/// <summary>Override one HTML style field for this menu (see <see cref="MenuStyle"/>). "" inherits the server default. No-op for chat menus.</summary>
+	public Cs2Menu SetMenuStyle(MenuStyle field, string value) { Cs2MenusNative.SetMenuStyle(Handle, (int)field, value); return this; }
+	/// <summary>This menu's effective value for a style field (the override if set, else the server default).</summary>
+	public string GetMenuStyle(MenuStyle field) => Cs2MenusNative.GetMenuStyle(Handle, (int)field);
+
+	/// <summary>
+	/// Lock this menu's render type so the viewing player's saved preference can't change it.
+	/// Use it when the menu depends on a specific type (e.g. HTML-only icons or raw markup).
+	/// </summary>
+	public Cs2Menu SetForceType(bool force = true) { Cs2MenusNative.SetForceType(Handle, force); return this; }
+
 	// --- Show ---
 	public bool Display(int slot, float duration = 0f) => Cs2MenusNative.Display(Handle, slot, duration);
 	public void DisplayToAll(float duration = 0f) => Cs2MenusNative.DisplayToAll(Handle, duration);
@@ -183,6 +222,12 @@ public sealed class Cs2Menu : IDisposable
 	public void SetItemInfo(int item, string info) => Cs2MenusNative.SetItemInfo(Handle, item, info);
 	public void SetItemDisabled(int item, bool disabled) => Cs2MenusNative.SetItemDisabled(Handle, item, disabled);
 	public bool GetItemDisabled(int item) => Cs2MenusNative.GetItemDisabled(Handle, item);
+	/// <summary>HTML menus: render the item's text as raw Panorama markup (unescaped). No-op for chat menus.</summary>
+	public void SetItemRaw(int item, bool raw) => Cs2MenusNative.SetItemRaw(Handle, item, raw);
+	public bool GetItemRaw(int item) => Cs2MenusNative.GetItemRaw(Handle, item);
+	/// <summary>HTML menus: show an image before the item's text (icon URL / packaged path). "" removes it.</summary>
+	public void SetItemIcon(int item, string url) => Cs2MenusNative.SetItemIcon(Handle, item, url);
+	public string GetItemIcon(int item) => Cs2MenusNative.GetItemIcon(Handle, item);
 	public void RemoveItem(int item) => Cs2MenusNative.RemoveItem(Handle, item);
 	public void RemoveAllItems() => Cs2MenusNative.RemoveAllItems(Handle);
 	public int StartItem { get => Cs2MenusNative.GetStartItem(Handle); set => Cs2MenusNative.SetStartItem(Handle, value); }
