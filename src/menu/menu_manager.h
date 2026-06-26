@@ -65,11 +65,11 @@ struct MenuManagerSettings
 	std::string navColor = "#ff2ee7";
 	std::string footerColor = "#909090";
 	std::string disabledColor = "#808080";
-	// HTML: title accent color, size tokens (s/sm/m/ml/l), and whether lines are centered.
+	// HTML: title accent color, size tokens (xs/s/sm/m/ml/l/xl/xxl/xxxl), and line alignment.
 	std::string titleColor = "#ff00e1";
 	std::string titleSize = "l";
 	std::string itemSize = "sm";
-	bool centered = true;
+	std::string align = "center"; // "left" / "center" / "right"
 	// HTML: normal item text color, cursor marker text, and an optional Panorama font
 	// class applied to every line (empty = the game's default font).
 	std::string itemColor = "#FFFFFF";
@@ -247,7 +247,7 @@ private:
 		std::string footerSeparator;
 		std::string counterPrefix;
 		std::string counterSuffix;
-		int centered = -1;      // -1 inherit, 0 off, 1 on
+		std::string align;      // empty = inherit ("left"/"center"/"right")
 		int showCounter = -1;   // -1 inherit, 0 off, 1 on
 		int showFooter = -1;    // -1 inherit, 0 off, 1 on
 		int highlightText = -1; // -1 inherit, 0 off, 1 on

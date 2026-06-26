@@ -97,12 +97,12 @@ enum class MenuLabel : int
 enum class MenuStyle : int
 {
 	TitleColor = 0,  // hex "#RRGGBB" for the title line
-	TitleSize,       // size token: "s" "sm" "m" "ml" "l"
+	TitleSize,       // size token: "xs" "s" "sm" "m" "ml" "l" "xl" "xxl" "xxxl"
 	ItemSize,        // size token for item + cursor rows
 	NavColor,        // hex for the cursor row + marker
 	FooterColor,     // hex for the key-hint footer
 	DisabledColor,   // hex for greyed-out items
-	Centered,        // "1" center every line, "0" left-align
+	Align,           // line alignment: "left" / "center" / "right"
 	FontFace,        // Panorama font class, e.g. "stratum-bold" / "stratum-light-mono". "" = game default
 	ItemColor,       // hex for normal (unselected, enabled) item text
 	Marker,          // literal text drawn before the cursor row (default "▶ ")

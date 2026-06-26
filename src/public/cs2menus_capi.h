@@ -33,7 +33,7 @@
 //   action:  0 Up, 1 Down, 2 Select, 3 Back
 //   button:  0 Default, 1..13 W/A/S/D/Use/Speed/Duck/Jump/Reload/Attack/Attack2/Score/Inspect, 14 None
 //   label:   0 Exit, 1 NextPage, 2 PrevPage, 3 Move, 4 Scroll, 5 Select
-//   style:   0 TitleColor, 1 TitleSize, 2 ItemSize, 3 NavColor, 4 FooterColor, 5 DisabledColor, 6 Centered,
+//   style:   0 TitleColor, 1 TitleSize, 2 ItemSize, 3 NavColor, 4 FooterColor, 5 DisabledColor, 6 Align,
 //            7 FontFace, 8 ItemColor, 9 Marker, 10 CounterColor, 11 ShowCounter, 12 FooterSize, 13 ShowFooter,
 //            14 SubmenuSuffix, 15 FooterSeparator, 16 CounterPrefix, 17 CounterSuffix, 18 HighlightText
 

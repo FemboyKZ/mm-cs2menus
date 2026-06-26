@@ -87,7 +87,8 @@ static void MenuButtonToBinding(MenuButton button, uint64_t &outMask, const char
 	}
 }
 
-// Map an HTML size token (s/sm/m/ml/l) to its Panorama fontSize class.
+// Map an HTML size token to its Panorama fontSize class (px in csgostyles.css):
+// xs 8, s 12, sm 16, m 18, ml 20, l 24, xl 32, xxl 40, xxxl 64.
 // An already-qualified "fontSize-..." string passes through. Unknown -> "".
 static std::string SizeClass(const std::string &tok)
 {
@@ -95,25 +96,34 @@ static std::string SizeClass(const std::string &tok)
 	{
 		return tok;
 	}
-	if (tok == "s")
+	if (tok == "xs" || tok == "s" || tok == "sm" || tok == "m" || tok == "ml" || tok == "l" || tok == "xl" || tok == "xxl" || tok == "xxxl")
 	{
-		return "fontSize-s";
+		return "fontSize-" + tok;
 	}
-	if (tok == "sm")
+	return "";
+}
+
+// Map a line-alignment token to its Panorama block-align class suffix.
+// left -> "" (the default), center -> horizontal-center, right -> horizontal-align-right.
+static std::string AlignClass(const std::string &align)
+{
+	if (align == "right")
 	{
-		return "fontSize-sm";
+		return " horizontal-align-right";
 	}
-	if (tok == "m")
+	if (align == "left")
 	{
-		return "fontSize-m";
+		return "";
 	}
-	if (tok == "ml")
+	return " horizontal-center"; // center (and any unexpected value)
+}
+
+// Valid line-alignment tokens. Returns "" for anything else so the caller can ignore it.
+static std::string NormalizeAlign(const std::string &v)
+{
+	if (v == "left" || v == "center" || v == "right")
 	{
-		return "fontSize-ml";
-	}
-	if (tok == "l")
-	{
-		return "fontSize-l";
+		return v;
 	}
 	return "";
 }
@@ -438,8 +448,16 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 				s.footerSize = v;
 			}
 			break;
-		case MenuStyle::Centered:
-			s.centered = v.empty() ? -1 : (v != "0" ? 1 : 0);
+		case MenuStyle::Align:
+			// Empty clears the override, an unrecognized token is ignored.
+			if (v.empty())
+			{
+				s.align.clear();
+			}
+			else if (std::string a = NormalizeAlign(v); !a.empty())
+			{
+				s.align = a;
+			}
 			break;
 		case MenuStyle::ShowCounter:
 			s.showCounter = v.empty() ? -1 : (v != "0" ? 1 : 0);
@@ -496,8 +514,8 @@ const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 			return s.itemSize.empty() ? m_settings.itemSize.c_str() : s.itemSize.c_str();
 		case MenuStyle::FooterSize:
 			return s.footerSize.empty() ? m_settings.footerSize.c_str() : s.footerSize.c_str();
-		case MenuStyle::Centered:
-			return (s.centered < 0 ? m_settings.centered : s.centered != 0) ? "1" : "0";
+		case MenuStyle::Align:
+			return s.align.empty() ? m_settings.align.c_str() : s.align.c_str();
 		case MenuStyle::ShowCounter:
 			return (s.showCounter < 0 ? m_settings.showCounter : s.showCounter != 0) ? "1" : "0";
 		case MenuStyle::ShowFooter:
@@ -1712,12 +1730,12 @@ void MenuManager::RenderHtml(int slot)
 	const std::string &footerSep = st.footerSeparator.empty() ? m_settings.footerSeparator : st.footerSeparator;
 	const std::string &counterPrefix = st.counterPrefix.empty() ? m_settings.counterPrefix : st.counterPrefix;
 	const std::string &counterSuffix = st.counterSuffix.empty() ? m_settings.counterSuffix : st.counterSuffix;
-	bool centered = (st.centered < 0) ? m_settings.centered : (st.centered != 0);
+	const std::string &align = st.align.empty() ? m_settings.align : st.align;
 	bool showCounter = (st.showCounter < 0) ? m_settings.showCounter : (st.showCounter != 0);
 	bool showFooter = (st.showFooter < 0) ? m_settings.showFooter : (st.showFooter != 0);
 	bool highlightText = (st.highlightText < 0) ? m_settings.highlightText : (st.highlightText != 0);
-	// Suffix appended to every class list: centering, then an optional font face.
-	std::string commonCls = centered ? " horizontal-center" : "";
+	// Suffix appended to every class list: alignment, then an optional font face.
+	std::string commonCls = AlignClass(align);
 	if (!fontFace.empty())
 	{
 		commonCls += " " + fontFace;

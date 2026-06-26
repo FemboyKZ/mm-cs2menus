@@ -207,9 +207,9 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.htmlItemSize = ToLower(value);
 		}
-		else if (k == "htmlcentered")
+		else if (k == "htmlalign")
 		{
-			cfg->menu.htmlCentered = (value != "0");
+			cfg->menu.htmlAlign = ToLower(value);
 		}
 		else if (k == "htmlfixflashing")
 		{

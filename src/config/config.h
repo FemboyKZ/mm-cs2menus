@@ -67,10 +67,10 @@ struct MenuDefaultsCfg
 	std::string htmlDisabledColor = "#808080"; // greyed-out items
 	std::string htmlTitleColor = "#ff00e1";    // title accent
 	std::string htmlItemColor = "#FFFFFF";     // normal item text
-	// Size tokens (s/sm/m/ml/l) and whether every line is centered in the panel.
+	// Size tokens (xs/s/sm/m/ml/l/xl/xxl/xxxl) and line alignment (left/center/right).
 	std::string htmlTitleSize = "l";
 	std::string htmlItemSize = "sm";
-	bool htmlCentered = true;
+	std::string htmlAlign = "center";
 	// Panorama font class for every line (empty = game default), and the cursor marker text.
 	std::string htmlFontFace;
 	std::string htmlMarker = "\xE2\x96\xB6 "; // ▶

@@ -580,7 +580,8 @@ static void LoadAndApplyConfig()
 		settings.disabledColor = g_MenusConfig.menu.htmlDisabledColor;
 	}
 	// Size tokens accepted by the renderer. An unknown value keeps the built-in default.
-	auto isSizeToken = [](const std::string &t) { return t == "s" || t == "sm" || t == "m" || t == "ml" || t == "l"; };
+	auto isSizeToken = [](const std::string &t)
+	{ return t == "xs" || t == "s" || t == "sm" || t == "m" || t == "ml" || t == "l" || t == "xl" || t == "xxl" || t == "xxxl"; };
 	if (IsValidHexColor(g_MenusConfig.menu.htmlTitleColor))
 	{
 		settings.titleColor = g_MenusConfig.menu.htmlTitleColor;
@@ -628,7 +629,10 @@ static void LoadAndApplyConfig()
 	{
 		settings.itemSize = g_MenusConfig.menu.htmlItemSize;
 	}
-	settings.centered = g_MenusConfig.menu.htmlCentered;
+	if (g_MenusConfig.menu.htmlAlign == "left" || g_MenusConfig.menu.htmlAlign == "center" || g_MenusConfig.menu.htmlAlign == "right")
+	{
+		settings.align = g_MenusConfig.menu.htmlAlign;
+	}
 
 	// HTML nav keys. "none"/"off"/blank disables the action (mask 0),
 	// an unrecognized name leaves the default binding untouched.
