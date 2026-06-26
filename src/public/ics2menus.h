@@ -103,7 +103,11 @@ enum class MenuStyle : int
 	FooterColor,     // hex for the key-hint footer
 	DisabledColor,   // hex for greyed-out items
 	Align,           // line alignment: "left" / "center" / "right"
-	FontFace,        // Panorama font class, e.g. "stratum-bold" / "stratum-light-mono". "" = game default
+	FontFace,        // Panorama classes applied to every line, space-separated. "" = game default.
+	                 // Faces: stratum-{thin,light,regular,medium,bold,black}[-italic/-condensed],
+	                 // mono: stratum-{light,regular,bold}-mono / mono-spaced-font[-bold].
+	                 // Effects stack too: text-uppercase, text-letterspace-2px, text-shadow-basic.
+	                 // e.g. "stratum-bold text-uppercase text-shadow-basic".
 	ItemColor,       // hex for normal (unselected, enabled) item text
 	Marker,          // literal text drawn before the cursor row (default "▶ ")
 	CounterColor,    // hex for the "[n/m]" position counter

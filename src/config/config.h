@@ -71,7 +71,12 @@ struct MenuDefaultsCfg
 	std::string htmlTitleSize = "l";
 	std::string htmlItemSize = "sm";
 	std::string htmlAlign = "center";
-	// Panorama font class for every line (empty = game default), and the cursor marker text.
+	// Panorama classes applied to every line, space-separated. Empty = game default font.
+	// Faces: stratum-{thin,light,regular,medium,bold,black}, add -italic or -condensed.
+	// Monospace: stratum-{light,regular,bold}-mono, mono-spaced-font, mono-spaced-font-bold.
+	// Effects stack: text-uppercase, text-letterspace-2px, text-shadow-basic.
+	// Example: "stratum-bold text-uppercase text-shadow-basic"
+	// Plus the cursor marker text.
 	std::string htmlFontFace;
 	std::string htmlMarker = "\xE2\x96\xB6 "; // ▶
 	// Position counter color + size of the key-hint footer, and whether each is shown.
