@@ -100,6 +100,10 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.chatPageSuffix = value;
 		}
+		else if (k == "chatpageseparator")
+		{
+			cfg->menu.chatPageSeparator = value;
+		}
 		else if (k == "chatshowpage")
 		{
 			cfg->menu.chatShowPage = (value != "0");
@@ -172,6 +176,14 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.htmlFooterSeparator = value;
 		}
+		else if (k == "htmlfooterkeyseparator")
+		{
+			cfg->menu.htmlFooterKeySeparator = value;
+		}
+		else if (k == "htmlfooterrangeseparator")
+		{
+			cfg->menu.htmlFooterRangeSeparator = value;
+		}
 		else if (k == "htmlcounterprefix")
 		{
 			cfg->menu.htmlCounterPrefix = value;
@@ -179,6 +191,10 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		else if (k == "htmlcountersuffix")
 		{
 			cfg->menu.htmlCounterSuffix = value;
+		}
+		else if (k == "htmlcounterseparator")
+		{
+			cfg->menu.htmlCounterSeparator = value;
 		}
 		else if (k == "htmlhighlighttext")
 		{

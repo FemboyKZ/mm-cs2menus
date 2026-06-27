@@ -584,6 +584,7 @@ static void LoadAndApplyConfig()
 	settings.chatArrow = m.chatArrow;
 	settings.chatPagePrefix = m.chatPagePrefix;
 	settings.chatPageSuffix = m.chatPageSuffix;
+	settings.chatPageSep = m.chatPageSeparator;
 	settings.chatShowPage = m.chatShowPage;
 	settings.chatHeader = m.chatHeader;
 	settings.htmlVisibleItems = g_MenusConfig.menu.htmlVisibleItems;
@@ -627,6 +628,9 @@ static void LoadAndApplyConfig()
 	settings.showFooter = g_MenusConfig.menu.htmlShowFooter;
 	settings.submenuSuffix = g_MenusConfig.menu.htmlSubmenuSuffix;
 	settings.footerSeparator = g_MenusConfig.menu.htmlFooterSeparator;
+	settings.footerKeySep = g_MenusConfig.menu.htmlFooterKeySeparator;
+	settings.footerRangeSep = g_MenusConfig.menu.htmlFooterRangeSeparator;
+	settings.counterSep = g_MenusConfig.menu.htmlCounterSeparator;
 	settings.counterPrefix = g_MenusConfig.menu.htmlCounterPrefix;
 	settings.counterSuffix = g_MenusConfig.menu.htmlCounterSuffix;
 	settings.highlightText = g_MenusConfig.menu.htmlHighlightText;

@@ -96,31 +96,35 @@ enum class MenuLabel : int
 // HTML menus only, ignored for chat menus.
 enum class MenuStyle : int
 {
-	TitleColor = 0,  // hex "#RRGGBB" for the title line
-	TitleSize,       // size token: "xs" "s" "sm" "m" "ml" "l" "xl" "xxl" "xxxl"
-	ItemSize,        // size token for item + cursor rows
-	NavColor,        // hex for the cursor row + marker
-	FooterColor,     // hex for the key-hint footer
-	DisabledColor,   // hex for greyed-out items
-	Align,           // line alignment: "left" / "center" / "right"
-	FontFace,        // Panorama classes applied to every line, space-separated. "" = game default.
-					 // Faces: stratum-{thin,light,regular,medium,bold,black}[-italic/-condensed],
-					 // mono: stratum-{light,regular,bold}-mono / mono-spaced-font[-bold].
-					 // Effects stack too: text-uppercase, text-letterspace-2px, text-shadow-basic.
-					 // e.g. "stratum-bold text-uppercase text-shadow-basic".
-	ItemColor,       // hex for normal (unselected, enabled) item text
-	Marker,          // literal text drawn before the cursor row (default "▶ ")
-	CounterColor,    // hex for the "[n/m]" position counter
-	ShowCounter,     // "1" show the "[n/m]" counter on the title line, "0" hide it
-	FooterSize,      // size token for the key-hint footer
-	ShowFooter,      // "1" show the key-hint footer, "0" hide it
-	SubmenuSuffix,   // text appended to items that open a submenu (default " >"). A space = none
-	FooterSeparator, // text between footer hint segments (default " | ")
-	CounterPrefix,   // text before the counter number (default "[")
-	CounterSuffix,   // text after the counter number (default "]")
-	HighlightText,   // "1" recolor the cursor row's text to NavColor, "0" only the marker marks it
-	CounterSize,     // size token for the "[n/m]" position counter
-	VisibleItems,    // integer string (e.g. "10"): rows shown at once in the scroll window
+	TitleColor = 0,       // hex "#RRGGBB" for the title line
+	TitleSize,            // size token: "xs" "s" "sm" "m" "ml" "l" "xl" "xxl" "xxxl"
+	ItemSize,             // size token for item + cursor rows
+	NavColor,             // hex for the cursor row + marker
+	FooterColor,          // hex for the key-hint footer
+	DisabledColor,        // hex for greyed-out items
+	Align,                // line alignment: "left" / "center" / "right"
+	FontFace,             // Panorama classes applied to every line, space-separated. "" = game default.
+						  // Faces: stratum-{thin,light,regular,medium,bold,black}[-italic/-condensed],
+						  // mono: stratum-{light,regular,bold}-mono / mono-spaced-font[-bold].
+						  // Effects stack too: text-uppercase, text-letterspace-2px, text-shadow-basic.
+						  // e.g. "stratum-bold text-uppercase text-shadow-basic".
+	ItemColor,            // hex for normal (unselected, enabled) item text
+	Marker,               // literal text drawn before the cursor row (default "▶ ")
+	CounterColor,         // hex for the "[n/m]" position counter
+	ShowCounter,          // "1" show the "[n/m]" counter on the title line, "0" hide it
+	FooterSize,           // size token for the key-hint footer
+	ShowFooter,           // "1" show the key-hint footer, "0" hide it
+	SubmenuSuffix,        // text appended to items that open a submenu (default " >"). A space = none
+	FooterSeparator,      // text between footer hint segments (default " | ")
+	CounterPrefix,        // text before the counter number (default "[")
+	CounterSuffix,        // text after the counter number (default "]")
+	HighlightText,        // "1" recolor the cursor row's text to NavColor, "0" only the marker marks it
+	CounterSize,          // size token for the "[n/m]" position counter
+	VisibleItems,         // integer string (e.g. "10"): rows shown at once in the scroll window
+	RawTitle,             // "1" render the title as raw Panorama markup (unescaped, like SetItemRaw), "0" plain text
+	FooterKeySeparator,   // text between a footer hint's label and its key, e.g. the ": " in "Scroll: W"
+	FooterRangeSeparator, // text between the two keys in the combined Move hint, e.g. the "/" in "Move: W/S"
+	CounterSeparator,     // text between the two numbers in the "[n/m]" position counter, e.g. the "/"
 };
 
 // Fired when a player selects an item.
@@ -285,7 +289,7 @@ public:
 	virtual void SetMenuStyle(MenuHandle menu, MenuStyle field, const char *value) = 0;
 
 	// This menu's effective value for a style field (the override if set, else the server default).
-	// Sizes come back as the token, colors as "#RRGGBB", toggles (ShowCounter/ShowFooter/HighlightText) as "1"/"0".
+	// Sizes come back as the token, colors as "#RRGGBB", toggles (ShowCounter/ShowFooter/HighlightText/RawTitle) as "1"/"0".
 	// Aliases internal storage, copy it, don't cache. Returns "" for an invalid handle/field.
 	virtual const char *GetMenuStyle(MenuHandle menu, MenuStyle field) = 0;
 

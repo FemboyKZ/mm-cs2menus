@@ -50,7 +50,8 @@ struct MenuDefaultsCfg
 	std::string chatArrow = "-> ";        // before Next/Prev/Exit labels
 	std::string chatPagePrefix = "(page ";
 	std::string chatPageSuffix = ")";
-	bool chatShowPage = true; // show the "(page x/y)" indicator on multi-page menus
+	std::string chatPageSeparator = "/"; // between the page numbers in "(page n/m)"
+	bool chatShowPage = true;            // show the "(page x/y)" indicator on multi-page menus
 	// Optional branded line printed above the title (may use embedded color codes). Empty = none.
 	std::string chatHeader;
 
@@ -89,8 +90,11 @@ struct MenuDefaultsCfg
 	// cursor row's text is recolored (vs. marked only by the marker).
 	std::string htmlSubmenuSuffix = " >";
 	std::string htmlFooterSeparator = " | ";
+	std::string htmlFooterKeySeparator = ": ";  // between a footer hint's label and its key
+	std::string htmlFooterRangeSeparator = "/"; // between the two keys in the combined Move hint
 	std::string htmlCounterPrefix = "[";
 	std::string htmlCounterSuffix = "]";
+	std::string htmlCounterSeparator = "/"; // between the numbers in the "[n/m]" counter
 	bool htmlHighlightText = true;
 	// Center-panel resend cadence (the message decays, re-sent while open).
 	// KeepAlive must stay below DurationSecs or the panel can blink.

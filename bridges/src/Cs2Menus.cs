@@ -45,7 +45,11 @@ public enum MenuStyle
 	CounterSuffix,
 	HighlightText,
 	CounterSize,
-	VisibleItems
+	VisibleItems,
+	RawTitle,
+	FooterKeySeparator,
+	FooterRangeSeparator,
+	CounterSeparator
 }
 
 /// <summary>

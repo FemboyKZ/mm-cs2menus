@@ -463,6 +463,18 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 				s.visibleItems = n;
 			}
 			break;
+		case MenuStyle::RawTitle:
+			s.rawTitle = v.empty() ? -1 : (v != "0" ? 1 : 0);
+			break;
+		case MenuStyle::FooterKeySeparator:
+			s.footerKeySep = v;
+			break;
+		case MenuStyle::FooterRangeSeparator:
+			s.footerRangeSep = v;
+			break;
+		case MenuStyle::CounterSeparator:
+			s.counterSep = v;
+			break;
 	}
 	RefreshMenu(menu);
 }
@@ -526,6 +538,14 @@ const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 			buf = std::to_string(eff);
 			return buf.c_str();
 		}
+		case MenuStyle::RawTitle:
+			return (s.rawTitle == 1) ? "1" : "0";
+		case MenuStyle::FooterKeySeparator:
+			return s.footerKeySep.empty() ? m_settings.footerKeySep.c_str() : s.footerKeySep.c_str();
+		case MenuStyle::FooterRangeSeparator:
+			return s.footerRangeSep.empty() ? m_settings.footerRangeSep.c_str() : s.footerRangeSep.c_str();
+		case MenuStyle::CounterSeparator:
+			return s.counterSep.empty() ? m_settings.counterSep.c_str() : s.counterSep.c_str();
 	}
 	return "";
 }
@@ -1863,7 +1883,8 @@ void MenuManager::RenderPage(int slot)
 	std::string title = s.chatTitleColor + s.chatTitlePrefix + def->title;
 	if (pageCount > 1 && s.chatShowPage)
 	{
-		title += " " + s.chatPageColor + s.chatPagePrefix + std::to_string(pm.page + 1) + "/" + std::to_string(pageCount) + s.chatPageSuffix;
+		title +=
+			" " + s.chatPageColor + s.chatPagePrefix + std::to_string(pm.page + 1) + s.chatPageSep + std::to_string(pageCount) + s.chatPageSuffix;
 	}
 	title += s.chatTitleColor + s.chatTitleSuffix;
 	MENU_PrintToChat(slot, "%s", title.c_str());
@@ -1948,12 +1969,18 @@ void MenuManager::RenderHtml(int slot)
 	const std::string &counterColor = pick(st.counterColor, m_settings.counterColor);
 	const std::string &submenuSuffix = pick(st.submenuSuffix, m_settings.submenuSuffix);
 	const std::string &footerSep = pick(st.footerSeparator, m_settings.footerSeparator);
+	const std::string &footerKeySep = pick(st.footerKeySep, m_settings.footerKeySep);
+	const std::string &footerRangeSep = pick(st.footerRangeSep, m_settings.footerRangeSep);
 	const std::string &counterPrefix = pick(st.counterPrefix, m_settings.counterPrefix);
 	const std::string &counterSuffix = pick(st.counterSuffix, m_settings.counterSuffix);
+	const std::string &counterSep = pick(st.counterSep, m_settings.counterSep);
 	const std::string &align = pick(st.align, m_settings.align);
 	bool showCounter = pickFlag(st.showCounter, m_settings.showCounter);
 	bool showFooter = pickFlag(st.showFooter, m_settings.showFooter);
 	bool highlightText = pickFlag(st.highlightText, m_settings.highlightText);
+	bool rawTitle = (st.rawTitle == 1); // per-menu only, no server default
+	std::string keySepEsc = center_html::Escape(footerKeySep);
+	std::string rangeSepEsc = center_html::Escape(footerRangeSep);
 	// Suffix appended to every class list: alignment, then an optional font face.
 	std::string commonCls = AlignClass(align);
 	if (!fontFace.empty())
@@ -1970,12 +1997,20 @@ void MenuManager::RenderHtml(int slot)
 	html.reserve(512);
 
 	// Title + position counter (counter dimmed so the title reads first).
-	html += center_html::ColorizeChat(def->title, titleColor.c_str(), titleCls.c_str());
+	// Raw title keeps the title font/size/color wrapper but emits the text verbatim (like SetItemRaw).
+	if (rawTitle)
+	{
+		html += "<font color='" + titleColor + "' class='" + titleCls + "'>" + def->title + "</font>";
+	}
+	else
+	{
+		html += center_html::ColorizeChat(def->title, titleColor.c_str(), titleCls.c_str());
+	}
 	if (showCounter && count > 0)
 	{
 		html += " <font class='" + counterCls + "' color='" + counterColor + "'>";
 		html += center_html::Escape(counterPrefix);
-		html += std::to_string(pm.cursor + 1) + "/" + std::to_string(count);
+		html += std::to_string(pm.cursor + 1) + center_html::Escape(counterSep) + std::to_string(count);
 		html += center_html::Escape(counterSuffix);
 		html += "</font>";
 	}
@@ -2084,24 +2119,25 @@ void MenuManager::RenderHtml(int slot)
 
 	if (upOn && downOn)
 	{
-		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Move)) + ": " + EffectiveNavLabel(*def, slot, MenuNavAction::Up) + "/"
-				   + EffectiveNavLabel(*def, slot, MenuNavAction::Down));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Move)) + keySepEsc + EffectiveNavLabel(*def, slot, MenuNavAction::Up)
+				   + rangeSepEsc + EffectiveNavLabel(*def, slot, MenuNavAction::Down));
 	}
 	else if (downOn)
 	{
-		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Scroll)) + ": " + EffectiveNavLabel(*def, slot, MenuNavAction::Down));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Scroll)) + keySepEsc + EffectiveNavLabel(*def, slot, MenuNavAction::Down));
 	}
 	else if (upOn)
 	{
-		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Scroll)) + ": " + EffectiveNavLabel(*def, slot, MenuNavAction::Up));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Scroll)) + keySepEsc + EffectiveNavLabel(*def, slot, MenuNavAction::Up));
 	}
 	if (selectOn)
 	{
-		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Select)) + ": " + EffectiveNavLabel(*def, slot, MenuNavAction::Select));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Select)) + keySepEsc
+				   + EffectiveNavLabel(*def, slot, MenuNavAction::Select));
 	}
 	if (backOn)
 	{
-		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Exit)) + ": " + EffectiveNavLabel(*def, slot, MenuNavAction::Back));
+		addSegment(center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Exit)) + keySepEsc + EffectiveNavLabel(*def, slot, MenuNavAction::Back));
 	}
 
 	if (showFooter && !footer.empty())
