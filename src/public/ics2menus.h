@@ -177,6 +177,8 @@ public:
 	// Display `menu` to `slot` for `duration` seconds (0 = no timeout).
 	// Replaces any menu the player currently has open (firing its MenuEnd=Cancelled first).
 	// Returns false for an invalid handle/slot.
+	// Called off-thread it returns true once the display is queued,
+	// which is not a guarantee it will show (see the threading note above).
 	virtual bool DisplayMenu(MenuHandle menu, int slot, float duration) = 0;
 
 	// Close whatever menu `slot` has open (fires MenuEnd=Cancelled). No-op if none.

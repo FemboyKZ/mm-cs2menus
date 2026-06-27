@@ -621,7 +621,8 @@ static void LoadAndApplyConfig()
 	{
 		settings.htmlDurationSecs = g_MenusConfig.menu.htmlDurationSecs;
 	}
-	if (g_MenusConfig.menu.htmlRefreshInterval > 0.0f)
+	// Must stay below the decay duration, else the panel blinks between resends.
+	if (g_MenusConfig.menu.htmlRefreshInterval > 0.0f && g_MenusConfig.menu.htmlRefreshInterval < settings.htmlDurationSecs)
 	{
 		settings.htmlRefreshInterval = g_MenusConfig.menu.htmlRefreshInterval;
 	}
@@ -1214,6 +1215,7 @@ bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 	// Drop all menus + displays without firing callbacks into consumer plugins.
 	g_MenuManager.Shutdown();
 	g_MenuPrefsDB.Shutdown();
+	center_html::Shutdown();
 
 	return true;
 }

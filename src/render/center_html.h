@@ -14,6 +14,9 @@ namespace center_html
 	// True if the game event manager was resolved (HTML menus usable).
 	bool Available();
 
+	// Release the reusable event object. Call from plugin Unload.
+	void Shutdown();
+
 	// Send center-screen HTML to one player via the show_survival_respawn_status event.
 	// The message decays after `durationSecs`, so callers re-send while the  menu stays open.
 	// `html` uses CS2 markup: <font color='#hex' class='fontSize-s|sm|m'>, <br>.

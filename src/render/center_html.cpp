@@ -66,6 +66,23 @@ bool center_html::Available()
 	return g_pGameEventManager != nullptr;
 }
 
+// Ceiling on the loc_token payload.
+// A net string field is bounded, and an oversized event can be dropped wholesale (or churn bandwidth),
+//  so clamp to a generous limit and truncate rather than risk the whole menu silently failing.
+static constexpr size_t kMaxHtmlBytes = 8192;
+
+// Reusable event, mutated and re-serialized per send. Released in Shutdown.
+static IGameEvent *s_pEvent = nullptr;
+
+void center_html::Shutdown()
+{
+	if (s_pEvent && g_pGameEventManager)
+	{
+		g_pGameEventManager->FreeEvent(s_pEvent);
+	}
+	s_pEvent = nullptr;
+}
+
 void center_html::Send(int slot, const char *html, int durationSecs)
 {
 	if (!g_pGameEventManager || !g_pNetworkMessages || !g_pGameEventSystem)
@@ -73,8 +90,6 @@ void center_html::Send(int slot, const char *html, int durationSecs)
 		return;
 	}
 
-	// One reusable event, we only ever mutate its fields and re-serialize.
-	static IGameEvent *s_pEvent = nullptr;
 	if (!s_pEvent)
 	{
 		s_pEvent = g_pGameEventManager->CreateEvent("show_survival_respawn_status");
@@ -84,7 +99,16 @@ void center_html::Send(int slot, const char *html, int durationSecs)
 		}
 	}
 
-	s_pEvent->SetString("loc_token", html);
+	// Clamp an over-long payload. Truncation can leave an unclosed tag,
+	// which Panorama tolerates, far better than the event being dropped entirely.
+	std::string clamped;
+	if (html && std::char_traits<char>::length(html) > kMaxHtmlBytes)
+	{
+		clamped.assign(html, kMaxHtmlBytes);
+		html = clamped.c_str();
+	}
+
+	s_pEvent->SetString("loc_token", html ? html : "");
 	s_pEvent->SetInt("duration", durationSecs);
 	s_pEvent->SetInt("userid", -1);
 

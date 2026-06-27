@@ -297,7 +297,17 @@ internal static unsafe class Trampolines
 		{
 			return null;
 		}
-		var gch = GCHandle.FromIntPtr((nint)user);
-		return gch.IsAllocated ? gch.Target as Cs2Menu : null;
+		// A token from an already-freed menu should never reach here (native stops calling back once the menu is destroyed),
+		// but recovering a GCHandle from a stale pointer is undefined.
+		// Guard so a bad token can't tear down the process.
+		try
+		{
+			var gch = GCHandle.FromIntPtr((nint)user);
+			return gch.IsAllocated ? gch.Target as Cs2Menu : null;
+		}
+		catch
+		{
+			return null;
+		}
 	}
 }

@@ -812,6 +812,8 @@ bool MenuManager::DisplayMenu(MenuHandle menu, int slot, float duration, float c
 
 	// Render + possible Cancelled callback are main-thread only.
 	// Off-thread defers to GameFrame.
+	// The bool then reports that the display was queued, not that it will succeed:
+	// a slot held by externalBusy (or a menu destroyed before the drain) can still no-op when GameFrame runs it.
 	if (!OnMainThread())
 	{
 		m_pending.push_back(
@@ -856,8 +858,9 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	// Fixed for the life of this display.
 	pm.type = ResolveType(*def, slot);
 	// Open on the configured start item (clamped at render time).
+	// m_itemsPerPage is clamped >= 1 in Configure, so the divide is safe.
 	pm.cursor = def->startItem;
-	pm.page = (m_itemsPerPage > 0) ? def->startItem / m_itemsPerPage : 0;
+	pm.page = def->startItem / m_itemsPerPage;
 	pm.expireTime = (duration > 0.0f) ? (m_curtime + duration) : 0.0f;
 	pm.prevButtons = 0;
 	pm.buttonsPrimed = false;
@@ -1141,7 +1144,7 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle)
 
 	pm.handle = handle;
 	pm.cursor = newDef->startItem;
-	pm.page = (m_itemsPerPage > 0) ? newDef->startItem / m_itemsPerPage : 0;
+	pm.page = newDef->startItem / m_itemsPerPage; // m_itemsPerPage clamped >= 1 in Configure
 	// Re-baseline buttons so the key that triggered the switch doesn't act again in the new menu.
 	pm.prevButtons = 0;
 	pm.buttonsPrimed = false;

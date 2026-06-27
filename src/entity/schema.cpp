@@ -6,7 +6,9 @@
 // Per class cache: fieldNameHash -> offset
 static std::map<uint32_t, std::map<uint32_t, int16_t>> g_schemaCache;
 
-static void InitSchemaFieldsForClass(const char *className, uint32_t classKey)
+// Returns false when the schema system isn't ready yet (scope/class missing),
+// so a transient early miss isn't cached as a permanent negative.
+static bool InitSchemaFieldsForClass(const char *className, uint32_t classKey)
 {
 	CSchemaSystemTypeScope *pScope = g_pSchemaSystem->FindTypeScopeForModule(
 #ifdef _WIN32
@@ -19,16 +21,18 @@ static void InitSchemaFieldsForClass(const char *className, uint32_t classKey)
 	if (!pScope)
 	{
 		META_CONPRINTF("[CS2Menus] Schema: Could not find server type scope\n");
-		return;
+		return false;
 	}
 
 	SchemaClassInfoData_t *pClassInfo = pScope->FindDeclaredClass(className).Get();
 	if (!pClassInfo)
 	{
 		META_CONPRINTF("[CS2Menus] Schema: Could not find class '%s'\n", className);
-		return;
+		return false;
 	}
 
+	// Creating the entry (even with zero fields) marks this class as probed,
+	// so a fully-resolved-but-field-absent lookup won't re-scan every call.
 	auto &classMap = g_schemaCache[classKey];
 
 	for (int i = 0; i < pClassInfo->m_nFieldCount; i++)
@@ -37,6 +41,7 @@ static void InitSchemaFieldsForClass(const char *className, uint32_t classKey)
 		uint32_t hash = FNV1a(field.m_pszName);
 		classMap[hash] = field.m_nSingleInheritanceOffset;
 	}
+	return true;
 }
 
 int16_t schema::GetOffset(const char *className, uint32_t classKey, const char *fieldName, uint32_t fieldKey)
