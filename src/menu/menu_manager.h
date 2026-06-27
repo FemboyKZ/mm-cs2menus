@@ -213,7 +213,6 @@ public:
 	// A player's preferred render type, applied to every menu the consumer didn't force.
 	// MenuType::Default clears the preference (fall back to the server default).
 	void SetPlayerTypePref(int slot, MenuType type);
-	MenuType GetPlayerTypePref(int slot) const;
 	// A player's preferred HTML nav key for one action. mask 0 clears it (fall back to server config).
 	// label is the footer hint text (e.g. "E"). Use the disabled sentinel via SetPlayerNavDisabled.
 	void SetPlayerNavPref(int slot, MenuNavAction action, uint64_t mask, const char *label);
@@ -221,8 +220,6 @@ public:
 	void SetPlayerNavDisabled(int slot, MenuNavAction action);
 	// Clear a player's nav preference for one action (fall back to server config).
 	void ClearPlayerNavPref(int slot, MenuNavAction action);
-	// Footer label of the player's preferred key for an action, or "" if no preference.
-	std::string GetPlayerNavLabel(int slot, MenuNavAction action) const;
 	// Drop a player's loaded preferences (call on disconnect).
 	void ClearPlayerPrefs(int slot);
 	// Whether HTML menus can currently render + receive input (see SetHtmlAvailable).
@@ -300,7 +297,6 @@ private:
 	// Per-player menu preferences. Empty/unset fields fall back to the server config.
 	struct PlayerPrefs
 	{
-		bool loaded = false;
 		MenuType type = MenuType::Default; // Default = no preference
 		NavOverride nav[4];                // by MenuNavAction; mask 0 = no preference
 	};

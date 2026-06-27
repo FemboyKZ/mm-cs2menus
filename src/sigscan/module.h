@@ -14,32 +14,7 @@ namespace sig
 	// Returns false if the range can't be determined. Implemented per-platform in module.cpp.
 	bool GetModuleRange(const void *knownAddress, void *&outBase, size_t &outSize);
 
-	// Scan [base, base+size] for the first occurrence of `sig` (kWildcard matches any byte).
-	// Returns the match address, or nullptr if not found.
-	inline void *FindSignature(void *base, size_t size, const uint8_t *signature, size_t sigLen)
-	{
-		if (!base || sigLen == 0 || size < sigLen)
-		{
-			return nullptr;
-		}
-
-		const uint8_t *mem = static_cast<const uint8_t *>(base);
-		for (size_t i = 0; i + sigLen <= size; i++)
-		{
-			size_t matches = 0;
-			while (matches < sigLen && (mem[i + matches] == signature[matches] || signature[matches] == kWildcard))
-			{
-				matches++;
-			}
-			if (matches == sigLen)
-			{
-				return const_cast<uint8_t *>(mem + i);
-			}
-		}
-		return nullptr;
-	}
-
-	// Like FindSignature, but also reports whether a second match exists.
+	// Scan [base, base+size] for `sig` (kWildcard matches any byte) and report whether a second match exists.
 	// A non-unique signature means we can't trust the first hit,
 	// so callers should refuse it rather than risk a bad pointer.
 	inline void *FindSignatureUnique(void *base, size_t size, const uint8_t *signature, size_t sigLen, bool &outMultiple)

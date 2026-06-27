@@ -1612,20 +1612,9 @@ void MenuManager::SetPlayerTypePref(int slot, MenuType type)
 	{
 		return;
 	}
-	m_prefs[slot].loaded = true;
 	m_prefs[slot].type = type;
 	// Type changes take effect the next time a menu is opened, not on the current display
 	// (switching the chat/HTML channel mid-display would be jarring).
-}
-
-MenuType MenuManager::GetPlayerTypePref(int slot) const
-{
-	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
-	{
-		return MenuType::Default;
-	}
-	return m_prefs[slot].type;
 }
 
 void MenuManager::SetPlayerNavPref(int slot, MenuNavAction action, uint64_t mask, const char *label)
@@ -1638,7 +1627,6 @@ void MenuManager::SetPlayerNavPref(int slot, MenuNavAction action, uint64_t mask
 	NavOverride &nav = m_prefs[slot].nav[static_cast<int>(action)];
 	nav.mask = mask;
 	nav.label = label ? label : "";
-	m_prefs[slot].loaded = true;
 	if (m_players[slot].active && OnMainThread())
 	{
 		Render(slot);
@@ -1655,7 +1643,6 @@ void MenuManager::SetPlayerNavDisabled(int slot, MenuNavAction action)
 	NavOverride &nav = m_prefs[slot].nav[static_cast<int>(action)];
 	nav.mask = kNavDisabledSentinel;
 	nav.label = "";
-	m_prefs[slot].loaded = true;
 	if (m_players[slot].active && OnMainThread())
 	{
 		Render(slot);
@@ -1676,17 +1663,6 @@ void MenuManager::ClearPlayerNavPref(int slot, MenuNavAction action)
 	{
 		Render(slot);
 	}
-}
-
-std::string MenuManager::GetPlayerNavLabel(int slot, MenuNavAction action) const
-{
-	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
-	{
-		return "";
-	}
-	const NavOverride &nav = m_prefs[slot].nav[static_cast<int>(action)];
-	return nav.mask != 0 ? nav.label : "";
 }
 
 void MenuManager::ClearPlayerPrefs(int slot)

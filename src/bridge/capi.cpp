@@ -44,17 +44,11 @@ CS2M_API int CS2M_CALL cs2m_abi_version(void)
 
 CS2M_API int CS2M_CALL cs2m_available(void)
 {
-	return API() != nullptr ? 1 : 0;
+	return 1;
 }
 
 CS2M_API cs2m_handle CS2M_CALL cs2m_create(int type, const char *title, cs2m_select_cb on_select, void *user)
 {
-	ICS2Menus *api = API();
-	if (!api)
-	{
-		return kInvalidMenuHandle;
-	}
-
 	MenuItemSelectFn fn;
 	if (on_select)
 	{
@@ -62,7 +56,7 @@ CS2M_API cs2m_handle CS2M_CALL cs2m_create(int type, const char *title, cs2m_sel
 		// the host owns lifetime and must cs2m_destroy before its assembly unloads.
 		fn = [on_select, user](MenuHandle menu, int slot, int item) { on_select(menu, slot, item, user); };
 	}
-	return api->CreateMenu(static_cast<MenuType>(type), title ? title : "", std::move(fn));
+	return API()->CreateMenu(static_cast<MenuType>(type), title ? title : "", std::move(fn));
 }
 
 CS2M_API int CS2M_CALL cs2m_add_item(cs2m_handle menu, const char *text, const char *info, int disabled)
