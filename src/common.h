@@ -13,6 +13,12 @@
 
 #define MAXPLAYERS 64
 
+// A player slot in the valid 0..MAXPLAYERS range.
+inline bool ValidSlot(int slot)
+{
+	return slot >= 0 && slot <= MAXPLAYERS;
+}
+
 // CS2 chat color codes
 #define CHAT_COLOR_DEFAULT  "\x01"
 #define CHAT_COLOR_DARKRED  "\x02"

@@ -47,7 +47,7 @@ static void SendChatToFilter(IRecipientFilter *pFilter, const char *text)
 
 void MENU_PrintToChat(int slot, const char *fmt, ...)
 {
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}

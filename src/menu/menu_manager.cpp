@@ -2,6 +2,7 @@
 #include "src/entity/in_buttons.h"
 #include "src/lang/translations.h"
 #include "src/render/center_html.h"
+#include "src/utils/html_style.h"
 #include "src/utils/print_utils.h"
 
 #include <algorithm>
@@ -87,8 +88,7 @@ static void MenuButtonToBinding(MenuButton button, uint64_t &outMask, const char
 	}
 }
 
-// Map an HTML size token to its Panorama fontSize class (px in csgostyles.css):
-// xs 8, s 12, sm 16, m 18, ml 20, l 24, xl 32, xxl 40, xxxl 64.
+// Map an HTML size token to its Panorama fontSize class (see html_style::IsSizeToken).
 // An already-qualified "fontSize-..." string passes through. Unknown -> "".
 static std::string SizeClass(const std::string &tok)
 {
@@ -96,7 +96,7 @@ static std::string SizeClass(const std::string &tok)
 	{
 		return tok;
 	}
-	if (tok == "xs" || tok == "s" || tok == "sm" || tok == "m" || tok == "ml" || tok == "l" || tok == "xl" || tok == "xxl" || tok == "xxxl")
+	if (html_style::IsSizeToken(tok))
 	{
 		return "fontSize-" + tok;
 	}
@@ -234,6 +234,26 @@ const MenuManager::MenuDef *MenuManager::Find(MenuHandle menu) const
 {
 	auto it = m_menus.find(menu);
 	return it == m_menus.end() ? nullptr : &it->second;
+}
+
+MenuManager::MenuItem *MenuManager::FindItem(MenuHandle menu, int item)
+{
+	MenuDef *def = Find(menu);
+	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	{
+		return nullptr;
+	}
+	return &def->items[item];
+}
+
+const MenuManager::MenuItem *MenuManager::FindItem(MenuHandle menu, int item) const
+{
+	const MenuDef *def = Find(menu);
+	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	{
+		return nullptr;
+	}
+	return &def->items[item];
 }
 
 MenuHandle MenuManager::CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect)
@@ -536,94 +556,72 @@ const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 void MenuManager::SetItemText(MenuHandle menu, int item, const char *text)
 {
 	ScopedLock lock(m_mutex);
-	MenuDef *def = Find(menu);
-	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	if (MenuItem *it = FindItem(menu, item))
 	{
-		return;
+		it->text = text ? text : "";
+		RefreshMenu(menu);
 	}
-	def->items[item].text = text ? text : "";
-	RefreshMenu(menu);
 }
 
 void MenuManager::SetItemInfo(MenuHandle menu, int item, const char *info)
 {
 	ScopedLock lock(m_mutex);
-	MenuDef *def = Find(menu);
-	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	if (MenuItem *it = FindItem(menu, item))
 	{
-		return;
+		it->info = info ? info : ""; // info isn't rendered, no refresh
 	}
-	def->items[item].info = info ? info : ""; // info isn't rendered, no refresh
 }
 
 bool MenuManager::GetItemDisabled(MenuHandle menu, int item) const
 {
 	ScopedLock lock(m_mutex);
-	const MenuDef *def = Find(menu);
-	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
-	{
-		return false;
-	}
-	return def->items[item].disabled;
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->disabled : false;
 }
 
 void MenuManager::SetItemDisabled(MenuHandle menu, int item, bool disabled)
 {
 	ScopedLock lock(m_mutex);
-	MenuDef *def = Find(menu);
-	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	if (MenuItem *it = FindItem(menu, item))
 	{
-		return;
+		it->disabled = disabled;
+		RefreshMenu(menu);
 	}
-	def->items[item].disabled = disabled;
-	RefreshMenu(menu);
 }
 
 bool MenuManager::GetItemRaw(MenuHandle menu, int item) const
 {
 	ScopedLock lock(m_mutex);
-	const MenuDef *def = Find(menu);
-	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
-	{
-		return false;
-	}
-	return def->items[item].raw;
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->raw : false;
 }
 
 void MenuManager::SetItemRaw(MenuHandle menu, int item, bool raw)
 {
 	ScopedLock lock(m_mutex);
-	MenuDef *def = Find(menu);
-	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	if (MenuItem *it = FindItem(menu, item))
 	{
-		return;
+		it->raw = raw;
+		RefreshMenu(menu);
 	}
-	def->items[item].raw = raw;
-	RefreshMenu(menu);
 }
 
 // Returned pointer aliases internal storage: valid only until the next mutating call, don't cache it.
 const char *MenuManager::GetItemIcon(MenuHandle menu, int item) const
 {
 	ScopedLock lock(m_mutex);
-	const MenuDef *def = Find(menu);
-	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
-	{
-		return "";
-	}
-	return def->items[item].iconUrl.c_str();
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->iconUrl.c_str() : "";
 }
 
 void MenuManager::SetItemIcon(MenuHandle menu, int item, const char *url)
 {
 	ScopedLock lock(m_mutex);
-	MenuDef *def = Find(menu);
-	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
+	if (MenuItem *it = FindItem(menu, item))
 	{
-		return;
+		it->iconUrl = url ? url : "";
+		RefreshMenu(menu);
 	}
-	def->items[item].iconUrl = url ? url : "";
-	RefreshMenu(menu);
 }
 
 void MenuManager::RemoveItem(MenuHandle menu, int item)
@@ -701,7 +699,7 @@ uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, int slot, MenuNavActi
 		return override_;
 	}
 	// 2. This player's preference (displaces only the server default binding).
-	if (slot >= 0 && slot <= MAXPLAYERS)
+	if (ValidSlot(slot))
 	{
 		uint64_t pref = m_prefs[slot].nav[static_cast<int>(action)].mask;
 		if (pref == kNavDisabledSentinel)
@@ -733,7 +731,7 @@ std::string MenuManager::EffectiveNavLabel(const MenuDef &def, int slot, MenuNav
 	{
 		return def.navOverride[static_cast<int>(action)].label;
 	}
-	if (slot >= 0 && slot <= MAXPLAYERS)
+	if (ValidSlot(slot))
 	{
 		const NavOverride &pref = m_prefs[slot].nav[static_cast<int>(action)];
 		if (pref.mask != 0)
@@ -758,7 +756,7 @@ MenuType MenuManager::ResolveType(const MenuDef &def, int slot) const
 {
 	MenuType base = (def.type == MenuType::Default) ? m_settings.defaultType : def.type;
 	MenuType result = base;
-	if (!def.forced && slot >= 0 && slot <= MAXPLAYERS && m_prefs[slot].type != MenuType::Default)
+	if (!def.forced && ValidSlot(slot) && m_prefs[slot].type != MenuType::Default)
 	{
 		result = m_prefs[slot].type;
 	}
@@ -801,7 +799,7 @@ std::string MenuManager::ResolveLabel(int slot, const MenuDef &def, MenuLabel la
 bool MenuManager::DisplayMenu(MenuHandle menu, int slot, float duration, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return false;
 	}
@@ -875,7 +873,7 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 void MenuManager::CancelMenu(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -892,7 +890,7 @@ void MenuManager::CancelMenu(int slot)
 bool MenuManager::HasMenu(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return false;
 	}
@@ -902,7 +900,7 @@ bool MenuManager::HasMenu(int slot) const
 MenuHandle MenuManager::GetActiveMenu(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS || !m_players[slot].active)
+	if (!ValidSlot(slot) || !m_players[slot].active)
 	{
 		return kInvalidMenuHandle;
 	}
@@ -912,7 +910,7 @@ MenuHandle MenuManager::GetActiveMenu(int slot) const
 MenuType MenuManager::GetActiveMenuType(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS || !m_players[slot].active)
+	if (!ValidSlot(slot) || !m_players[slot].active)
 	{
 		return MenuType::Chat;
 	}
@@ -923,7 +921,7 @@ MenuType MenuManager::GetActiveMenuType(int slot) const
 int MenuManager::GetSelectedItem(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS || !m_players[slot].active)
+	if (!ValidSlot(slot) || !m_players[slot].active)
 	{
 		return -1;
 	}
@@ -996,24 +994,16 @@ int MenuManager::GetItemCount(MenuHandle menu) const
 const char *MenuManager::GetItemText(MenuHandle menu, int item) const
 {
 	ScopedLock lock(m_mutex);
-	const MenuDef *def = Find(menu);
-	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
-	{
-		return "";
-	}
-	return def->items[item].text.c_str();
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->text.c_str() : "";
 }
 
 // Same aliasing caveat as GetItemText.
 const char *MenuManager::GetItemInfo(MenuHandle menu, int item) const
 {
 	ScopedLock lock(m_mutex);
-	const MenuDef *def = Find(menu);
-	if (!def || item < 0 || item >= static_cast<int>(def->items.size()))
-	{
-		return "";
-	}
-	return def->items[item].info.c_str();
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->info.c_str() : "";
 }
 
 void MenuManager::EndDisplay(int slot, MenuEndReason reason)
@@ -1158,7 +1148,7 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle)
 bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return false;
 	}
@@ -1260,7 +1250,7 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 bool MenuManager::WantsButtonInput(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS || !m_players[slot].active)
+	if (!ValidSlot(slot) || !m_players[slot].active)
 	{
 		return false;
 	}
@@ -1284,7 +1274,7 @@ bool MenuManager::AnyHtmlMenuActive() const
 void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1375,7 +1365,7 @@ void MenuManager::NavClose(int slot)
 void MenuManager::CommandNav(int slot, MenuNavAction action, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1423,7 +1413,7 @@ void MenuManager::CommandNav(int slot, MenuNavAction action, float curtime)
 void MenuManager::CommandSelectNumber(int slot, int number, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1516,7 +1506,7 @@ void MenuManager::Tick(float curtime)
 void MenuManager::OnPlayerDisconnect(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1528,7 +1518,7 @@ void MenuManager::OnPlayerDisconnect(int slot)
 void MenuManager::SetExternalBusy(int slot, bool busy)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1550,7 +1540,7 @@ void MenuManager::SetExternalBusy(int slot, bool busy)
 bool MenuManager::GetExternalBusy(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return false;
 	}
@@ -1608,7 +1598,7 @@ bool MenuManager::HasHtml() const
 void MenuManager::SetPlayerTypePref(int slot, MenuType type)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1620,7 +1610,7 @@ void MenuManager::SetPlayerTypePref(int slot, MenuType type)
 void MenuManager::SetPlayerNavPref(int slot, MenuNavAction action, uint64_t mask, const char *label)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1636,7 +1626,7 @@ void MenuManager::SetPlayerNavPref(int slot, MenuNavAction action, uint64_t mask
 void MenuManager::SetPlayerNavDisabled(int slot, MenuNavAction action)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1652,7 +1642,7 @@ void MenuManager::SetPlayerNavDisabled(int slot, MenuNavAction action)
 void MenuManager::ClearPlayerNavPref(int slot, MenuNavAction action)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1668,7 +1658,7 @@ void MenuManager::ClearPlayerNavPref(int slot, MenuNavAction action)
 void MenuManager::ClearPlayerPrefs(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1843,31 +1833,35 @@ void MenuManager::RenderHtml(int slot)
 
 	// Resolve effective style: per-menu override, else the server default.
 	const StyleOverride &st = def->style;
-	const std::string &titleColor = st.titleColor.empty() ? m_settings.titleColor : st.titleColor;
-	const std::string &navColor = st.navColor.empty() ? m_settings.navColor : st.navColor;
-	const std::string &footerColor = st.footerColor.empty() ? m_settings.footerColor : st.footerColor;
-	const std::string &disabledColor = st.disabledColor.empty() ? m_settings.disabledColor : st.disabledColor;
-	const std::string &itemColor = st.itemColor.empty() ? m_settings.itemColor : st.itemColor;
-	const std::string &fontFace = st.fontFace.empty() ? m_settings.fontFace : st.fontFace;
-	const std::string &marker = st.marker.empty() ? m_settings.marker : st.marker;
-	const std::string &counterColor = st.counterColor.empty() ? m_settings.counterColor : st.counterColor;
-	const std::string &submenuSuffix = st.submenuSuffix.empty() ? m_settings.submenuSuffix : st.submenuSuffix;
-	const std::string &footerSep = st.footerSeparator.empty() ? m_settings.footerSeparator : st.footerSeparator;
-	const std::string &counterPrefix = st.counterPrefix.empty() ? m_settings.counterPrefix : st.counterPrefix;
-	const std::string &counterSuffix = st.counterSuffix.empty() ? m_settings.counterSuffix : st.counterSuffix;
-	const std::string &align = st.align.empty() ? m_settings.align : st.align;
-	bool showCounter = (st.showCounter < 0) ? m_settings.showCounter : (st.showCounter != 0);
-	bool showFooter = (st.showFooter < 0) ? m_settings.showFooter : (st.showFooter != 0);
-	bool highlightText = (st.highlightText < 0) ? m_settings.highlightText : (st.highlightText != 0);
+	// A string field falls back to the server default when its override is empty.
+	auto pick = [](const std::string &override_, const std::string &dflt) -> const std::string & { return override_.empty() ? dflt : override_; };
+	// A tri-state flag (-1 inherit / 0 off / 1 on) resolves to the server default when -1.
+	auto pickFlag = [](int override_, bool dflt) { return override_ < 0 ? dflt : override_ != 0; };
+	const std::string &titleColor = pick(st.titleColor, m_settings.titleColor);
+	const std::string &navColor = pick(st.navColor, m_settings.navColor);
+	const std::string &footerColor = pick(st.footerColor, m_settings.footerColor);
+	const std::string &disabledColor = pick(st.disabledColor, m_settings.disabledColor);
+	const std::string &itemColor = pick(st.itemColor, m_settings.itemColor);
+	const std::string &fontFace = pick(st.fontFace, m_settings.fontFace);
+	const std::string &marker = pick(st.marker, m_settings.marker);
+	const std::string &counterColor = pick(st.counterColor, m_settings.counterColor);
+	const std::string &submenuSuffix = pick(st.submenuSuffix, m_settings.submenuSuffix);
+	const std::string &footerSep = pick(st.footerSeparator, m_settings.footerSeparator);
+	const std::string &counterPrefix = pick(st.counterPrefix, m_settings.counterPrefix);
+	const std::string &counterSuffix = pick(st.counterSuffix, m_settings.counterSuffix);
+	const std::string &align = pick(st.align, m_settings.align);
+	bool showCounter = pickFlag(st.showCounter, m_settings.showCounter);
+	bool showFooter = pickFlag(st.showFooter, m_settings.showFooter);
+	bool highlightText = pickFlag(st.highlightText, m_settings.highlightText);
 	// Suffix appended to every class list: alignment, then an optional font face.
 	std::string commonCls = AlignClass(align);
 	if (!fontFace.empty())
 	{
 		commonCls += " " + fontFace;
 	}
-	const std::string titleCls = SizeClass(st.titleSize.empty() ? m_settings.titleSize : st.titleSize) + commonCls;
-	const std::string itemCls = SizeClass(st.itemSize.empty() ? m_settings.itemSize : st.itemSize) + commonCls;
-	const std::string footerCls = SizeClass(st.footerSize.empty() ? m_settings.footerSize : st.footerSize) + commonCls;
+	const std::string titleCls = SizeClass(pick(st.titleSize, m_settings.titleSize)) + commonCls;
+	const std::string itemCls = SizeClass(pick(st.itemSize, m_settings.itemSize)) + commonCls;
+	const std::string footerCls = SizeClass(pick(st.footerSize, m_settings.footerSize)) + commonCls;
 	const std::string markerHtml = center_html::Escape(marker);
 
 	std::string html;

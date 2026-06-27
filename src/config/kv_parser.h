@@ -3,6 +3,7 @@
 
 // Minimal Valve KeyValues1 tokenizer and section parser.
 
+#include <fstream>
 #include <istream>
 #include <string>
 
@@ -154,6 +155,29 @@ namespace kv
 				handler(sectionName, key, next.value, userdata);
 			}
 		}
+	}
+
+	// Open `path` and parse its top-level "Root { ... }" body with `handler`.
+	// Returns false if the file is missing or isn't a braced root section.
+	inline bool LoadFile(const std::string &path, Handler handler, void *userdata)
+	{
+		std::ifstream file(path);
+		if (!file.is_open())
+		{
+			return false;
+		}
+		Token root = NextToken(file);
+		if (root.kind != TokenType::String)
+		{
+			return false;
+		}
+		Token brace = NextToken(file);
+		if (brace.kind != TokenType::OpenBrace)
+		{
+			return false;
+		}
+		ParseSection(file, root.value, handler, userdata);
+		return true;
 	}
 
 } // namespace kv

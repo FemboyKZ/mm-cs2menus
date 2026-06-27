@@ -175,6 +175,33 @@ static const char *ChatCodeToHex(unsigned char c)
 	}
 }
 
+// Append `ch` to `out`, replacing the five markup-significant characters with their
+// HTML entities and passing everything else through verbatim.
+static void AppendEscaped(std::string &out, unsigned char ch)
+{
+	switch (ch)
+	{
+		case '&':
+			out += "&amp;";
+			break;
+		case '<':
+			out += "&lt;";
+			break;
+		case '>':
+			out += "&gt;";
+			break;
+		case '"':
+			out += "&quot;";
+			break;
+		case '\'':
+			out += "&apos;";
+			break;
+		default:
+			out += static_cast<char>(ch);
+			break;
+	}
+}
+
 std::string center_html::ColorizeChat(const std::string &text, const char *defaultColor, const char *sizeClass)
 {
 	const char *fallback = defaultColor ? defaultColor : "#FFFFFF";
@@ -212,27 +239,7 @@ std::string center_html::ColorizeChat(const std::string &text, const char *defau
 			openFont();
 			continue;
 		}
-		switch (ch)
-		{
-			case '&':
-				out += "&amp;";
-				break;
-			case '<':
-				out += "&lt;";
-				break;
-			case '>':
-				out += "&gt;";
-				break;
-			case '"':
-				out += "&quot;";
-				break;
-			case '\'':
-				out += "&apos;";
-				break;
-			default:
-				out += static_cast<char>(ch);
-				break;
-		}
+		AppendEscaped(out, ch);
 	}
 	closeFont();
 	return out;
@@ -240,28 +247,11 @@ std::string center_html::ColorizeChat(const std::string &text, const char *defau
 
 std::string center_html::Escape(const std::string &text)
 {
-	std::string out = text;
-
-	// Replace & first so we don't re-escape the & we introduce below.
-	for (size_t pos = 0; (pos = out.find('&', pos)) != std::string::npos; pos += 5)
+	std::string out;
+	out.reserve(text.size() + 16);
+	for (unsigned char ch : text)
 	{
-		out.replace(pos, 1, "&amp;");
+		AppendEscaped(out, ch);
 	}
-
-	static const std::pair<char, const char *> kReplacements[] = {
-		{'<', "&lt;"},
-		{'>', "&gt;"},
-		{'"', "&quot;"},
-		{'\'', "&apos;"},
-	};
-	for (const auto &[bad, escaped] : kReplacements)
-	{
-		size_t len = std::char_traits<char>::length(escaped);
-		for (size_t pos = 0; (pos = out.find(bad, pos)) != std::string::npos; pos += len)
-		{
-			out.replace(pos, 1, escaped);
-		}
-	}
-
 	return out;
 }

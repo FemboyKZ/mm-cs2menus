@@ -10,7 +10,9 @@
 #include "menu/menu_manager.h"
 #include "public/ics2menus.h"
 #include "render/center_html.h"
+#include "utils/html_style.h"
 #include "utils/print_utils.h"
+#include "utils/str_utils.h"
 
 #include "vendor/ClientCvarValue/public/iclientcvarvalue.h"
 
@@ -587,9 +589,7 @@ static void LoadAndApplyConfig()
 	{
 		settings.disabledColor = g_MenusConfig.menu.htmlDisabledColor;
 	}
-	// Size tokens accepted by the renderer. An unknown value keeps the built-in default.
-	auto isSizeToken = [](const std::string &t)
-	{ return t == "xs" || t == "s" || t == "sm" || t == "m" || t == "ml" || t == "l" || t == "xl" || t == "xxl" || t == "xxxl"; };
+	// Size tokens accepted by the renderer (html_style::IsSizeToken). An unknown value keeps the built-in default.
 	if (IsValidHexColor(g_MenusConfig.menu.htmlTitleColor))
 	{
 		settings.titleColor = g_MenusConfig.menu.htmlTitleColor;
@@ -605,7 +605,7 @@ static void LoadAndApplyConfig()
 	{
 		settings.counterColor = g_MenusConfig.menu.htmlCounterColor;
 	}
-	if (isSizeToken(g_MenusConfig.menu.htmlFooterSize))
+	if (html_style::IsSizeToken(g_MenusConfig.menu.htmlFooterSize))
 	{
 		settings.footerSize = g_MenusConfig.menu.htmlFooterSize;
 	}
@@ -630,11 +630,11 @@ static void LoadAndApplyConfig()
 	{
 		settings.htmlKeepAlive = g_MenusConfig.menu.htmlKeepAlive;
 	}
-	if (isSizeToken(g_MenusConfig.menu.htmlTitleSize))
+	if (html_style::IsSizeToken(g_MenusConfig.menu.htmlTitleSize))
 	{
 		settings.titleSize = g_MenusConfig.menu.htmlTitleSize;
 	}
-	if (isSizeToken(g_MenusConfig.menu.htmlItemSize))
+	if (html_style::IsSizeToken(g_MenusConfig.menu.htmlItemSize))
 	{
 		settings.itemSize = g_MenusConfig.menu.htmlItemSize;
 	}
@@ -911,11 +911,23 @@ namespace
 		RefreshPrefsItems(slot); // live re-render with the new value
 	}
 
+	// True when the preference DB is connected.
+	// Otherwise tells the player it's unavailable and returns false,
+	// so callers can `if (!RequirePrefsDB(slot)) return;`.
+	bool RequirePrefsDB(int slot)
+	{
+		if (g_MenuPrefsDB.IsConnected())
+		{
+			return true;
+		}
+		MENU_PrintToChat(slot, "Menu preferences are not available on this server.");
+		return false;
+	}
+
 	void OpenPrefsMenu(int slot)
 	{
-		if (!g_MenuPrefsDB.IsConnected())
+		if (!RequirePrefsDB(slot))
 		{
-			MENU_PrintToChat(slot, "Menu preferences are not available on this server.");
 			return;
 		}
 
@@ -934,7 +946,7 @@ namespace
 										 [](MenuHandle endedMenu, int endSlot, MenuEndReason /*reason*/)
 										 {
 											 // Only forget the tracked handle if it's still this menu.
-											 if (endSlot >= 0 && endSlot <= MAXPLAYERS && s_prefsMenu[endSlot] == endedMenu)
+											 if (ValidSlot(endSlot) && s_prefsMenu[endSlot] == endedMenu)
 											 {
 												 s_prefsMenu[endSlot] = kInvalidMenuHandle;
 											 }
@@ -950,7 +962,7 @@ namespace
 	// Reset a slot and load its stored preferences from the database (async).
 	void LoadSlot(int slot, uint64_t xuid)
 	{
-		if (slot < 0 || slot > MAXPLAYERS)
+		if (!ValidSlot(slot))
 		{
 			return;
 		}
@@ -983,7 +995,7 @@ namespace
 CON_COMMAND_F(mm_menu_prefs, "Open your personal menu-preferences menu.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -993,20 +1005,16 @@ CON_COMMAND_F(mm_menu_prefs, "Open your personal menu-preferences menu.", FCVAR_
 CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | default.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (slot < 0 || slot > MAXPLAYERS || args.ArgC() < 2)
+	if (!ValidSlot(slot) || args.ArgC() < 2)
 	{
 		return;
 	}
-	if (!g_MenuPrefsDB.IsConnected())
+	if (!RequirePrefsDB(slot))
 	{
-		MENU_PrintToChat(slot, "Menu preferences are not available on this server.");
 		return;
 	}
 	std::string v = args.Arg(1);
-	for (char &c : v)
-	{
-		c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
-	}
+	str::ToLowerInPlace(v);
 	if (v == "chat" || v == "html")
 	{
 		s_prefs[slot].type = v;
@@ -1030,7 +1038,7 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 			  FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1039,21 +1047,14 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 		MENU_PrintToChat(slot, "Usage: mm_pref_key <up|down|select|back> <key|default|none>");
 		return;
 	}
-	if (!g_MenuPrefsDB.IsConnected())
+	if (!RequirePrefsDB(slot))
 	{
-		MENU_PrintToChat(slot, "Menu preferences are not available on this server.");
 		return;
 	}
 	std::string actionName = args.Arg(1);
 	std::string keyName = args.Arg(2);
-	for (char &c : actionName)
-	{
-		c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
-	}
-	for (char &c : keyName)
-	{
-		c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
-	}
+	str::ToLowerInPlace(actionName);
+	str::ToLowerInPlace(keyName);
 	MenuNavAction action;
 	if (!ParseNavActionName(actionName.c_str(), action))
 	{
@@ -1090,13 +1091,12 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 CON_COMMAND_F(mm_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
-	if (!g_MenuPrefsDB.IsConnected())
+	if (!RequirePrefsDB(slot))
 	{
-		MENU_PrintToChat(slot, "Menu preferences are not available on this server.");
 		return;
 	}
 	const SlotPrefs &p = s_prefs[slot];
@@ -1263,7 +1263,7 @@ void CS2MenusPlugin::Hook_OnClientConnected(CPlayerSlot slot, const char * /*psz
 											const char * /*pszAddress*/, bool bFakePlayer)
 {
 	int s = slot.Get();
-	if (!bFakePlayer && s >= 0 && s <= MAXPLAYERS)
+	if (!bFakePlayer && ValidSlot(s))
 	{
 		LoadSlot(s, xuid);
 	}
@@ -1275,7 +1275,7 @@ void CS2MenusPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnecti
 {
 	int s = slot.Get();
 	g_MenuManager.OnPlayerDisconnect(s);
-	if (s >= 0 && s <= MAXPLAYERS)
+	if (ValidSlot(s))
 	{
 		g_MenuManager.ClearPlayerPrefs(s);
 		s_prefs[s] = SlotPrefs {};
@@ -1310,16 +1310,15 @@ static bool MatchMenuNavBody(const char *body, MenuNavAction &action)
 	return false;
 }
 
-// Parse a say message like "!menu_up", "/menu_close" or "!menu_select 3" into a nav
-// action plus an optional number (-1 if none, used by menu_select on chat menus).
-// `silent` is set when the silent prefix matched (only then is the chat line hidden).
-// Requires the configured chat or silent prefix, returns false otherwise.
-static bool ParseChatMenuNav(const char *rawMsg, MenuNavAction &action, int &number, bool &silent)
+// Strip CS2's outer quotes and surrounding whitespace from a say message,
+// then the configured chat or silent prefix.
+// On a prefix match, `body` is the text after the prefix
+// and `silent` is set when the silent prefix matched. Returns false otherwise.
+static bool StripCommandPrefix(const char *rawMsg, std::string &body, bool &silent)
 {
-	number = -1;
 	silent = false;
+	body.clear();
 	std::string msg = rawMsg ? rawMsg : "";
-	// CS2 wraps the say argument in quotes.
 	if (msg.size() >= 2 && msg.front() == '"' && msg.back() == '"')
 	{
 		msg = msg.substr(1, msg.size() - 2);
@@ -1334,17 +1333,29 @@ static bool ParseChatMenuNav(const char *rawMsg, MenuNavAction &action, int &num
 
 	const std::string &p1 = g_MenusConfig.general.commandPrefix;
 	const std::string &p2 = g_MenusConfig.general.silentCommandPrefix;
-	std::string body;
 	if (!p1.empty() && msg.rfind(p1, 0) == 0)
 	{
 		body = msg.substr(p1.size());
+		return true;
 	}
-	else if (!p2.empty() && msg.rfind(p2, 0) == 0)
+	if (!p2.empty() && msg.rfind(p2, 0) == 0)
 	{
 		body = msg.substr(p2.size());
 		silent = true; // only the silent prefix hides the chat line
+		return true;
 	}
-	else
+	return false;
+}
+
+// Parse a say message like "!menu_up", "/menu_close" or "!menu_select 3" into a nav action
+// plus an optional number (-1 if none, used by menu_select on chat menus).
+// `silent` is set when the silent prefix matched (only then is the chat line hidden).
+// Requires the configured chat or silent prefix, returns false otherwise.
+static bool ParseChatMenuNav(const char *rawMsg, MenuNavAction &action, int &number, bool &silent)
+{
+	number = -1;
+	std::string body;
+	if (!StripCommandPrefix(rawMsg, body, silent))
 	{
 		return false;
 	}
@@ -1362,10 +1373,7 @@ static bool ParseChatMenuNav(const char *rawMsg, MenuNavAction &action, int &num
 			arg = body.substr(argStart);
 		}
 	}
-	for (char &c : cmd)
-	{
-		c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
-	}
+	str::ToLowerInPlace(cmd);
 	if (!MatchMenuNavBody(cmd.c_str(), action))
 	{
 		return false;
@@ -1382,7 +1390,7 @@ static bool ParseChatMenuNav(const char *rawMsg, MenuNavAction &action, int &num
 static void RunMenuNavCommand(const CCommandContext &context, MenuNavAction action)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1405,7 +1413,7 @@ CON_COMMAND_F(mm_menu_down, "Move the open menu's cursor down.", FCVAR_CLIENT_CA
 CON_COMMAND_F(mm_menu_select, "Select a menu item: no arg = highlighted row, a number = that chat entry.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1431,44 +1439,15 @@ CON_COMMAND_F(mm_menu_close, "Close / exit the open menu.", FCVAR_CLIENT_CAN_EXE
 // `silent` is set when the silent prefix matched.
 static bool ParseChatPrefixWord(const char *rawMsg, std::string &word, bool &silent)
 {
-	silent = false;
 	word.clear();
-	std::string msg = rawMsg ? rawMsg : "";
-	if (msg.size() >= 2 && msg.front() == '"' && msg.back() == '"')
-	{
-		msg = msg.substr(1, msg.size() - 2);
-	}
-	size_t a = msg.find_first_not_of(" \t");
-	size_t b = msg.find_last_not_of(" \t");
-	if (a == std::string::npos)
-	{
-		return false;
-	}
-	msg = msg.substr(a, b - a + 1);
-
-	const std::string &p1 = g_MenusConfig.general.commandPrefix;
-	const std::string &p2 = g_MenusConfig.general.silentCommandPrefix;
 	std::string body;
-	if (!p1.empty() && msg.rfind(p1, 0) == 0)
-	{
-		body = msg.substr(p1.size());
-	}
-	else if (!p2.empty() && msg.rfind(p2, 0) == 0)
-	{
-		body = msg.substr(p2.size());
-		silent = true;
-	}
-	else
+	if (!StripCommandPrefix(rawMsg, body, silent))
 	{
 		return false;
 	}
-
 	size_t sp = body.find_first_of(" \t");
 	word = (sp == std::string::npos) ? body : body.substr(0, sp);
-	for (char &c : word)
-	{
-		c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
-	}
+	str::ToLowerInPlace(word);
 	return true;
 }
 
@@ -1487,7 +1466,7 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 	}
 
 	int slot = ctx.GetPlayerSlot().Get();
-	if (slot < 0 || slot > MAXPLAYERS)
+	if (!ValidSlot(slot))
 	{
 		RETURN_META(MRES_IGNORED);
 	}

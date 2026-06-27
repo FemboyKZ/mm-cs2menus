@@ -324,6 +324,10 @@ private:
 	MenuDef *Find(MenuHandle menu);
 	const MenuDef *Find(MenuHandle menu) const;
 
+	// Resolve a menu + item index to the item, or nullptr if the menu is gone or the index is out of range.
+	MenuItem *FindItem(MenuHandle menu, int item);
+	const MenuItem *FindItem(MenuHandle menu, int item) const;
+
 	// Core of DisplayMenu.
 	// Assumes m_mutex held, runs on main, schedules off m_curtime.
 	bool DisplayLocked(MenuHandle menu, int slot, float duration);

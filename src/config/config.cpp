@@ -1,20 +1,13 @@
 #include "config.h"
 #include "kv_parser.h"
+#include "src/utils/str_utils.h"
 
-#include <algorithm>
-#include <cctype>
 #include <cstdlib>
-#include <fstream>
 #include <string>
 
 MenusConfig g_MenusConfig;
 
-static std::string ToLower(const std::string &s)
-{
-	std::string r = s;
-	std::transform(r.begin(), r.end(), r.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-	return r;
-}
+using str::ToLower;
 
 static void ConfigHandler(const std::string &section, const std::string &key, const std::string &value, void *userdata)
 {
@@ -275,25 +268,5 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 
 bool MENU_LoadConfig(const char *path, MenusConfig &config)
 {
-	std::ifstream file(path);
-	if (!file.is_open())
-	{
-		return false;
-	}
-
-	// "cs2menus" { ... }
-	kv::Token root = kv::NextToken(file);
-	if (root.kind != kv::TokenType::String)
-	{
-		return false;
-	}
-
-	kv::Token brace = kv::NextToken(file);
-	if (brace.kind != kv::TokenType::OpenBrace)
-	{
-		return false;
-	}
-
-	kv::ParseSection(file, root.value, ConfigHandler, &config);
-	return true;
+	return kv::LoadFile(path ? path : "", ConfigHandler, &config);
 }

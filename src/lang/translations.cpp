@@ -1,19 +1,12 @@
 #include "translations.h"
 #include "src/config/kv_parser.h"
+#include "src/utils/str_utils.h"
 
-#include <algorithm>
-#include <cctype>
 #include <filesystem>
-#include <fstream>
 
 Translations g_Translations;
 
-static std::string ToLower(const std::string &s)
-{
-	std::string r = s;
-	std::transform(r.begin(), r.end(), r.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-	return r;
-}
+using str::ToLower;
 
 // phrase -> lang -> text. Called with section = phrase name, key = language.
 static void PhraseHandler(const std::string &section, const std::string &key, const std::string &value, void *userdata)
@@ -29,27 +22,6 @@ static void LanguageHandler(const std::string & /*section*/, const std::string &
 	(*map)[ToLower(key)] = value;
 }
 
-// Read a "Root { ... }" KeyValues file and parse its body with `handler`.
-static void LoadKvFile(const std::string &path, void *userdata, kv::Handler handler)
-{
-	std::ifstream file(path);
-	if (!file.is_open())
-	{
-		return;
-	}
-	kv::Token root = kv::NextToken(file);
-	if (root.kind != kv::TokenType::String)
-	{
-		return;
-	}
-	kv::Token brace = kv::NextToken(file);
-	if (brace.kind != kv::TokenType::OpenBrace)
-	{
-		return;
-	}
-	kv::ParseSection(file, root.value, handler, userdata);
-}
-
 void Translations::Load(const char *baseDir)
 {
 	m_phrases.clear();
@@ -58,7 +30,7 @@ void Translations::Load(const char *baseDir)
 	namespace fs = std::filesystem;
 	std::string dir = std::string(baseDir ? baseDir : "") + "/addons/cs2menus/translations";
 
-	LoadKvFile(dir + "/config.txt", &m_languageMap, LanguageHandler);
+	kv::LoadFile(dir + "/config.txt", LanguageHandler, &m_languageMap);
 
 	std::error_code ec;
 	fs::directory_iterator it(dir, ec);
@@ -78,7 +50,7 @@ void Translations::Load(const char *baseDir)
 		{
 			continue;
 		}
-		LoadKvFile(entry.path().string(), &m_phrases, PhraseHandler);
+		kv::LoadFile(entry.path().string(), PhraseHandler, &m_phrases);
 	}
 }
 
