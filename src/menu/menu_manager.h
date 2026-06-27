@@ -77,6 +77,7 @@ struct MenuManagerSettings
 	std::string fontFace;
 	// HTML: position counter + key-hint footer styling and visibility.
 	std::string counterColor = "#9aa0a6";
+	std::string counterSize = "s";
 	std::string footerSize = "s";
 	bool showCounter = true;
 	bool showFooter = true;
@@ -132,6 +133,26 @@ public:
 	// Item the menu opens on (HTML cursor / chat page). Clamped at display.
 	void SetStartItem(MenuHandle menu, int item);
 	int GetStartItem(MenuHandle menu) const;
+
+	// The menu's title as last set, or "" for an invalid handle. Aliases internal storage.
+	const char *GetTitle(MenuHandle menu) const;
+	// True if `menu` is a live handle.
+	bool IsValidMenu(MenuHandle menu) const;
+	// Insert an item at `pos` (clamped to [0, count]). Re-renders viewers. Returns the index, or -1.
+	int InsertItem(MenuHandle menu, int pos, const char *text, const char *info, bool disabled);
+	// The submenu an item opens (see AddSubMenu), or kInvalidMenuHandle if none / invalid.
+	MenuHandle GetItemSubmenu(MenuHandle menu, int item) const;
+	// Attach `child` as an item's submenu (kInvalidMenuHandle detaches). Re-renders viewers.
+	void SetItemSubmenu(MenuHandle menu, int item, MenuHandle child);
+
+	// Read back per-menu state (create-time default for an unset flag, MenuType::Default / false / etc. for invalid).
+	MenuType GetMenuType(MenuHandle menu) const;
+	bool GetExitButton(MenuHandle menu) const;
+	bool GetCloseOnSelect(MenuHandle menu) const;
+	bool GetExitItem(MenuHandle menu) const;
+	bool GetMenuForceType(MenuHandle menu) const;
+	// The per-menu nav-key override: Default when unset, None when disabled for this menu.
+	MenuButton GetMenuKey(MenuHandle menu, MenuNavAction action) const;
 
 	bool DisplayMenu(MenuHandle menu, int slot, float duration, float curtime);
 	void CancelMenu(int slot);
@@ -260,6 +281,7 @@ private:
 		std::string fontFace;
 		std::string marker; // empty = inherit (use a space for "no marker")
 		std::string counterColor;
+		std::string counterSize;
 		std::string footerSize;
 		std::string submenuSuffix; // empty = inherit (a space = no suffix)
 		std::string footerSeparator;
@@ -269,6 +291,7 @@ private:
 		int showCounter = -1;   // -1 inherit, 0 off, 1 on
 		int showFooter = -1;    // -1 inherit, 0 off, 1 on
 		int highlightText = -1; // -1 inherit, 0 off, 1 on
+		int visibleItems = -1;  // -1 inherit, else the scroll-window size (clamped at render)
 	};
 
 	struct MenuDef

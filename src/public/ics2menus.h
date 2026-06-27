@@ -119,6 +119,8 @@ enum class MenuStyle : int
 	CounterPrefix,   // text before the counter number (default "[")
 	CounterSuffix,   // text after the counter number (default "]")
 	HighlightText,   // "1" recolor the cursor row's text to NavColor, "0" only the marker marks it
+	CounterSize,     // size token for the "[n/m]" position counter
+	VisibleItems,    // integer string (e.g. "10"): rows shown at once in the scroll window
 };
 
 // Fired when a player selects an item.
@@ -313,6 +315,44 @@ public:
 	// Use it when the menu depends on a specific type, e.g. HTML-only item icons or raw markup.
 	// Default: not forced.
 	virtual void SetMenuForceType(MenuHandle menu, bool force) = 0;
+
+	// The menu's title as last set (a phrase key / literal, not translated text).
+	// Aliases internal storage, copy it, don't cache. Returns "" for an invalid handle.
+	virtual const char *GetTitle(MenuHandle menu) = 0;
+
+	// True if `menu` is a live handle (created and not yet destroyed).
+	virtual bool IsValidMenu(MenuHandle menu) = 0;
+
+	// Insert an item at absolute index `pos` (clamped to [0, count]); later items shift down.
+	// Any player viewing the menu is re-rendered (cursor/page clamped to the new size).
+	// Returns the index it landed at, or -1 on failure.
+	virtual int InsertItem(MenuHandle menu, int pos, const char *text, const char *info, bool disabled) = 0;
+
+	// The child menu an item opens as a submenu (see AddSubMenu),
+	// or kInvalidMenuHandle if it's a normal item / invalid handle or index.
+	virtual MenuHandle GetItemSubmenu(MenuHandle menu, int item) = 0;
+
+	// Make an existing item open `child` as a submenu (pass kInvalidMenuHandle to detach it).
+	// Sets child's parent so Back in the child returns to this menu.
+	// No-op for an invalid handle/index or child == menu.
+	virtual void SetItemSubmenu(MenuHandle menu, int item, MenuHandle child) = 0;
+
+	// The menu's base render type as created (may be MenuType::Default, meaning "server default").
+	// For the per-viewer resolved type of an open display use GetActiveMenuType.
+	// Returns MenuType::Default for an invalid handle.
+	virtual MenuType GetMenuType(MenuHandle menu) = 0;
+
+	// Read back the per-menu flags (the value last set, or the create-time default).
+	// All return false for an invalid handle.
+	virtual bool GetExitButton(MenuHandle menu) = 0;
+	virtual bool GetCloseOnSelect(MenuHandle menu) = 0;
+	virtual bool GetExitItem(MenuHandle menu) = 0;
+	virtual bool GetMenuForceType(MenuHandle menu) = 0;
+
+	// The per-menu nav-key override for one action (see SetMenuKey):
+	// MenuButton::Default when none is set (inheriting the server binding),
+	// MenuButton::None when the action is disabled for this menu.
+	virtual MenuButton GetMenuKey(MenuHandle menu, MenuNavAction action) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_

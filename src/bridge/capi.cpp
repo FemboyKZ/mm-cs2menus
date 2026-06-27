@@ -257,3 +257,59 @@ CS2M_API int CS2M_CALL cs2m_get_start_item(cs2m_handle menu)
 {
 	return API()->GetStartItem(menu);
 }
+
+CS2M_API int CS2M_CALL cs2m_get_title(cs2m_handle menu, char *buf, int buflen)
+{
+	// Copy immediately: the returned pointer aliases live menu storage.
+	return CopyOut(API()->GetTitle(menu), buf, buflen);
+}
+
+CS2M_API int CS2M_CALL cs2m_is_valid(cs2m_handle menu)
+{
+	return API()->IsValidMenu(menu) ? 1 : 0;
+}
+
+CS2M_API int CS2M_CALL cs2m_insert_item(cs2m_handle menu, int pos, const char *text, const char *info, int disabled)
+{
+	return API()->InsertItem(menu, pos, text ? text : "", info ? info : "", disabled != 0);
+}
+
+CS2M_API cs2m_handle CS2M_CALL cs2m_get_item_submenu(cs2m_handle menu, int item)
+{
+	return API()->GetItemSubmenu(menu, item);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_submenu(cs2m_handle menu, int item, cs2m_handle child)
+{
+	API()->SetItemSubmenu(menu, item, child);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_menu_type(cs2m_handle menu)
+{
+	return static_cast<int>(API()->GetMenuType(menu));
+}
+
+CS2M_API int CS2M_CALL cs2m_get_exit_button(cs2m_handle menu)
+{
+	return API()->GetExitButton(menu) ? 1 : 0;
+}
+
+CS2M_API int CS2M_CALL cs2m_get_close_on_select(cs2m_handle menu)
+{
+	return API()->GetCloseOnSelect(menu) ? 1 : 0;
+}
+
+CS2M_API int CS2M_CALL cs2m_get_exit_item(cs2m_handle menu)
+{
+	return API()->GetExitItem(menu) ? 1 : 0;
+}
+
+CS2M_API int CS2M_CALL cs2m_get_force_type(cs2m_handle menu)
+{
+	return API()->GetMenuForceType(menu) ? 1 : 0;
+}
+
+CS2M_API int CS2M_CALL cs2m_get_menu_key(cs2m_handle menu, int action)
+{
+	return static_cast<int>(API()->GetMenuKey(menu, static_cast<MenuNavAction>(action)));
+}

@@ -85,6 +85,19 @@ namespace keys
 		}
 		return nullptr;
 	}
+
+	// Look up a key by its IN_* button mask.
+	inline const KeyDef *FindByMask(uint64_t mask)
+	{
+		for (const KeyDef &k : kKeys)
+		{
+			if (k.mask == mask)
+			{
+				return &k;
+			}
+		}
+		return nullptr;
+	}
 } // namespace keys
 
 #endif // _INCLUDE_MENU_KEY_TABLE_H_

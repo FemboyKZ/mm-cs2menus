@@ -43,7 +43,9 @@ public enum MenuStyle
 	FooterSeparator,
 	CounterPrefix,
 	CounterSuffix,
-	HighlightText
+	HighlightText,
+	CounterSize,
+	VisibleItems
 }
 
 /// <summary>
@@ -98,6 +100,21 @@ public sealed partial class Cs2MenusBridge : IDisposable
 	/// <summary>True if this slot currently has a cs2menus menu open.</summary>
 	public static bool HasMenu(int slot) => Cs2MenusNative.Loaded && Cs2MenusNative.HasMenu(slot);
 
+	/// <summary>Close whatever cs2menus menu this slot has open (fires its end callback). Does not destroy the menu object. No-op if none / not loaded.</summary>
+	public static void Cancel(int slot)
+	{
+		if (Cs2MenusNative.Loaded)
+		{
+			Cs2MenusNative.Cancel(slot);
+		}
+	}
+
+	/// <summary>Abs index of the item the slot has highlighted in an HTML menu, or -1 (no menu / chat menu / Exit row / not loaded).</summary>
+	public static int GetSelectedItem(int slot) => Cs2MenusNative.Loaded ? Cs2MenusNative.GetSelectedItem(slot) : -1;
+
+	/// <summary>The menu this bridge created that the slot currently has open, or null (none / created by another bridge / not loaded).</summary>
+	public Cs2Menu? GetActiveMenu(int slot) => Cs2MenusNative.Loaded ? Find(Cs2MenusNative.GetActiveMenu(slot)) : null;
+
 	/// <summary>Create a menu. <paramref name="onSelect"/> fires when a player picks an item.</summary>
 	public Cs2Menu CreateMenu(MenuType type, string title, Action<Cs2Menu, int, int>? onSelect = null)
 	{
@@ -125,6 +142,9 @@ public sealed partial class Cs2MenusBridge : IDisposable
 	}
 
 	internal void Forget(uint handle) => _menus.TryRemove(handle, out _);
+
+	/// <summary>The tracked menu for a handle, or null if this bridge didn't create it.</summary>
+	internal Cs2Menu? Find(uint handle) => _menus.TryGetValue(handle, out var m) ? m : null;
 
 	public void Dispose()
 	{
@@ -231,6 +251,41 @@ public sealed class Cs2Menu : IDisposable
 	public void RemoveItem(int item) => Cs2MenusNative.RemoveItem(Handle, item);
 	public void RemoveAllItems() => Cs2MenusNative.RemoveAllItems(Handle);
 	public int StartItem { get => Cs2MenusNative.GetStartItem(Handle); set => Cs2MenusNative.SetStartItem(Handle, value); }
+
+	/// <summary>The menu's title as last set (the key/literal, not translated text).</summary>
+	public string Title => Cs2MenusNative.GetTitle(Handle);
+	/// <summary>True while this menu handle is still live in cs2menus.</summary>
+	public bool IsValid => Handle != 0 && Cs2MenusNative.IsValid(Handle);
+
+	/// <summary>Insert an item at <paramref name="pos"/> (clamped to [0, ItemCount]); later items shift down. Returns the index, or -1.</summary>
+	public int InsertItem(int pos, string text, string info = "", bool disabled = false) => Cs2MenusNative.InsertItem(Handle, pos, text, info, disabled);
+
+	/// <summary>The submenu a row opens (see <see cref="AddSubMenu"/>), or null if it's a normal item / not tracked by this bridge.</summary>
+	public Cs2Menu? GetItemSubmenu(int item)
+	{
+		uint h = Cs2MenusNative.GetItemSubmenu(Handle, item);
+		return h != 0 ? _owner.Find(h) : null;
+	}
+
+	/// <summary>Attach <paramref name="child"/> as an existing item's submenu (null detaches it).</summary>
+	public Cs2Menu SetItemSubmenu(int item, Cs2Menu? child)
+	{
+		Cs2MenusNative.SetItemSubmenu(Handle, item, child?.Handle ?? 0);
+		return this;
+	}
+
+	/// <summary>The menu's base render type as created. For the per-viewer type of an open display use <see cref="Cs2MenusBridge.GetActiveType"/>.</summary>
+	public MenuType Type => (MenuType)Cs2MenusNative.GetMenuType(Handle);
+	/// <summary>Whether the trailing "0. Exit" entry is shown (see <see cref="SetExitButton"/>).</summary>
+	public bool ExitButton => Cs2MenusNative.GetExitButton(Handle);
+	/// <summary>Whether the menu closes after a selection (see <see cref="SetCloseOnSelect"/>).</summary>
+	public bool CloseOnSelect => Cs2MenusNative.GetCloseOnSelect(Handle);
+	/// <summary>Whether the HTML selectable Exit row is shown (see <see cref="SetExitItem"/>).</summary>
+	public bool ExitItem => Cs2MenusNative.GetExitItem(Handle);
+	/// <summary>Whether the render type is locked against the viewer's preference (see <see cref="SetForceType"/>).</summary>
+	public bool ForceType => Cs2MenusNative.GetForceType(Handle);
+	/// <summary>The per-menu nav-key override for an action (Default if unset, None if disabled). See <see cref="SetMenuKey"/>.</summary>
+	public MenuButton GetMenuKey(MenuNavAction action) => (MenuButton)Cs2MenusNative.GetMenuKey(Handle, (int)action);
 
 	public void Dispose()
 	{

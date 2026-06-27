@@ -360,6 +360,61 @@ class CS2MenusAPI : public ICS2Menus
 	{
 		return g_MenuManager.GetExternalBusy(slot);
 	}
+
+	const char *GetTitle(MenuHandle menu) override
+	{
+		return g_MenuManager.GetTitle(menu);
+	}
+
+	bool IsValidMenu(MenuHandle menu) override
+	{
+		return g_MenuManager.IsValidMenu(menu);
+	}
+
+	int InsertItem(MenuHandle menu, int pos, const char *text, const char *info, bool disabled) override
+	{
+		return g_MenuManager.InsertItem(menu, pos, text, info, disabled);
+	}
+
+	MenuHandle GetItemSubmenu(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemSubmenu(menu, item);
+	}
+
+	void SetItemSubmenu(MenuHandle menu, int item, MenuHandle child) override
+	{
+		g_MenuManager.SetItemSubmenu(menu, item, child);
+	}
+
+	MenuType GetMenuType(MenuHandle menu) override
+	{
+		return g_MenuManager.GetMenuType(menu);
+	}
+
+	bool GetExitButton(MenuHandle menu) override
+	{
+		return g_MenuManager.GetExitButton(menu);
+	}
+
+	bool GetCloseOnSelect(MenuHandle menu) override
+	{
+		return g_MenuManager.GetCloseOnSelect(menu);
+	}
+
+	bool GetExitItem(MenuHandle menu) override
+	{
+		return g_MenuManager.GetExitItem(menu);
+	}
+
+	bool GetMenuForceType(MenuHandle menu) override
+	{
+		return g_MenuManager.GetMenuForceType(menu);
+	}
+
+	MenuButton GetMenuKey(MenuHandle menu, MenuNavAction action) override
+	{
+		return g_MenuManager.GetMenuKey(menu, action);
+	}
 };
 
 static CS2MenusAPI g_CS2MenusAPI;
@@ -563,6 +618,10 @@ static void LoadAndApplyConfig()
 	if (html_style::IsSizeToken(g_MenusConfig.menu.htmlFooterSize))
 	{
 		settings.footerSize = g_MenusConfig.menu.htmlFooterSize;
+	}
+	if (html_style::IsSizeToken(g_MenusConfig.menu.htmlCounterSize))
+	{
+		settings.counterSize = g_MenusConfig.menu.htmlCounterSize;
 	}
 	settings.showCounter = g_MenusConfig.menu.htmlShowCounter;
 	settings.showFooter = g_MenusConfig.menu.htmlShowFooter;

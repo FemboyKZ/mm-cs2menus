@@ -152,6 +152,10 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.htmlFooterSize = ToLower(value);
 		}
+		else if (k == "htmlcountersize")
+		{
+			cfg->menu.htmlCounterSize = ToLower(value);
+		}
 		else if (k == "htmlshowcounter")
 		{
 			cfg->menu.htmlShowCounter = (value != "0");

@@ -65,6 +65,21 @@ internal static unsafe class Cs2MenusNative
 	private static delegate* unmanaged[Cdecl]<uint, void> _removeAllItems;
 	private static delegate* unmanaged[Cdecl]<uint, int> _getStartItem;
 
+	// Title / validity / item structure.
+	private static delegate* unmanaged[Cdecl]<uint, byte*, int, int> _getTitle;
+	private static delegate* unmanaged[Cdecl]<uint, int> _isValid;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, byte*, int, int> _insertItem;
+	private static delegate* unmanaged[Cdecl]<uint, int, uint> _getItemSubmenu;
+	private static delegate* unmanaged[Cdecl]<uint, int, uint, void> _setItemSubmenu;
+
+	// Per-menu state read-back.
+	private static delegate* unmanaged[Cdecl]<uint, int> _getMenuType;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getExitButton;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getCloseOnSelect;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getExitItem;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getForceType;
+	private static delegate* unmanaged[Cdecl]<uint, int, int> _getMenuKey;
+
 	public static bool Loaded { get; private set; }
 
 	/// <summary>
@@ -125,6 +140,18 @@ internal static unsafe class Cs2MenusNative
 			_removeItem = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_remove_item");
 			_removeAllItems = (delegate* unmanaged[Cdecl]<uint, void>)Get(lib, "cs2m_remove_all_items");
 			_getStartItem = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_start_item");
+
+			_getTitle = (delegate* unmanaged[Cdecl]<uint, byte*, int, int>)Get(lib, "cs2m_get_title");
+			_isValid = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_is_valid");
+			_insertItem = (delegate* unmanaged[Cdecl]<uint, int, byte*, byte*, int, int>)Get(lib, "cs2m_insert_item");
+			_getItemSubmenu = (delegate* unmanaged[Cdecl]<uint, int, uint>)Get(lib, "cs2m_get_item_submenu");
+			_setItemSubmenu = (delegate* unmanaged[Cdecl]<uint, int, uint, void>)Get(lib, "cs2m_set_item_submenu");
+			_getMenuType = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_menu_type");
+			_getExitButton = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_exit_button");
+			_getCloseOnSelect = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_close_on_select");
+			_getExitItem = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_exit_item");
+			_getForceType = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_force_type");
+			_getMenuKey = (delegate* unmanaged[Cdecl]<uint, int, int>)Get(lib, "cs2m_get_menu_key");
 		}
 		catch (EntryPointNotFoundException)
 		{
@@ -241,6 +268,28 @@ internal static unsafe class Cs2MenusNative
 	public static void RemoveAllItems(uint menu) => _removeAllItems(menu);
 	public static int GetStartItem(uint menu) => _getStartItem(menu);
 
+	public static string GetTitle(uint menu) => ReadString(_getTitle, menu);
+	public static bool IsValid(uint menu) => _isValid(menu) != 0;
+
+	public static int InsertItem(uint menu, int pos, ReadOnlySpan<char> text, ReadOnlySpan<char> info, bool disabled)
+	{
+		fixed (byte* t = Utf8(text))
+		fixed (byte* i = Utf8(info))
+		{
+			return _insertItem(menu, pos, t, i, disabled ? 1 : 0);
+		}
+	}
+
+	public static uint GetItemSubmenu(uint menu, int item) => _getItemSubmenu(menu, item);
+	public static void SetItemSubmenu(uint menu, int item, uint child) => _setItemSubmenu(menu, item, child);
+
+	public static int GetMenuType(uint menu) => _getMenuType(menu);
+	public static bool GetExitButton(uint menu) => _getExitButton(menu) != 0;
+	public static bool GetCloseOnSelect(uint menu) => _getCloseOnSelect(menu) != 0;
+	public static bool GetExitItem(uint menu) => _getExitItem(menu) != 0;
+	public static bool GetForceType(uint menu) => _getForceType(menu) != 0;
+	public static int GetMenuKey(uint menu, int action) => _getMenuKey(menu, action);
+
 	private static string ReadString(delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> fn, uint menu, int item)
 	{
 		int needed = fn(menu, item, null, 0); // includes NUL
@@ -252,6 +301,22 @@ internal static unsafe class Cs2MenusNative
 		fixed (byte* p = buf)
 		{
 			fn(menu, item, p, needed);
+			return Marshal.PtrToStringUTF8((nint)p) ?? string.Empty;
+		}
+	}
+
+	// Same as above for exports that key on the menu handle alone (e.g. cs2m_get_title).
+	private static string ReadString(delegate* unmanaged[Cdecl]<uint, byte*, int, int> fn, uint menu)
+	{
+		int needed = fn(menu, null, 0);
+		if (needed <= 1)
+		{
+			return string.Empty;
+		}
+		byte[] buf = new byte[needed];
+		fixed (byte* p = buf)
+		{
+			fn(menu, p, needed);
 			return Marshal.PtrToStringUTF8((nint)p) ?? string.Empty;
 		}
 	}

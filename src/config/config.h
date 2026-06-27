@@ -79,8 +79,9 @@ struct MenuDefaultsCfg
 	// Plus the cursor marker text.
 	std::string htmlFontFace;
 	std::string htmlMarker = "\xE2\x96\xB6 "; // ▶
-	// Position counter color + size of the key-hint footer, and whether each is shown.
+	// Position counter color + size, size of the key-hint footer, and whether each is shown.
 	std::string htmlCounterColor = "#9aa0a6";
+	std::string htmlCounterSize = "s";
 	std::string htmlFooterSize = "s";
 	bool htmlShowCounter = true;
 	bool htmlShowFooter = true;

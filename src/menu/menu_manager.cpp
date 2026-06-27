@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 // Recursive so a callback can re-enter the API on the same thread.
@@ -425,6 +426,12 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 				s.footerSize = v;
 			}
 			break;
+		case MenuStyle::CounterSize:
+			if (v.empty() || !SizeClass(v).empty())
+			{
+				s.counterSize = v;
+			}
+			break;
 		case MenuStyle::Align:
 			// Empty clears the override, an unrecognized token is ignored.
 			if (v.empty())
@@ -444,6 +451,17 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 			break;
 		case MenuStyle::HighlightText:
 			s.highlightText = v.empty() ? -1 : (v != "0" ? 1 : 0);
+			break;
+		case MenuStyle::VisibleItems:
+			// Empty clears the override. A positive integer sets the scroll window (clamped at render).
+			if (v.empty())
+			{
+				s.visibleItems = -1;
+			}
+			else if (int n = atoi(v.c_str()); n > 0)
+			{
+				s.visibleItems = n;
+			}
 			break;
 	}
 	RefreshMenu(menu);
@@ -491,6 +509,8 @@ const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 			return s.itemSize.empty() ? m_settings.itemSize.c_str() : s.itemSize.c_str();
 		case MenuStyle::FooterSize:
 			return s.footerSize.empty() ? m_settings.footerSize.c_str() : s.footerSize.c_str();
+		case MenuStyle::CounterSize:
+			return s.counterSize.empty() ? m_settings.counterSize.c_str() : s.counterSize.c_str();
 		case MenuStyle::Align:
 			return s.align.empty() ? m_settings.align.c_str() : s.align.c_str();
 		case MenuStyle::ShowCounter:
@@ -499,6 +519,13 @@ const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 			return (s.showFooter < 0 ? m_settings.showFooter : s.showFooter != 0) ? "1" : "0";
 		case MenuStyle::HighlightText:
 			return (s.highlightText < 0 ? m_settings.highlightText : s.highlightText != 0) ? "1" : "0";
+		case MenuStyle::VisibleItems:
+		{
+			int eff = (s.visibleItems > 0) ? (std::min)(s.visibleItems, MENU_MAX_HTML_VISIBLE) : m_htmlVisibleItems;
+			static thread_local std::string buf;
+			buf = std::to_string(eff);
+			return buf.c_str();
+		}
 	}
 	return "";
 }
@@ -622,6 +649,128 @@ int MenuManager::GetStartItem(MenuHandle menu) const
 	ScopedLock lock(m_mutex);
 	const MenuDef *def = Find(menu);
 	return def ? def->startItem : 0;
+}
+
+// Returned pointer aliases internal storage: valid only until the next mutating call, don't cache it.
+const char *MenuManager::GetTitle(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def ? def->title.c_str() : "";
+}
+
+bool MenuManager::IsValidMenu(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	return Find(menu) != nullptr;
+}
+
+int MenuManager::InsertItem(MenuHandle menu, int pos, const char *text, const char *info, bool disabled)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def)
+	{
+		return -1;
+	}
+	int count = static_cast<int>(def->items.size());
+	pos = (std::max)(0, (std::min)(pos, count));
+	MenuItem item;
+	item.text = text ? text : "";
+	item.info = info ? info : "";
+	item.disabled = disabled;
+	def->items.insert(def->items.begin() + pos, std::move(item));
+	RefreshMenu(menu); // RenderHtml/RenderPage clamp any now-stale cursor/page
+	return pos;
+}
+
+MenuHandle MenuManager::GetItemSubmenu(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->submenu : kInvalidMenuHandle;
+}
+
+void MenuManager::SetItemSubmenu(MenuHandle menu, int item, MenuHandle child)
+{
+	ScopedLock lock(m_mutex);
+	if (child == menu)
+	{
+		return;
+	}
+	MenuItem *it = FindItem(menu, item);
+	if (!it)
+	{
+		return;
+	}
+	if (child != kInvalidMenuHandle)
+	{
+		MenuDef *childDef = Find(child);
+		if (!childDef)
+		{
+			return; // unknown child handle: leave the item untouched
+		}
+		childDef->parent = menu; // so Back in the child returns here
+	}
+	it->submenu = child;
+	RefreshMenu(menu);
+}
+
+MenuType MenuManager::GetMenuType(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def ? def->type : MenuType::Default;
+}
+
+bool MenuManager::GetExitButton(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def ? def->exitButton : false;
+}
+
+bool MenuManager::GetCloseOnSelect(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def ? def->closeOnSelect : false;
+}
+
+bool MenuManager::GetExitItem(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def ? def->exitItem : false;
+}
+
+bool MenuManager::GetMenuForceType(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def ? def->forced : false;
+}
+
+MenuButton MenuManager::GetMenuKey(MenuHandle menu, MenuNavAction action) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	int idx = static_cast<int>(action);
+	if (!def || idx < 0 || idx > static_cast<int>(MenuNavAction::Back))
+	{
+		return MenuButton::Default;
+	}
+	uint64_t mask = def->navOverride[idx].mask;
+	if (mask == 0)
+	{
+		return MenuButton::Default; // unset: inherits the server binding
+	}
+	if (mask == kNavDisabledSentinel)
+	{
+		return MenuButton::None; // disabled for this menu
+	}
+	const keys::KeyDef *k = keys::FindByMask(mask);
+	return k ? k->button : MenuButton::Default;
 }
 
 bool MenuManager::HtmlShowsExitRow(const MenuDef &def, int slot) const
@@ -1814,6 +1963,7 @@ void MenuManager::RenderHtml(int slot)
 	const std::string titleCls = SizeClass(pick(st.titleSize, m_settings.titleSize)) + commonCls;
 	const std::string itemCls = SizeClass(pick(st.itemSize, m_settings.itemSize)) + commonCls;
 	const std::string footerCls = SizeClass(pick(st.footerSize, m_settings.footerSize)) + commonCls;
+	const std::string counterCls = SizeClass(pick(st.counterSize, m_settings.counterSize)) + commonCls;
 	const std::string markerHtml = center_html::Escape(marker);
 
 	std::string html;
@@ -1823,7 +1973,7 @@ void MenuManager::RenderHtml(int slot)
 	html += center_html::ColorizeChat(def->title, titleColor.c_str(), titleCls.c_str());
 	if (showCounter && count > 0)
 	{
-		html += " <font class='fontSize-s" + commonCls + "' color='" + counterColor + "'>";
+		html += " <font class='" + counterCls + "' color='" + counterColor + "'>";
 		html += center_html::Escape(counterPrefix);
 		html += std::to_string(pm.cursor + 1) + "/" + std::to_string(count);
 		html += center_html::Escape(counterSuffix);
@@ -1831,8 +1981,9 @@ void MenuManager::RenderHtml(int slot)
 	}
 	html += "<br>";
 
-	// Scrolling window centered on the cursor.
-	int vis = (std::min)(m_htmlVisibleItems, count);
+	// Scrolling window centered on the cursor. Per-menu override clamps to the same ceiling.
+	int effVisible = (st.visibleItems > 0) ? (std::min)(st.visibleItems, MENU_MAX_HTML_VISIBLE) : m_htmlVisibleItems;
+	int vis = (std::min)(effVisible, count);
 	int start = pm.cursor - vis / 2;
 	if (start < 0)
 	{
