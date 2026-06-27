@@ -11,11 +11,12 @@
 //   !cs2cancel - CancelMenu on the caller's open menu
 //   !cs2clear  - RemoveAllItems on a dedicated menu, repopulate it, then show it
 //   !cs2theme  - stay-open menu, each row cycles item size/font/color on select
+//   !cs2icon   - icon diagnostics: SetItemIcon vs raw <img>, sized vs unsized
 //   !cs2info   - dump the getter API for the caller's state to the console
 //   !cs2busy   - toggle SetExternalBusy for the caller
 //
-// Between them the commands touch every ICS2Menus003 method, so this doubles
-// as a smoke test for the interface surface.
+// Between them the commands touch every ICS2Menus003 method,
+// so this doubles as a smoke test for the interface surface.
 //
 // Build: wired in as an extra target by examples/mm_consumer/AMBuilder,
 // reusing the cs2menus SDK setup. Not shipped in releases (PackageScript ignores it).
@@ -46,6 +47,13 @@ static MenuHandle g_SubMenu = kInvalidMenuHandle;
 static MenuHandle g_StyledMenu = kInvalidMenuHandle;
 static MenuHandle g_ClearMenu = kInvalidMenuHandle;
 static MenuHandle g_ThemeMenu = kInvalidMenuHandle;
+static MenuHandle g_IconMenu = kInvalidMenuHandle;
+
+// Bumped on each styled-menu pick so a normal row's selection is visible (it lands in the title).
+static int g_styledPicks = 0;
+
+// One image source reused by the icon test. Swap for your own asset to test other formats.
+static const char *const kIconUrl = "https://github.githubassets.com/favicons/favicon.png";
 
 // Style values the theme menu cycles through on select, so you can eyeball that each one renders.
 static const char *const kSizeTokens[] = {"xs", "s", "sm", "m", "ml", "l", "xl", "xxl", "xxxl"};
@@ -75,6 +83,7 @@ public:
 	void BuildStyledMenu();
 	void BuildClearMenu();
 	void BuildThemeMenu();
+	void BuildIconMenu();
 	void DumpInfo(int slot);
 	void DropMenus();
 
@@ -105,7 +114,7 @@ public:
 
 	const char *GetVersion() override
 	{
-		return "1.0.1";
+		return "1.0.2";
 	}
 
 	const char *GetDate() override
@@ -161,6 +170,7 @@ void ConsumerPlugin::OnPluginLoad(PluginId /*id*/)
 		g_StyledMenu = kInvalidMenuHandle;
 		g_ClearMenu = kInvalidMenuHandle;
 		g_ThemeMenu = kInvalidMenuHandle;
+		g_IconMenu = kInvalidMenuHandle;
 	}
 }
 
@@ -176,6 +186,7 @@ void ConsumerPlugin::OnPluginUnload(PluginId /*id*/)
 		g_StyledMenu = kInvalidMenuHandle;
 		g_ClearMenu = kInvalidMenuHandle;
 		g_ThemeMenu = kInvalidMenuHandle;
+		g_IconMenu = kInvalidMenuHandle;
 	}
 }
 
@@ -221,6 +232,12 @@ void ConsumerPlugin::BuildStyledMenu()
 										{
 											META_CONPRINTF("[CS2Menus-test] slot %d styled pick item %d text '%s' info '%s'\n", slot, item,
 														   g_pMenus->GetItemText(menu, item), g_pMenus->GetItemInfo(menu, item));
+											// Visible feedback: a plain row only logged to console before, which read as "not selectable".
+											// Reflect the pick in the title so any selectable row shows it.
+											g_styledPicks++;
+											char title[96];
+											snprintf(title, sizeof(title), "\x04Styled HTML demo (picks: %d)", g_styledPicks);
+											g_pMenus->SetTitle(menu, title);
 										});
 
 	g_pMenus->SetTitle(g_StyledMenu, "\x04Styled HTML demo");
@@ -235,8 +252,8 @@ void ConsumerPlugin::BuildStyledMenu()
 	g_pMenus->SetItemRaw(g_StyledMenu, rawIdx, true);
 
 	// Icon item: escaped text with a leading image.
-	// Panorama decodes png/jpg/svg, not .ico, and cs2menus emits a bare <img> with no
-	// width/height, so the source must already be small (it renders at native size).
+	// Panorama decodes png/jpg/svg, not .ico, and cs2menus emits a bare <img> with no width/height,
+	// so the source must already be small (it renders at native size).
 	int iconIdx = g_pMenus->AddItem(g_StyledMenu, "icon row", "icon", false);
 	g_pMenus->SetItemIcon(g_StyledMenu, iconIdx, "https://www.google.com/s2/favicons?sz=32&domain=steampowered.com");
 
@@ -266,10 +283,11 @@ void ConsumerPlugin::BuildStyledMenu()
 	g_pMenus->SetMenuStyle(g_StyledMenu, MenuStyle::VisibleItems, "6");
 	g_pMenus->SetMenuStyle(g_StyledMenu, MenuStyle::Marker, ">> ");
 
-	// Per-menu navigation key overrides. W/S still move the cursor, Select moves off the
-	// default D onto E (Use). The footer key hints update to match.
-	// To test disabling an action use MenuButton::None, e.g. Up=None makes Down alone
-	// cycle the cursor with wraparound. Don't disable every move key or the menu can't navigate.
+	// Per-menu navigation key overrides.
+	// W/S still move the cursor, Select moves off the default D onto E (Use).
+	// The footer key hints update to match.
+	// To test disabling an action use MenuButton::None, e.g. Up=None makes Down alone cycle the cursor with wraparound.
+	// Don't disable every move key or the menu can't navigate.
 	g_pMenus->SetMenuKey(g_StyledMenu, MenuNavAction::Up, MenuButton::W);
 	g_pMenus->SetMenuKey(g_StyledMenu, MenuNavAction::Down, MenuButton::S);
 	g_pMenus->SetMenuKey(g_StyledMenu, MenuNavAction::Select, MenuButton::Use);
@@ -404,6 +422,43 @@ void ConsumerPlugin::BuildThemeMenu()
 	ApplyTheme(); // seed the styles + row labels before first display
 }
 
+// Isolated icon diagnostics, one variable per row, so it's clear what (if anything) renders.
+// SetItemIcon emits a bare <img src> with no width/height (see menu_manager.cpp),
+// so the raw-with-size rows are the control: if those show and the SetItemIcon rows don't,
+// the missing size is the cause, not the URL or the format.
+void ConsumerPlugin::BuildIconMenu()
+{
+	if (!g_pMenus || g_IconMenu != kInvalidMenuHandle)
+	{
+		return;
+	}
+
+	g_IconMenu =
+		g_pMenus->CreateMenu(MenuType::Html, "\x04Icon test", [](MenuHandle menu, int slot, int item)
+							 { META_CONPRINTF("[CS2Menus-test] slot %d icon-menu picked '%s'\n", slot, g_pMenus->GetItemInfo(menu, item)); });
+	g_pMenus->SetMenuForceType(g_IconMenu, true);
+
+	// 1. SetItemIcon alone on a row, no text beside it.
+	int a = g_pMenus->AddItem(g_IconMenu, "", "icon_only", false);
+	g_pMenus->SetItemIcon(g_IconMenu, a, kIconUrl);
+
+	// 2. SetItemIcon plus text.
+	int b = g_pMenus->AddItem(g_IconMenu, "SetItemIcon + text", "icon_text", false);
+	g_pMenus->SetItemIcon(g_IconMenu, b, kIconUrl);
+
+	char raw[256];
+
+	// 3. Raw <img> WITH an explicit pixel size. The control case.
+	snprintf(raw, sizeof(raw), "<img src='%s' style='width:24px; height:24px;'/> raw + sized", kIconUrl);
+	int c = g_pMenus->AddItem(g_IconMenu, raw, "raw_sized", false);
+	g_pMenus->SetItemRaw(g_IconMenu, c, true);
+
+	// 4. Raw <img> with NO size, mirroring what SetItemIcon emits but without Escape.
+	snprintf(raw, sizeof(raw), "<img src='%s'/> raw, no size", kIconUrl);
+	int d = g_pMenus->AddItem(g_IconMenu, raw, "raw_nosize", false);
+	g_pMenus->SetItemRaw(g_IconMenu, d, true);
+}
+
 void ConsumerPlugin::DropMenus()
 {
 	if (g_pMenus)
@@ -424,6 +479,10 @@ void ConsumerPlugin::DropMenus()
 		{
 			g_pMenus->DestroyMenu(g_ThemeMenu);
 		}
+		if (g_IconMenu != kInvalidMenuHandle)
+		{
+			g_pMenus->DestroyMenu(g_IconMenu);
+		}
 		if (g_SubMenu != kInvalidMenuHandle)
 		{
 			g_pMenus->DestroyMenu(g_SubMenu);
@@ -433,6 +492,7 @@ void ConsumerPlugin::DropMenus()
 	g_StyledMenu = kInvalidMenuHandle;
 	g_ClearMenu = kInvalidMenuHandle;
 	g_ThemeMenu = kInvalidMenuHandle;
+	g_IconMenu = kInvalidMenuHandle;
 	g_SubMenu = kInvalidMenuHandle;
 }
 
@@ -519,6 +579,16 @@ void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CComma
 		{
 			BuildThemeMenu();
 			g_pMenus->DisplayMenu(g_ThemeMenu, slot, 0.0f); // no timeout, cycle styles at your own pace
+		}
+		RETURN_META(MRES_SUPERCEDE);
+	}
+
+	if (strstr(msg, "!cs2icon"))
+	{
+		if (g_pMenus)
+		{
+			BuildIconMenu();
+			g_pMenus->DisplayMenu(g_IconMenu, slot, 0.0f);
 		}
 		RETURN_META(MRES_SUPERCEDE);
 	}
