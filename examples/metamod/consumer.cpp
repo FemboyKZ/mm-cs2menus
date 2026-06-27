@@ -9,7 +9,7 @@
 //   !cs2styled - open an HTML menu exercising the style/key/label/item API
 //   !cs2all    - DisplayMenuToAll the demo menu to every connected player
 //   !cs2cancel - CancelMenu on the caller's open menu
-//   !cs2clear  - RemoveAllItems on the demo menu, then repopulate it
+//   !cs2clear  - RemoveAllItems on a dedicated menu, repopulate it, then show it
 //   !cs2info   - dump the getter API for the caller's state to the console
 //   !cs2busy   - toggle SetExternalBusy for the caller
 //
@@ -26,6 +26,7 @@
 #include <icvar.h>
 #include <iserver.h>
 
+#include <cstdio>
 #include <cstring>
 
 #include "public/ics2menus.h" // resolved via the src include dir (see AMBuilder)
@@ -42,6 +43,7 @@ static ICS2Menus *g_pMenus = nullptr;
 static MenuHandle g_DemoMenu = kInvalidMenuHandle;
 static MenuHandle g_SubMenu = kInvalidMenuHandle;
 static MenuHandle g_StyledMenu = kInvalidMenuHandle;
+static MenuHandle g_ClearMenu = kInvalidMenuHandle;
 
 class ConsumerPlugin : public ISmmPlugin, public IMetamodListener
 {
@@ -57,6 +59,7 @@ public:
 
 	void BuildMenu();
 	void BuildStyledMenu();
+	void BuildClearMenu();
 	void DumpInfo(int slot);
 	void DropMenus();
 
@@ -141,6 +144,7 @@ void ConsumerPlugin::OnPluginLoad(PluginId /*id*/)
 		g_DemoMenu = kInvalidMenuHandle;
 		g_SubMenu = kInvalidMenuHandle;
 		g_StyledMenu = kInvalidMenuHandle;
+		g_ClearMenu = kInvalidMenuHandle;
 	}
 }
 
@@ -154,6 +158,7 @@ void ConsumerPlugin::OnPluginUnload(PluginId /*id*/)
 		g_DemoMenu = kInvalidMenuHandle;
 		g_SubMenu = kInvalidMenuHandle;
 		g_StyledMenu = kInvalidMenuHandle;
+		g_ClearMenu = kInvalidMenuHandle;
 	}
 }
 
@@ -213,8 +218,10 @@ void ConsumerPlugin::BuildStyledMenu()
 	g_pMenus->SetItemRaw(g_StyledMenu, rawIdx, true);
 
 	// Icon item: escaped text with a leading image.
+	// Panorama decodes png/jpg/svg, not .ico, and cs2menus emits a bare <img> with no
+	// width/height, so the source must already be small (it renders at native size).
 	int iconIdx = g_pMenus->AddItem(g_StyledMenu, "icon row", "icon", false);
-	g_pMenus->SetItemIcon(g_StyledMenu, iconIdx, "https://files.femboykz.com/web/images/fucker.ico?raw=1");
+	g_pMenus->SetItemIcon(g_StyledMenu, iconIdx, "https://www.google.com/s2/favicons?sz=32&domain=steampowered.com");
 
 	// Disabled item via the setter rather than the AddItem flag.
 	int offIdx = g_pMenus->AddItem(g_StyledMenu, "disabled row", "off", false);
@@ -242,9 +249,12 @@ void ConsumerPlugin::BuildStyledMenu()
 	g_pMenus->SetMenuStyle(g_StyledMenu, MenuStyle::VisibleItems, "6");
 	g_pMenus->SetMenuStyle(g_StyledMenu, MenuStyle::Marker, ">> ");
 
-	// Per-menu navigation key overrides. Disabling Up makes one key cycle (cursor wraps).
-	g_pMenus->SetMenuKey(g_StyledMenu, MenuNavAction::Up, MenuButton::None);
-	g_pMenus->SetMenuKey(g_StyledMenu, MenuNavAction::Down, MenuButton::Jump);
+	// Per-menu navigation key overrides. W/S still move the cursor, Select moves off the
+	// default D onto E (Use). The footer key hints update to match.
+	// To test disabling an action use MenuButton::None, e.g. Up=None makes Down alone
+	// cycle the cursor with wraparound. Don't disable every move key or the menu can't navigate.
+	g_pMenus->SetMenuKey(g_StyledMenu, MenuNavAction::Up, MenuButton::W);
+	g_pMenus->SetMenuKey(g_StyledMenu, MenuNavAction::Down, MenuButton::S);
 	g_pMenus->SetMenuKey(g_StyledMenu, MenuNavAction::Select, MenuButton::Use);
 
 	// Rename the Exit label for this menu only.
@@ -267,8 +277,10 @@ void ConsumerPlugin::DumpInfo(int slot)
 				   g_pMenus->GetActiveMenu(slot), static_cast<int>(g_pMenus->GetActiveMenuType(slot)), g_pMenus->GetSelectedItem(slot),
 				   g_pMenus->GetExternalBusy(slot) ? 1 : 0);
 
-	// Inspect whichever menu we have a handle for, preferring the styled one.
-	MenuHandle menu = g_StyledMenu != kInvalidMenuHandle ? g_StyledMenu : g_DemoMenu;
+	// Inspect the menu the player has open right now, else fall back to a built handle.
+	// A menu definition lives until DestroyMenu, so the property lines below report the
+	// last-built state of that handle even when nothing is displayed (by design, not a bug).
+	MenuHandle menu = g_pMenus->HasMenu(slot) ? g_pMenus->GetActiveMenu(slot) : g_StyledMenu != kInvalidMenuHandle ? g_StyledMenu : g_DemoMenu;
 	META_CONPRINTF("  menu %u valid=%d type=%d title='%s' items=%d\n", menu, g_pMenus->IsValidMenu(menu) ? 1 : 0,
 				   static_cast<int>(g_pMenus->GetMenuType(menu)), g_pMenus->GetTitle(menu), g_pMenus->GetItemCount(menu));
 	META_CONPRINTF("  exitBtn=%d closeOnSelect=%d exitItem=%d forceType=%d startItem=%d\n", g_pMenus->GetExitButton(menu) ? 1 : 0,
@@ -285,6 +297,34 @@ void ConsumerPlugin::DumpInfo(int slot)
 	}
 }
 
+// Rebuild a dedicated menu from scratch: clear every item, then add a fresh batch.
+// Demonstrates RemoveAllItems and gives several rows to navigate.
+// Kept separate from the demo menu so clearing never mutates it (re-show with !cs2menu stays canonical).
+void ConsumerPlugin::BuildClearMenu()
+{
+	if (!g_pMenus)
+	{
+		return;
+	}
+
+	if (g_ClearMenu == kInvalidMenuHandle)
+	{
+		g_ClearMenu =
+			g_pMenus->CreateMenu(MenuType::Default, "\x04Clear/rebuild demo", [](MenuHandle menu, int slot, int item)
+								 { META_CONPRINTF("[CS2Menus-test] slot %d clear-menu picked '%s'\n", slot, g_pMenus->GetItemInfo(menu, item)); });
+	}
+
+	g_pMenus->RemoveAllItems(g_ClearMenu);
+	for (int i = 1; i <= 6; ++i)
+	{
+		char text[32];
+		char info[16];
+		snprintf(text, sizeof(text), "Row %d", i);
+		snprintf(info, sizeof(info), "row_%d", i);
+		g_pMenus->AddItem(g_ClearMenu, text, info, false);
+	}
+}
+
 void ConsumerPlugin::DropMenus()
 {
 	if (g_pMenus)
@@ -297,6 +337,10 @@ void ConsumerPlugin::DropMenus()
 		{
 			g_pMenus->DestroyMenu(g_StyledMenu);
 		}
+		if (g_ClearMenu != kInvalidMenuHandle)
+		{
+			g_pMenus->DestroyMenu(g_ClearMenu);
+		}
 		if (g_SubMenu != kInvalidMenuHandle)
 		{
 			g_pMenus->DestroyMenu(g_SubMenu);
@@ -304,6 +348,7 @@ void ConsumerPlugin::DropMenus()
 	}
 	g_DemoMenu = kInvalidMenuHandle;
 	g_StyledMenu = kInvalidMenuHandle;
+	g_ClearMenu = kInvalidMenuHandle;
 	g_SubMenu = kInvalidMenuHandle;
 }
 
@@ -375,11 +420,11 @@ void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CComma
 
 	if (strstr(msg, "!cs2clear"))
 	{
-		if (g_pMenus && g_DemoMenu != kInvalidMenuHandle)
+		if (g_pMenus)
 		{
-			g_pMenus->RemoveAllItems(g_DemoMenu);
-			g_pMenus->AddItem(g_DemoMenu, "Rebuilt row", "rebuilt", false);
-			META_CONPRINTF("[CS2Menus-test] demo menu cleared and repopulated.\n");
+			BuildClearMenu();
+			g_pMenus->DisplayMenu(g_ClearMenu, slot, 30.0f);
+			META_CONPRINTF("[CS2Menus-test] clear menu cleared and rebuilt.\n");
 		}
 		RETURN_META(MRES_SUPERCEDE);
 	}
