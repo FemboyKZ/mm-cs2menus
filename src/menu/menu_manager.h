@@ -65,7 +65,7 @@ struct MenuManagerSettings
 	std::string disabledColor = "#808080";
 	// HTML: title accent color, size tokens (xs/s/sm/m/ml/l/xl/xxl/xxxl), and line alignment.
 	std::string titleColor = "#ff00e1";
-	std::string titleSize = "l";
+	std::string titleSize = "m";
 	std::string itemSize = "sm";
 	std::string align = "center"; // "left" / "center" / "right"
 	// HTML: normal item text color, cursor marker text, and an optional Panorama font

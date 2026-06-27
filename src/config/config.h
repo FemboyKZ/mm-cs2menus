@@ -65,7 +65,7 @@ struct MenuDefaultsCfg
 	std::string htmlTitleColor = "#ff00e1";    // title accent
 	std::string htmlItemColor = "#FFFFFF";     // normal item text
 	// Size tokens (xs/s/sm/m/ml/l/xl/xxl/xxxl) and line alignment (left/center/right).
-	std::string htmlTitleSize = "l";
+	std::string htmlTitleSize = "m";
 	std::string htmlItemSize = "sm";
 	std::string htmlAlign = "center";
 	// Panorama classes applied to every line, space-separated. Empty = game default font.
