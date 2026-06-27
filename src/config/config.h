@@ -104,7 +104,7 @@ struct MenuDefaultsCfg
 
 	// HTML navigation key bindings (by name). Valid names:
 	//   w s a d, e/use, shift/speed, ctrl/duck, space/jump, r/reload,
-	//   mouse1/attack, mouse2/attack2, tab. Unknown names keep the default.
+	//   mouse1/attack, mouse2/attack2, tab/score, f/inspect. Unknown names keep the default.
 	std::string navUp = "w";
 	std::string navDown = "s";
 	std::string navSelect = "d";

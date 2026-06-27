@@ -74,7 +74,7 @@ CS2M_API int CS2M_CALL cs2m_get_menu_label(cs2m_handle menu, int label, char *bu
 CS2M_API void CS2M_CALL cs2m_set_start_item(cs2m_handle menu, int item);
 CS2M_API int CS2M_CALL cs2m_add_submenu(cs2m_handle parent, const char *text, cs2m_handle child, const char *info);
 // Override one HTML style field (see `style` values above). "" inherits the server default.
-// Sizes take a token ("s" "sm" "m" "ml" "l"), colors "#RRGGBB", Centered "1"/"0".
+// Sizes take a token ("s" "sm" "m" "ml" "l"), colors "#RRGGBB", toggles (ShowCounter/ShowFooter/HighlightText) "1"/"0".
 CS2M_API void CS2M_CALL cs2m_set_menu_style(cs2m_handle menu, int field, const char *value);
 // Lock the menu's render type so the viewer's per-player preference can't change it (force!=0).
 // See ICS2Menus::SetMenuForceType. Appended export: probe by symbol, older binaries lack it.

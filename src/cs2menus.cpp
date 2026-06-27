@@ -415,9 +415,15 @@ static uint64_t ParseNavKey(const std::string &name)
 	return k ? k->mask : 0;
 }
 
-// Uppercase footer label for a nav key name, e.g. "shift" to "SHIFT".
+// Footer label for a nav key name. Resolves aliases to the canonical label
+// (e.g. "speed"/"walk" to "SHIFT", "forward" to "W") so config, player-pref and consumer SetMenuKey paths all show the same hint.
+// Unknown names uppercase as-is.
 static std::string NavKeyLabel(const std::string &name)
 {
+	if (const keys::KeyDef *k = keys::FindByName(name))
+	{
+		return k->label;
+	}
 	std::string label = name;
 	for (char &c : label)
 	{
@@ -539,7 +545,6 @@ static void LoadAndApplyConfig()
 	{
 		settings.disabledColor = g_MenusConfig.menu.htmlDisabledColor;
 	}
-	// Size tokens accepted by the renderer (html_style::IsSizeToken). An unknown value keeps the built-in default.
 	if (IsValidHexColor(g_MenusConfig.menu.htmlTitleColor))
 	{
 		settings.titleColor = g_MenusConfig.menu.htmlTitleColor;

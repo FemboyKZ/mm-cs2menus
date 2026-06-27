@@ -283,7 +283,7 @@ public:
 	virtual void SetMenuStyle(MenuHandle menu, MenuStyle field, const char *value) = 0;
 
 	// This menu's effective value for a style field (the override if set, else the server default).
-	// Sizes come back as the token, colors as "#RRGGBB", Centered as "1"/"0".
+	// Sizes come back as the token, colors as "#RRGGBB", toggles (ShowCounter/ShowFooter/HighlightText) as "1"/"0".
 	// Aliases internal storage, copy it, don't cache. Returns "" for an invalid handle/field.
 	virtual const char *GetMenuStyle(MenuHandle menu, MenuStyle field) = 0;
 

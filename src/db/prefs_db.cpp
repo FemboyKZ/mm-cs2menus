@@ -7,6 +7,7 @@
 #include <mysql_mm.h>
 #include <sqlite_mm.h>
 
+#include <cctype>
 #include <cstdio>
 
 MenuPrefsDB g_MenuPrefsDB;
@@ -18,7 +19,21 @@ MenuPrefsDB::~MenuPrefsDB()
 
 std::string MenuPrefsDB::Table() const
 {
-	return g_MenusConfig.database.prefix + "_prefs";
+	// Prefix comes from server config and is interpolated into SQL unescaped,
+	// so restrict it to a safe identifier charset.
+	std::string prefix;
+	for (char c : g_MenusConfig.database.prefix)
+	{
+		if (isalnum(static_cast<unsigned char>(c)) || c == '_')
+		{
+			prefix += c;
+		}
+	}
+	if (prefix.empty())
+	{
+		prefix = "cs2menus";
+	}
+	return prefix + "_prefs";
 }
 
 bool MenuPrefsDB::Init()

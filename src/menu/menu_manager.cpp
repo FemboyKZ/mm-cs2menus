@@ -895,7 +895,6 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 	}
 
 	MenuEndFn onEnd = it->second.onEnd;
-	bool wasHtml = (it->second.type != MenuType::Chat);
 
 	// Erase now: handle is invalid on return (API contract) and no render can resurrect it.
 	m_menus.erase(it);
@@ -909,12 +908,15 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 		{
 			continue;
 		}
+		// Use the per-viewer resolved type, not the menu's base type:
+		// a Default/HTML menu can render as chat for some viewers, and only an HTML display needs the panel cleared.
+		bool slotHtml = (pm.type != MenuType::Chat);
 		pm.active = false;
 		pm.handle = kInvalidMenuHandle;
 
 		if (onMain)
 		{
-			if (wasHtml)
+			if (slotHtml)
 			{
 				center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs); // clear the panel immediately
 			}
@@ -924,7 +926,7 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 				onEnd(menu, slot, MenuEndReason::Destroyed);
 			}
 		}
-		else if (wasHtml)
+		else if (slotHtml)
 		{
 			// Defer the panel clear to main. The Destroyed callback is skipped:
 			// the consumer initiated this, and running its lambda off-thread is unsafe.

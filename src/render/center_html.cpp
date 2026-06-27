@@ -179,6 +179,13 @@ static const char *ChatCodeToHex(unsigned char c)
 // HTML entities and passing everything else through verbatim.
 static void AppendEscaped(std::string &out, unsigned char ch)
 {
+	// CS2 chat color control bytes (0x01-0x10) aren't valid Panorama markup.
+	// ColorizeChat consumes them before reaching here, so dropping them only affects the plain Escape path,
+	// where a stray code byte would otherwise leak through raw.
+	if (ch >= 0x01 && ch <= 0x10)
+	{
+		return;
+	}
 	switch (ch)
 	{
 		case '&':
