@@ -32,15 +32,12 @@ struct MenuManagerSettings
 	std::string chatDisabledColor = CHAT_COLOR_GREY;
 	std::string chatArrowColor = CHAT_COLOR_ORCHID;
 	std::string chatHeaderColor = CHAT_COLOR_DEFAULT;
-	std::string chatTitlePrefix = "-- ";
-	std::string chatTitleSuffix = " --";
-	std::string chatNumberPrefix = "#";
-	std::string chatNumberSuffix = " ";
-	std::string chatDisabledPrefix = "#";
-	std::string chatArrow = "-> ";
-	std::string chatPagePrefix = "(page ";
-	std::string chatPageSuffix = ")";
-	std::string chatPageSep = "/"; // between the page numbers in "(page n/m)"
+	// Chat templates (see FillTemplate). Placeholders are substituted per row.
+	std::string chatTitleFormat = "-- {title} --";       // {title} = title text + optional page indicator
+	std::string chatNumberFormat = "#{n} ";              // {n} = item / nav selection number
+	std::string chatDisabledFormat = "#{n} ";            // {n} = number, used for disabled rows
+	std::string chatArrow = "-> ";                       // before Next/Prev/Exit labels
+	std::string chatPageFormat = "(page {cur}/{total})"; // {cur}/{total} = current/total page
 	bool chatShowPage = true;
 	std::string chatHeader;
 	// Resolves MenuType::Default at CreateMenu time.
@@ -86,11 +83,10 @@ struct MenuManagerSettings
 	// the cursor row's text is recolored (vs. marked only by the marker).
 	std::string submenuSuffix = " >"; // »
 	std::string footerSeparator = " | ";
-	std::string footerKeySep = ": ";  // between a footer hint's label and its key
-	std::string footerRangeSep = "/"; // between the two keys in the combined Move hint
-	std::string counterPrefix = "[";
-	std::string counterSuffix = "]";
-	std::string counterSep = "/"; // between the numbers in the "[n/m]" counter
+	// HTML templates (see FillTemplate).
+	std::string counterFormat = "[{cur}/{total}]";    // {cur}/{total} = position counter numbers
+	std::string footerHintFormat = "{label}: {keys}"; // {label} = hint label, {keys} = key or key range
+	std::string footerRangeFormat = "{up}/{down}";    // {up}/{down} = the two keys in the Move hint
 	bool highlightText = true;
 	// HTML: center-panel resend cadence (the message decays, so it's re-sent while open).
 	// keepAlive must stay below durationSecs or the panel can blink.
@@ -289,17 +285,16 @@ private:
 		std::string footerSize;
 		std::string submenuSuffix; // empty = inherit (a space = no suffix)
 		std::string footerSeparator;
-		std::string counterPrefix;
-		std::string counterSuffix;
-		std::string align;          // empty = inherit ("left"/"center"/"right")
-		int showCounter = -1;       // -1 inherit, 0 off, 1 on
-		int showFooter = -1;        // -1 inherit, 0 off, 1 on
-		int highlightText = -1;     // -1 inherit, 0 off, 1 on
-		int visibleItems = -1;      // -1 inherit, else the scroll-window size (clamped at render)
-		int rawTitle = -1;          // -1/0 plain, 1 raw markup (per-menu only, no server default)
-		std::string footerKeySep;   // empty = inherit (text between a footer label and its key)
-		std::string footerRangeSep; // empty = inherit (between the two keys in the Move hint)
-		std::string counterSep;     // empty = inherit (between the numbers in "[n/m]")
+		std::string align;      // empty = inherit ("left"/"center"/"right")
+		int showCounter = -1;   // -1 inherit, 0 off, 1 on
+		int showFooter = -1;    // -1 inherit, 0 off, 1 on
+		int highlightText = -1; // -1 inherit, 0 off, 1 on
+		int visibleItems = -1;  // -1 inherit, else the scroll-window size (clamped at render)
+		int rawTitle = -1;      // -1/0 plain, 1 raw markup (per-menu only, no server default)
+		// Templates (see FillTemplate). Empty = inherit the server default.
+		std::string counterFormat;     // position counter, placeholders {cur} {total}
+		std::string footerHintFormat;  // one footer hint, placeholders {label} {keys}
+		std::string footerRangeFormat; // the two keys in the Move hint, placeholders {up} {down}
 	};
 
 	struct MenuDef

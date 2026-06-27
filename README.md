@@ -46,7 +46,7 @@ TBA...
 
 ## For plugin developers
 
-Acquire the interface via Metamod's factory (interface name `ICS2Menus002`):
+Acquire the interface via Metamod's factory (interface name `ICS2Menus003`):
 
 ```cpp
 #include "ics2menus.h"

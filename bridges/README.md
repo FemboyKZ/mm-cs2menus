@@ -1,6 +1,6 @@
 # CS2Menus bridges
 
-CS2Menus exposes a C++ interface (`ICS2Menus002`) that only sibling Metamod plugins built with the same toolchain can consume.
+CS2Menus exposes a C++ interface (`ICS2Menus003`) that only sibling Metamod plugins built with the same toolchain can consume.
 
 Managed frameworks (SwiftlyS2, CounterStrikeSharp) run a .NET runtime inside the game process and can only call a flat C ABI.
 

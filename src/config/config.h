@@ -41,17 +41,13 @@ struct MenuDefaultsCfg
 	std::string chatArrowColor = "orchid";   // Next/Prev/Exit arrow + label
 	std::string chatHeaderColor = "default"; // optional header line (see ChatHeader)
 
-	// Chat decoration strings.
-	std::string chatTitlePrefix = "-- ";  // before the title text
-	std::string chatTitleSuffix = " --";  // after the title (and page indicator)
-	std::string chatNumberPrefix = "#";   // before an item's selection number
-	std::string chatNumberSuffix = " ";   // between the number and the text
-	std::string chatDisabledPrefix = "#"; // replaces the number prefix on disabled rows
-	std::string chatArrow = "-> ";        // before Next/Prev/Exit labels
-	std::string chatPagePrefix = "(page ";
-	std::string chatPageSuffix = ")";
-	std::string chatPageSeparator = "/"; // between the page numbers in "(page n/m)"
-	bool chatShowPage = true;            // show the "(page x/y)" indicator on multi-page menus
+	// Chat decoration templates ({placeholders} filled per row). Edit one part, keep the rest.
+	std::string chatTitleFormat = "-- {title} --";       // {title} = title text (+ page indicator)
+	std::string chatNumberFormat = "#{n} ";              // {n} = item / nav selection number
+	std::string chatDisabledFormat = "#{n} ";            // {n} = number, used for disabled rows
+	std::string chatArrow = "-> ";                       // before Next/Prev/Exit labels
+	std::string chatPageFormat = "(page {cur}/{total})"; // {cur}/{total} = current/total page
+	bool chatShowPage = true;                            // show the page indicator on multi-page menus
 	// Optional branded line printed above the title (may use embedded color codes). Empty = none.
 	std::string chatHeader;
 
@@ -86,15 +82,13 @@ struct MenuDefaultsCfg
 	std::string htmlFooterSize = "s";
 	bool htmlShowCounter = true;
 	bool htmlShowFooter = true;
-	// Submenu-item suffix, footer segment separator, counter brackets, and whether the
-	// cursor row's text is recolored (vs. marked only by the marker).
+	// Submenu-item suffix, footer segment separator, and whether the cursor row's text is recolored.
 	std::string htmlSubmenuSuffix = " >";
 	std::string htmlFooterSeparator = " | ";
-	std::string htmlFooterKeySeparator = ": ";  // between a footer hint's label and its key
-	std::string htmlFooterRangeSeparator = "/"; // between the two keys in the combined Move hint
-	std::string htmlCounterPrefix = "[";
-	std::string htmlCounterSuffix = "]";
-	std::string htmlCounterSeparator = "/"; // between the numbers in the "[n/m]" counter
+	// Render templates ({placeholders} filled per row). Edit one part, keep the rest.
+	std::string htmlCounterFormat = "[{cur}/{total}]";    // {cur}/{total} = position counter numbers
+	std::string htmlFooterHintFormat = "{label}: {keys}"; // {label} = hint label, {keys} = key or key range
+	std::string htmlFooterRangeFormat = "{up}/{down}";    // {up}/{down} = the two keys in the Move hint
 	bool htmlHighlightText = true;
 	// Center-panel resend cadence (the message decays, re-sent while open).
 	// KeepAlive must stay below DurationSecs or the panel can blink.

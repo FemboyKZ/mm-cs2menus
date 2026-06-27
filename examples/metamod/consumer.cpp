@@ -1,4 +1,4 @@
-// Test consumer for the CS2Menus C++ interface (ICS2Menus002).
+// Test consumer for the CS2Menus C++ interface (ICS2Menus003).
 //
 // Acquires the interface via Metamod's factory, then opens a demo menu when a player types "!cs2menu" in chat.
 // Demonstrates the acquire/re-resolve dance, submenus, select/end callbacks,

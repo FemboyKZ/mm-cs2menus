@@ -139,19 +139,38 @@ PLUGIN_EXPOSE(CS2MenusPlugin, g_ThisPlugin);
 // Public menu API: a thin forwarder onto g_MenuManager.
 class CS2MenusAPI : public ICS2Menus
 {
+	// --- Lifetime ---
+
 	MenuHandle CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect) override
 	{
 		return g_MenuManager.CreateMenu(type, title, std::move(onSelect));
 	}
 
-	int AddItem(MenuHandle menu, const char *text, const char *info, bool disabled) override
+	void DestroyMenu(MenuHandle menu) override
 	{
-		return g_MenuManager.AddItem(menu, text, info, disabled);
+		g_MenuManager.DestroyMenu(menu);
 	}
+
+	bool IsValidMenu(MenuHandle menu) override
+	{
+		return g_MenuManager.IsValidMenu(menu);
+	}
+
+	// --- Menu properties ---
 
 	void SetTitle(MenuHandle menu, const char *title) override
 	{
 		g_MenuManager.SetTitle(menu, title);
+	}
+
+	const char *GetTitle(MenuHandle menu) override
+	{
+		return g_MenuManager.GetTitle(menu);
+	}
+
+	MenuType GetMenuType(MenuHandle menu) override
+	{
+		return g_MenuManager.GetMenuType(menu);
 	}
 
 	void SetExitButton(MenuHandle menu, bool enabled) override
@@ -159,14 +178,19 @@ class CS2MenusAPI : public ICS2Menus
 		g_MenuManager.SetExitButton(menu, enabled);
 	}
 
+	bool GetExitButton(MenuHandle menu) override
+	{
+		return g_MenuManager.GetExitButton(menu);
+	}
+
 	void SetCloseOnSelect(MenuHandle menu, bool enabled) override
 	{
 		g_MenuManager.SetCloseOnSelect(menu, enabled);
 	}
 
-	void SetMenuEndCallback(MenuHandle menu, MenuEndFn onEnd) override
+	bool GetCloseOnSelect(MenuHandle menu) override
 	{
-		g_MenuManager.SetMenuEndCallback(menu, std::move(onEnd));
+		return g_MenuManager.GetCloseOnSelect(menu);
 	}
 
 	void SetExitItem(MenuHandle menu, bool enabled) override
@@ -174,9 +198,44 @@ class CS2MenusAPI : public ICS2Menus
 		g_MenuManager.SetExitItem(menu, enabled);
 	}
 
+	bool GetExitItem(MenuHandle menu) override
+	{
+		return g_MenuManager.GetExitItem(menu);
+	}
+
+	void SetMenuForceType(MenuHandle menu, bool force) override
+	{
+		g_MenuManager.SetMenuForceType(menu, force);
+	}
+
+	bool GetMenuForceType(MenuHandle menu) override
+	{
+		return g_MenuManager.GetMenuForceType(menu);
+	}
+
+	void SetStartItem(MenuHandle menu, int item) override
+	{
+		g_MenuManager.SetStartItem(menu, item);
+	}
+
+	int GetStartItem(MenuHandle menu) override
+	{
+		return g_MenuManager.GetStartItem(menu);
+	}
+
+	void SetMenuEndCallback(MenuHandle menu, MenuEndFn onEnd) override
+	{
+		g_MenuManager.SetMenuEndCallback(menu, std::move(onEnd));
+	}
+
 	void SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton button) override
 	{
 		g_MenuManager.SetMenuKey(menu, action, button);
+	}
+
+	MenuButton GetMenuKey(MenuHandle menu, MenuNavAction action) override
+	{
+		return g_MenuManager.GetMenuKey(menu, action);
 	}
 
 	void SetMenuLabel(MenuHandle menu, MenuLabel label, const char *text) override
@@ -199,72 +258,21 @@ class CS2MenusAPI : public ICS2Menus
 		return g_MenuManager.GetMenuStyle(menu, field);
 	}
 
-	void SetMenuForceType(MenuHandle menu, bool force) override
+	// --- Items ---
+
+	int AddItem(MenuHandle menu, const char *text, const char *info, bool disabled) override
 	{
-		g_MenuManager.SetMenuForceType(menu, force);
+		return g_MenuManager.AddItem(menu, text, info, disabled);
 	}
 
-	bool DisplayMenu(MenuHandle menu, int slot, float duration) override
+	int InsertItem(MenuHandle menu, int pos, const char *text, const char *info, bool disabled) override
 	{
-		// GetGameGlobals is main-thread only. Off-thread passes 0,
-		// the manager stamps curtime when it drains the queue on GameFrame.
-		float curtime = 0.0f;
-		if (g_MenuManager.OnMainThread())
-		{
-			CGlobalVars *globals = GetGameGlobals();
-			curtime = globals ? globals->curtime : 0.0f;
-		}
-		return g_MenuManager.DisplayMenu(menu, slot, duration, curtime);
+		return g_MenuManager.InsertItem(menu, pos, text, info, disabled);
 	}
 
-	void CancelMenu(int slot) override
+	int AddSubMenu(MenuHandle parent, const char *text, MenuHandle child, const char *info) override
 	{
-		g_MenuManager.CancelMenu(slot);
-	}
-
-	bool HasMenu(int slot) override
-	{
-		return g_MenuManager.HasMenu(slot);
-	}
-
-	MenuHandle GetActiveMenu(int slot) override
-	{
-		return g_MenuManager.GetActiveMenu(slot);
-	}
-
-	MenuType GetActiveMenuType(int slot) override
-	{
-		return g_MenuManager.GetActiveMenuType(slot);
-	}
-
-	void DestroyMenu(MenuHandle menu) override
-	{
-		g_MenuManager.DestroyMenu(menu);
-	}
-
-	int GetItemCount(MenuHandle menu) override
-	{
-		return g_MenuManager.GetItemCount(menu);
-	}
-
-	const char *GetItemText(MenuHandle menu, int item) override
-	{
-		return g_MenuManager.GetItemText(menu, item);
-	}
-
-	const char *GetItemInfo(MenuHandle menu, int item) override
-	{
-		return g_MenuManager.GetItemInfo(menu, item);
-	}
-
-	void SetItemText(MenuHandle menu, int item, const char *text) override
-	{
-		g_MenuManager.SetItemText(menu, item, text);
-	}
-
-	void SetItemDisabled(MenuHandle menu, int item, bool disabled) override
-	{
-		g_MenuManager.SetItemDisabled(menu, item, disabled);
+		return g_MenuManager.AddSubMenu(parent, text, child, info);
 	}
 
 	void RemoveItem(MenuHandle menu, int item) override
@@ -277,43 +285,34 @@ class CS2MenusAPI : public ICS2Menus
 		g_MenuManager.RemoveAllItems(menu);
 	}
 
-	void SetStartItem(MenuHandle menu, int item) override
+	int GetItemCount(MenuHandle menu) override
 	{
-		g_MenuManager.SetStartItem(menu, item);
+		return g_MenuManager.GetItemCount(menu);
 	}
 
-	void DisplayMenuToAll(MenuHandle menu, float duration) override
+	void SetItemText(MenuHandle menu, int item, const char *text) override
 	{
-		// Enumerating players needs main-thread entity access, so run there.
-		g_MenuManager.RunOnMainThread(
-			[menu, duration]
-			{
-				CGlobalVars *globals = GetGameGlobals();
-				if (!globals)
-				{
-					return;
-				}
-				int maxClients = globals->maxClients;
-				float curtime = globals->curtime;
-				for (int slot = 0; slot < maxClients && slot <= MAXPLAYERS; slot++)
-				{
-					if (!CCSPlayerController::FromSlot(slot))
-					{
-						continue;
-					}
-					g_MenuManager.DisplayMenu(menu, slot, duration, curtime);
-				}
-			});
+		g_MenuManager.SetItemText(menu, item, text);
 	}
 
-	int GetSelectedItem(int slot) override
+	const char *GetItemText(MenuHandle menu, int item) override
 	{
-		return g_MenuManager.GetSelectedItem(slot);
+		return g_MenuManager.GetItemText(menu, item);
 	}
 
 	void SetItemInfo(MenuHandle menu, int item, const char *info) override
 	{
 		g_MenuManager.SetItemInfo(menu, item, info);
+	}
+
+	const char *GetItemInfo(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemInfo(menu, item);
+	}
+
+	void SetItemDisabled(MenuHandle menu, int item, bool disabled) override
+	{
+		g_MenuManager.SetItemDisabled(menu, item, disabled);
 	}
 
 	bool GetItemDisabled(MenuHandle menu, int item) override
@@ -341,15 +340,81 @@ class CS2MenusAPI : public ICS2Menus
 		return g_MenuManager.GetItemIcon(menu, item);
 	}
 
-	int GetStartItem(MenuHandle menu) override
+	void SetItemSubmenu(MenuHandle menu, int item, MenuHandle child) override
 	{
-		return g_MenuManager.GetStartItem(menu);
+		g_MenuManager.SetItemSubmenu(menu, item, child);
 	}
 
-	int AddSubMenu(MenuHandle parent, const char *text, MenuHandle child, const char *info) override
+	MenuHandle GetItemSubmenu(MenuHandle menu, int item) override
 	{
-		return g_MenuManager.AddSubMenu(parent, text, child, info);
+		return g_MenuManager.GetItemSubmenu(menu, item);
 	}
+
+	// --- Display ---
+
+	bool DisplayMenu(MenuHandle menu, int slot, float duration) override
+	{
+		// GetGameGlobals is main-thread only. Off-thread passes 0,
+		// the manager stamps curtime when it drains the queue on GameFrame.
+		float curtime = 0.0f;
+		if (g_MenuManager.OnMainThread())
+		{
+			CGlobalVars *globals = GetGameGlobals();
+			curtime = globals ? globals->curtime : 0.0f;
+		}
+		return g_MenuManager.DisplayMenu(menu, slot, duration, curtime);
+	}
+
+	void DisplayMenuToAll(MenuHandle menu, float duration) override
+	{
+		// Enumerating players needs main-thread entity access, so run there.
+		g_MenuManager.RunOnMainThread(
+			[menu, duration]
+			{
+				CGlobalVars *globals = GetGameGlobals();
+				if (!globals)
+				{
+					return;
+				}
+				int maxClients = globals->maxClients;
+				float curtime = globals->curtime;
+				for (int slot = 0; slot < maxClients && slot <= MAXPLAYERS; slot++)
+				{
+					if (!CCSPlayerController::FromSlot(slot))
+					{
+						continue;
+					}
+					g_MenuManager.DisplayMenu(menu, slot, duration, curtime);
+				}
+			});
+	}
+
+	void CancelMenu(int slot) override
+	{
+		g_MenuManager.CancelMenu(slot);
+	}
+
+	bool HasMenu(int slot) override
+	{
+		return g_MenuManager.HasMenu(slot);
+	}
+
+	MenuHandle GetActiveMenu(int slot) override
+	{
+		return g_MenuManager.GetActiveMenu(slot);
+	}
+
+	MenuType GetActiveMenuType(int slot) override
+	{
+		return g_MenuManager.GetActiveMenuType(slot);
+	}
+
+	int GetSelectedItem(int slot) override
+	{
+		return g_MenuManager.GetSelectedItem(slot);
+	}
+
+	// --- Host coordination ---
 
 	void SetExternalBusy(int slot, bool busy) override
 	{
@@ -359,61 +424,6 @@ class CS2MenusAPI : public ICS2Menus
 	bool GetExternalBusy(int slot) override
 	{
 		return g_MenuManager.GetExternalBusy(slot);
-	}
-
-	const char *GetTitle(MenuHandle menu) override
-	{
-		return g_MenuManager.GetTitle(menu);
-	}
-
-	bool IsValidMenu(MenuHandle menu) override
-	{
-		return g_MenuManager.IsValidMenu(menu);
-	}
-
-	int InsertItem(MenuHandle menu, int pos, const char *text, const char *info, bool disabled) override
-	{
-		return g_MenuManager.InsertItem(menu, pos, text, info, disabled);
-	}
-
-	MenuHandle GetItemSubmenu(MenuHandle menu, int item) override
-	{
-		return g_MenuManager.GetItemSubmenu(menu, item);
-	}
-
-	void SetItemSubmenu(MenuHandle menu, int item, MenuHandle child) override
-	{
-		g_MenuManager.SetItemSubmenu(menu, item, child);
-	}
-
-	MenuType GetMenuType(MenuHandle menu) override
-	{
-		return g_MenuManager.GetMenuType(menu);
-	}
-
-	bool GetExitButton(MenuHandle menu) override
-	{
-		return g_MenuManager.GetExitButton(menu);
-	}
-
-	bool GetCloseOnSelect(MenuHandle menu) override
-	{
-		return g_MenuManager.GetCloseOnSelect(menu);
-	}
-
-	bool GetExitItem(MenuHandle menu) override
-	{
-		return g_MenuManager.GetExitItem(menu);
-	}
-
-	bool GetMenuForceType(MenuHandle menu) override
-	{
-		return g_MenuManager.GetMenuForceType(menu);
-	}
-
-	MenuButton GetMenuKey(MenuHandle menu, MenuNavAction action) override
-	{
-		return g_MenuManager.GetMenuKey(menu, action);
 	}
 };
 
@@ -576,15 +586,11 @@ static void LoadAndApplyConfig()
 	settings.chatDisabledColor = ChatColorByte(m.chatDisabledColor, CHAT_COLOR_GREY);
 	settings.chatArrowColor = ChatColorByte(m.chatArrowColor, CHAT_COLOR_GREEN);
 	settings.chatHeaderColor = ChatColorByte(m.chatHeaderColor, CHAT_COLOR_DEFAULT);
-	settings.chatTitlePrefix = m.chatTitlePrefix;
-	settings.chatTitleSuffix = m.chatTitleSuffix;
-	settings.chatNumberPrefix = m.chatNumberPrefix;
-	settings.chatNumberSuffix = m.chatNumberSuffix;
-	settings.chatDisabledPrefix = m.chatDisabledPrefix;
+	settings.chatTitleFormat = m.chatTitleFormat;
+	settings.chatNumberFormat = m.chatNumberFormat;
+	settings.chatDisabledFormat = m.chatDisabledFormat;
 	settings.chatArrow = m.chatArrow;
-	settings.chatPagePrefix = m.chatPagePrefix;
-	settings.chatPageSuffix = m.chatPageSuffix;
-	settings.chatPageSep = m.chatPageSeparator;
+	settings.chatPageFormat = m.chatPageFormat;
 	settings.chatShowPage = m.chatShowPage;
 	settings.chatHeader = m.chatHeader;
 	settings.htmlVisibleItems = g_MenusConfig.menu.htmlVisibleItems;
@@ -628,11 +634,9 @@ static void LoadAndApplyConfig()
 	settings.showFooter = g_MenusConfig.menu.htmlShowFooter;
 	settings.submenuSuffix = g_MenusConfig.menu.htmlSubmenuSuffix;
 	settings.footerSeparator = g_MenusConfig.menu.htmlFooterSeparator;
-	settings.footerKeySep = g_MenusConfig.menu.htmlFooterKeySeparator;
-	settings.footerRangeSep = g_MenusConfig.menu.htmlFooterRangeSeparator;
-	settings.counterSep = g_MenusConfig.menu.htmlCounterSeparator;
-	settings.counterPrefix = g_MenusConfig.menu.htmlCounterPrefix;
-	settings.counterSuffix = g_MenusConfig.menu.htmlCounterSuffix;
+	settings.counterFormat = g_MenusConfig.menu.htmlCounterFormat;
+	settings.footerHintFormat = g_MenusConfig.menu.htmlFooterHintFormat;
+	settings.footerRangeFormat = g_MenusConfig.menu.htmlFooterRangeFormat;
 	settings.highlightText = g_MenusConfig.menu.htmlHighlightText;
 	// Resend cadence: keep sane and keepAlive strictly below the decay duration, else the panel blinks.
 	if (g_MenusConfig.menu.htmlDurationSecs >= 1)

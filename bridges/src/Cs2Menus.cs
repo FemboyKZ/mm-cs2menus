@@ -25,31 +25,35 @@ public enum MenuLabel { Exit = 0, NextPage = 1, PrevPage = 2, Move = 3, Scroll =
 /// </summary>
 public enum MenuStyle
 {
-	TitleColor = 0,
-	TitleSize,
-	ItemSize,
-	NavColor,
-	FooterColor,
-	DisabledColor,
-	Align,
+	// Global / layout
+	Align = 0,
 	FontFace,
-	ItemColor,
-	Marker,
-	CounterColor,
-	ShowCounter,
-	FooterSize,
-	ShowFooter,
-	SubmenuSuffix,
-	FooterSeparator,
-	CounterPrefix,
-	CounterSuffix,
-	HighlightText,
-	CounterSize,
 	VisibleItems,
+	// Title
+	TitleColor,
+	TitleSize,
 	RawTitle,
-	FooterKeySeparator,
-	FooterRangeSeparator,
-	CounterSeparator
+	// Items
+	ItemColor,
+	ItemSize,
+	DisabledColor,
+	SubmenuSuffix,
+	// Cursor row
+	NavColor,
+	Marker,
+	HighlightText,
+	// Position counter
+	ShowCounter,
+	CounterColor,
+	CounterSize,
+	CounterFormat,
+	// Key-hint footer
+	ShowFooter,
+	FooterColor,
+	FooterSize,
+	FooterSeparator,
+	FooterHintFormat,
+	FooterRangeFormat
 }
 
 /// <summary>

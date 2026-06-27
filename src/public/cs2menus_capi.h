@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-// Flat C ABI over ICS2Menus002 (see ics2menus.h).
+// Flat C ABI over ICS2Menus003 (see ics2menus.h).
 //
 // Callback lifetime: a select/end callback is a function pointer into the host's managed runtime.
 // If the host unloads/hot-reloads its plugin assembly while a menu still exists,
@@ -26,7 +26,7 @@
 // New exports appended at the end are backward-compatible (old hosts simply don't call them),
 // so adding one does NOT bump this.
 // Hosts probe a newer export by symbol (e.g. via NativeLibrary.TryGetExport) rather than gating on the version.
-#define CS2M_ABI_VERSION 1
+#define CS2M_ABI_VERSION 2
 
 // Mirrors MenuType / MenuEndReason / MenuButton / MenuNavAction (ics2menus.h),
 // passed as plain int across the boundary.
@@ -35,10 +35,10 @@
 //   action:  0 Up, 1 Down, 2 Select, 3 Back
 //   button:  0 Default, 1..13 W/A/S/D/Use/Speed/Duck/Jump/Reload/Attack/Attack2/Score/Inspect, 14 None
 //   label:   0 Exit, 1 NextPage, 2 PrevPage, 3 Move, 4 Scroll, 5 Select
-//   style:   0 TitleColor, 1 TitleSize, 2 ItemSize, 3 NavColor, 4 FooterColor, 5 DisabledColor, 6 Align,
-//            7 FontFace, 8 ItemColor, 9 Marker, 10 CounterColor, 11 ShowCounter, 12 FooterSize, 13 ShowFooter,
-//            14 SubmenuSuffix, 15 FooterSeparator, 16 CounterPrefix, 17 CounterSuffix, 18 HighlightText, 19 CounterSize,
-//            20 VisibleItems, 21 RawTitle, 22 FooterKeySeparator, 23 FooterRangeSeparator, 24 CounterSeparator
+//   style:   0 Align, 1 FontFace, 2 VisibleItems, 3 TitleColor, 4 TitleSize, 5 RawTitle, 6 ItemColor,
+//            7 ItemSize, 8 DisabledColor, 9 SubmenuSuffix, 10 NavColor, 11 Marker, 12 HighlightText,
+//            13 ShowCounter, 14 CounterColor, 15 CounterSize, 16 CounterFormat, 17 ShowFooter, 18 FooterColor,
+//            19 FooterSize, 20 FooterSeparator, 21 FooterHintFormat, 22 FooterRangeFormat
 
 typedef uint32_t cs2m_handle; // 0 = invalid
 
@@ -51,39 +51,76 @@ typedef void(CS2M_CALL *cs2m_end_cb)(cs2m_handle menu, int slot, int reason, voi
 
 // CS2M_ABI_VERSION the loaded library was built with. Gate before any other call.
 CS2M_API int CS2M_CALL cs2m_abi_version(void);
-// 1 if the underlying ICS2Menus002 instance is reachable.
+// 1 if the underlying ICS2Menus003 instance is reachable.
 // Reserved for future out-of-DLL acquisition, currently always 1 when the symbol resolves.
 CS2M_API int CS2M_CALL cs2m_available(void);
 
-// --- Build ---
+// Buffer convention for the string getters (cs2m_get_*): copies UTF-8 (NUL-terminated) into buf,
+// returns bytes needed including the NUL (> buflen means truncated). Pass buf=null/buflen=0 to query the size first.
 
-// `on_select` may be null.
-// `user` is echoed back to on_select and to the end callback set via cs2m_set_end_callback.
-// Returns 0 on failure.
+// --- Lifetime ---
+
+// `on_select` may be null. `user` is echoed back to on_select and to the end callback. Returns 0 on failure.
 CS2M_API cs2m_handle CS2M_CALL cs2m_create(int type, const char *title, cs2m_select_cb on_select, void *user);
-CS2M_API int CS2M_CALL cs2m_add_item(cs2m_handle menu, const char *text, const char *info, int disabled);
+CS2M_API void CS2M_CALL cs2m_destroy(cs2m_handle menu);
+// 1 if the handle is live (created and not destroyed).
+CS2M_API int CS2M_CALL cs2m_is_valid(cs2m_handle menu);
+
+// --- Menu properties ---
+
 CS2M_API void CS2M_CALL cs2m_set_title(cs2m_handle menu, const char *title);
+CS2M_API int CS2M_CALL cs2m_get_title(cs2m_handle menu, char *buf, int buflen);
+// The menu's base render type as created (-1 Default, 0 Chat, 1 Html); -1 for an invalid handle.
+CS2M_API int CS2M_CALL cs2m_get_menu_type(cs2m_handle menu);
 CS2M_API void CS2M_CALL cs2m_set_exit_button(cs2m_handle menu, int enabled);
+CS2M_API int CS2M_CALL cs2m_get_exit_button(cs2m_handle menu);
 CS2M_API void CS2M_CALL cs2m_set_close_on_select(cs2m_handle menu, int enabled);
-CS2M_API void CS2M_CALL cs2m_set_end_callback(cs2m_handle menu, cs2m_end_cb on_end, void *user);
+CS2M_API int CS2M_CALL cs2m_get_close_on_select(cs2m_handle menu);
 CS2M_API void CS2M_CALL cs2m_set_exit_item(cs2m_handle menu, int enabled);
+CS2M_API int CS2M_CALL cs2m_get_exit_item(cs2m_handle menu);
+// Lock the menu's render type so the viewer's per-player preference can't change it (force!=0). See ICS2Menus::SetMenuForceType.
+CS2M_API void CS2M_CALL cs2m_set_force_type(cs2m_handle menu, int force);
+CS2M_API int CS2M_CALL cs2m_get_force_type(cs2m_handle menu);
+CS2M_API void CS2M_CALL cs2m_set_start_item(cs2m_handle menu, int item);
+CS2M_API int CS2M_CALL cs2m_get_start_item(cs2m_handle menu);
+CS2M_API void CS2M_CALL cs2m_set_end_callback(cs2m_handle menu, cs2m_end_cb on_end, void *user);
 CS2M_API void CS2M_CALL cs2m_set_menu_key(cs2m_handle menu, int action, int button);
+// The per-menu nav-key override for `action` (0 Default, 14 None, else 1..13 W..Inspect).
+CS2M_API int CS2M_CALL cs2m_get_menu_key(cs2m_handle menu, int action);
 // Rename a built-in label (see `label` values above). "" restores the configured default.
 CS2M_API void CS2M_CALL cs2m_set_menu_label(cs2m_handle menu, int label, const char *text);
-// Read a built-in label's current key (last set, or the default). Buffer semantics like cs2m_get_item_text.
 CS2M_API int CS2M_CALL cs2m_get_menu_label(cs2m_handle menu, int label, char *buf, int buflen);
-CS2M_API void CS2M_CALL cs2m_set_start_item(cs2m_handle menu, int item);
-CS2M_API int CS2M_CALL cs2m_add_submenu(cs2m_handle parent, const char *text, cs2m_handle child, const char *info);
 // Override one HTML style field (see `style` values above). "" inherits the server default.
-// Sizes take a token ("s" "sm" "m" "ml" "l"), colors "#RRGGBB", toggles (ShowCounter/ShowFooter/HighlightText) "1"/"0".
+// Sizes take a token, colors "#RRGGBB", toggles "1"/"0", templates the format string.
 CS2M_API void CS2M_CALL cs2m_set_menu_style(cs2m_handle menu, int field, const char *value);
-// Lock the menu's render type so the viewer's per-player preference can't change it (force!=0).
-// See ICS2Menus::SetMenuForceType.
-CS2M_API void CS2M_CALL cs2m_set_force_type(cs2m_handle menu, int force);
-// Read a style field's effective value. Buffer semantics like cs2m_get_item_text.
 CS2M_API int CS2M_CALL cs2m_get_menu_style(cs2m_handle menu, int field, char *buf, int buflen);
 
-// --- Show / hide ---
+// --- Items ---
+
+CS2M_API int CS2M_CALL cs2m_add_item(cs2m_handle menu, const char *text, const char *info, int disabled);
+// Insert an item at index `pos` (clamped to [0,count]); later items shift down. Returns the index, or -1.
+CS2M_API int CS2M_CALL cs2m_insert_item(cs2m_handle menu, int pos, const char *text, const char *info, int disabled);
+CS2M_API int CS2M_CALL cs2m_add_submenu(cs2m_handle parent, const char *text, cs2m_handle child, const char *info);
+CS2M_API void CS2M_CALL cs2m_remove_item(cs2m_handle menu, int item);
+CS2M_API void CS2M_CALL cs2m_remove_all_items(cs2m_handle menu);
+CS2M_API int CS2M_CALL cs2m_item_count(cs2m_handle menu);
+CS2M_API void CS2M_CALL cs2m_set_item_text(cs2m_handle menu, int item, const char *text);
+CS2M_API int CS2M_CALL cs2m_get_item_text(cs2m_handle menu, int item, char *buf, int buflen);
+CS2M_API void CS2M_CALL cs2m_set_item_info(cs2m_handle menu, int item, const char *info);
+CS2M_API int CS2M_CALL cs2m_get_item_info(cs2m_handle menu, int item, char *buf, int buflen);
+CS2M_API void CS2M_CALL cs2m_set_item_disabled(cs2m_handle menu, int item, int disabled);
+CS2M_API int CS2M_CALL cs2m_get_item_disabled(cs2m_handle menu, int item);
+// HTML menus: render an item's text as raw Panorama markup (unescaped). See ICS2Menus::SetItemRaw.
+CS2M_API void CS2M_CALL cs2m_set_item_raw(cs2m_handle menu, int item, int raw);
+CS2M_API int CS2M_CALL cs2m_get_item_raw(cs2m_handle menu, int item);
+// HTML menus: show an image before the item's text (icon URL / packaged path). "" removes it.
+CS2M_API void CS2M_CALL cs2m_set_item_icon(cs2m_handle menu, int item, const char *url);
+CS2M_API int CS2M_CALL cs2m_get_item_icon(cs2m_handle menu, int item, char *buf, int buflen);
+// Attach (child!=0) or detach (child=0) a submenu on an existing item; get returns the child or 0.
+CS2M_API void CS2M_CALL cs2m_set_item_submenu(cs2m_handle menu, int item, cs2m_handle child);
+CS2M_API cs2m_handle CS2M_CALL cs2m_get_item_submenu(cs2m_handle menu, int item);
+
+// --- Display ---
 
 CS2M_API int CS2M_CALL cs2m_display(cs2m_handle menu, int slot, float duration);
 CS2M_API void CS2M_CALL cs2m_display_to_all(cs2m_handle menu, float duration);
@@ -96,57 +133,9 @@ CS2M_API int CS2M_CALL cs2m_get_selected_item(int slot);
 // --- Host coordination ---
 
 // Yield (busy=1) or reclaim (busy=0) a slot for a host menu system.
-// While busy, cs2menus cancels any menu on that slot and refuses new displays,
-// so it never fights the host for chat input or the center-HTML channel.
+// While busy, cs2menus cancels any menu on that slot and refuses new displays.
 // The host drives this off its own menu open/close. cs2menus never auto-reopens.
 CS2M_API void CS2M_CALL cs2m_set_external_busy(int slot, int busy);
 CS2M_API int CS2M_CALL cs2m_get_external_busy(int slot);
-
-// --- Lifetime ---
-
-CS2M_API void CS2M_CALL cs2m_destroy(cs2m_handle menu);
-
-// --- Introspection / live mutation ---
-
-CS2M_API int CS2M_CALL cs2m_item_count(cs2m_handle menu);
-// Copies UTF-8 text (NUL-terminated) into buf.
-// Returns bytes needed including the NUL (>buflen means truncated).
-// Pass buf=null/buflen=0 to query the size first.
-CS2M_API int CS2M_CALL cs2m_get_item_text(cs2m_handle menu, int item, char *buf, int buflen);
-CS2M_API int CS2M_CALL cs2m_get_item_info(cs2m_handle menu, int item, char *buf, int buflen);
-CS2M_API void CS2M_CALL cs2m_set_item_text(cs2m_handle menu, int item, const char *text);
-CS2M_API void CS2M_CALL cs2m_set_item_info(cs2m_handle menu, int item, const char *info);
-CS2M_API void CS2M_CALL cs2m_set_item_disabled(cs2m_handle menu, int item, int disabled);
-CS2M_API int CS2M_CALL cs2m_get_item_disabled(cs2m_handle menu, int item);
-// HTML menus: render an item's text as raw Panorama markup (unescaped). See ICS2Menus::SetItemRaw.
-CS2M_API void CS2M_CALL cs2m_set_item_raw(cs2m_handle menu, int item, int raw);
-CS2M_API int CS2M_CALL cs2m_get_item_raw(cs2m_handle menu, int item);
-// HTML menus: show an image before the item's text (icon URL / packaged path). "" removes it.
-CS2M_API void CS2M_CALL cs2m_set_item_icon(cs2m_handle menu, int item, const char *url);
-CS2M_API int CS2M_CALL cs2m_get_item_icon(cs2m_handle menu, int item, char *buf, int buflen);
-CS2M_API void CS2M_CALL cs2m_remove_item(cs2m_handle menu, int item);
-CS2M_API void CS2M_CALL cs2m_remove_all_items(cs2m_handle menu);
-CS2M_API int CS2M_CALL cs2m_get_start_item(cs2m_handle menu);
-
-// Read the menu title (as last set). Buffer semantics like cs2m_get_item_text.
-CS2M_API int CS2M_CALL cs2m_get_title(cs2m_handle menu, char *buf, int buflen);
-// 1 if the handle is live (created and not destroyed).
-CS2M_API int CS2M_CALL cs2m_is_valid(cs2m_handle menu);
-// Insert an item at index `pos` (clamped to [0,count]); later items shift down. Returns the index, or -1.
-CS2M_API int CS2M_CALL cs2m_insert_item(cs2m_handle menu, int pos, const char *text, const char *info, int disabled);
-// The submenu a row opens (see cs2m_add_submenu), or 0 if it's a normal item / invalid.
-CS2M_API cs2m_handle CS2M_CALL cs2m_get_item_submenu(cs2m_handle menu, int item);
-// Attach (child!=0) or detach (child=0) a submenu on an existing item.
-CS2M_API void CS2M_CALL cs2m_set_item_submenu(cs2m_handle menu, int item, cs2m_handle child);
-
-// The menu's base render type as created (-1 Default, 0 Chat, 1 Html); -1 for an invalid handle.
-CS2M_API int CS2M_CALL cs2m_get_menu_type(cs2m_handle menu);
-// Read back per-menu flags (0/1); 0 for an invalid handle.
-CS2M_API int CS2M_CALL cs2m_get_exit_button(cs2m_handle menu);
-CS2M_API int CS2M_CALL cs2m_get_close_on_select(cs2m_handle menu);
-CS2M_API int CS2M_CALL cs2m_get_exit_item(cs2m_handle menu);
-CS2M_API int CS2M_CALL cs2m_get_force_type(cs2m_handle menu);
-// The per-menu nav-key override for `action` (0 Default, 14 None, else 1..13 W..Inspect). See cs2m_set_menu_key.
-CS2M_API int CS2M_CALL cs2m_get_menu_key(cs2m_handle menu, int action);
 
 #endif // _INCLUDE_CS2MENUS_CAPI_H_

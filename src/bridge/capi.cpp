@@ -1,4 +1,4 @@
-// Flat C ABI over ICS2Menus002 for managed hosts (SwiftlyS2, CounterStrikeSharp).
+// Flat C ABI over ICS2Menus003 for managed hosts (SwiftlyS2, CounterStrikeSharp).
 // See src/public/cs2menus_capi.h for the contract.
 
 #define CS2MENUS_EXPORTS
@@ -7,7 +7,7 @@
 
 #include <cstring>
 
-// Defined in cs2menus.cpp: the singleton ICS2Menus002 implementation.
+// Defined in cs2menus.cpp: the singleton ICS2Menus003 implementation.
 // Routing through it inherits the curtime stamping and off-thread queueing the interface wrapper already does.
 extern ICS2Menus *Cs2Menus_GetLocalAPI();
 
@@ -37,6 +37,8 @@ namespace
 	}
 } // namespace
 
+// --- Handshake ---
+
 CS2M_API int CS2M_CALL cs2m_abi_version(void)
 {
 	return CS2M_ABI_VERSION;
@@ -46,6 +48,8 @@ CS2M_API int CS2M_CALL cs2m_available(void)
 {
 	return 1;
 }
+
+// --- Lifetime ---
 
 CS2M_API cs2m_handle CS2M_CALL cs2m_create(int type, const char *title, cs2m_select_cb on_select, void *user)
 {
@@ -59,14 +63,32 @@ CS2M_API cs2m_handle CS2M_CALL cs2m_create(int type, const char *title, cs2m_sel
 	return API()->CreateMenu(static_cast<MenuType>(type), title ? title : "", std::move(fn));
 }
 
-CS2M_API int CS2M_CALL cs2m_add_item(cs2m_handle menu, const char *text, const char *info, int disabled)
+CS2M_API void CS2M_CALL cs2m_destroy(cs2m_handle menu)
 {
-	return API()->AddItem(menu, text ? text : "", info ? info : "", disabled != 0);
+	API()->DestroyMenu(menu);
 }
+
+CS2M_API int CS2M_CALL cs2m_is_valid(cs2m_handle menu)
+{
+	return API()->IsValidMenu(menu) ? 1 : 0;
+}
+
+// --- Menu properties ---
 
 CS2M_API void CS2M_CALL cs2m_set_title(cs2m_handle menu, const char *title)
 {
 	API()->SetTitle(menu, title ? title : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_title(cs2m_handle menu, char *buf, int buflen)
+{
+	// Copy immediately: the returned pointer aliases live menu storage.
+	return CopyOut(API()->GetTitle(menu), buf, buflen);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_menu_type(cs2m_handle menu)
+{
+	return static_cast<int>(API()->GetMenuType(menu));
 }
 
 CS2M_API void CS2M_CALL cs2m_set_exit_button(cs2m_handle menu, int enabled)
@@ -74,9 +96,49 @@ CS2M_API void CS2M_CALL cs2m_set_exit_button(cs2m_handle menu, int enabled)
 	API()->SetExitButton(menu, enabled != 0);
 }
 
+CS2M_API int CS2M_CALL cs2m_get_exit_button(cs2m_handle menu)
+{
+	return API()->GetExitButton(menu) ? 1 : 0;
+}
+
 CS2M_API void CS2M_CALL cs2m_set_close_on_select(cs2m_handle menu, int enabled)
 {
 	API()->SetCloseOnSelect(menu, enabled != 0);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_close_on_select(cs2m_handle menu)
+{
+	return API()->GetCloseOnSelect(menu) ? 1 : 0;
+}
+
+CS2M_API void CS2M_CALL cs2m_set_exit_item(cs2m_handle menu, int enabled)
+{
+	API()->SetExitItem(menu, enabled != 0);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_exit_item(cs2m_handle menu)
+{
+	return API()->GetExitItem(menu) ? 1 : 0;
+}
+
+CS2M_API void CS2M_CALL cs2m_set_force_type(cs2m_handle menu, int force)
+{
+	API()->SetMenuForceType(menu, force != 0);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_force_type(cs2m_handle menu)
+{
+	return API()->GetMenuForceType(menu) ? 1 : 0;
+}
+
+CS2M_API void CS2M_CALL cs2m_set_start_item(cs2m_handle menu, int item)
+{
+	API()->SetStartItem(menu, item);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_start_item(cs2m_handle menu)
+{
+	return API()->GetStartItem(menu);
 }
 
 CS2M_API void CS2M_CALL cs2m_set_end_callback(cs2m_handle menu, cs2m_end_cb on_end, void *user)
@@ -89,14 +151,14 @@ CS2M_API void CS2M_CALL cs2m_set_end_callback(cs2m_handle menu, cs2m_end_cb on_e
 	API()->SetMenuEndCallback(menu, std::move(fn));
 }
 
-CS2M_API void CS2M_CALL cs2m_set_exit_item(cs2m_handle menu, int enabled)
-{
-	API()->SetExitItem(menu, enabled != 0);
-}
-
 CS2M_API void CS2M_CALL cs2m_set_menu_key(cs2m_handle menu, int action, int button)
 {
 	API()->SetMenuKey(menu, static_cast<MenuNavAction>(action), static_cast<MenuButton>(button));
+}
+
+CS2M_API int CS2M_CALL cs2m_get_menu_key(cs2m_handle menu, int action)
+{
+	return static_cast<int>(API()->GetMenuKey(menu, static_cast<MenuNavAction>(action)));
 }
 
 CS2M_API void CS2M_CALL cs2m_set_menu_label(cs2m_handle menu, int label, const char *text)
@@ -121,20 +183,101 @@ CS2M_API int CS2M_CALL cs2m_get_menu_style(cs2m_handle menu, int field, char *bu
 	return CopyOut(API()->GetMenuStyle(menu, static_cast<MenuStyle>(field)), buf, buflen);
 }
 
-CS2M_API void CS2M_CALL cs2m_set_force_type(cs2m_handle menu, int force)
+// --- Items ---
+
+CS2M_API int CS2M_CALL cs2m_add_item(cs2m_handle menu, const char *text, const char *info, int disabled)
 {
-	API()->SetMenuForceType(menu, force != 0);
+	return API()->AddItem(menu, text ? text : "", info ? info : "", disabled != 0);
 }
 
-CS2M_API void CS2M_CALL cs2m_set_start_item(cs2m_handle menu, int item)
+CS2M_API int CS2M_CALL cs2m_insert_item(cs2m_handle menu, int pos, const char *text, const char *info, int disabled)
 {
-	API()->SetStartItem(menu, item);
+	return API()->InsertItem(menu, pos, text ? text : "", info ? info : "", disabled != 0);
 }
 
 CS2M_API int CS2M_CALL cs2m_add_submenu(cs2m_handle parent, const char *text, cs2m_handle child, const char *info)
 {
 	return API()->AddSubMenu(parent, text ? text : "", child, info ? info : "");
 }
+
+CS2M_API void CS2M_CALL cs2m_remove_item(cs2m_handle menu, int item)
+{
+	API()->RemoveItem(menu, item);
+}
+
+CS2M_API void CS2M_CALL cs2m_remove_all_items(cs2m_handle menu)
+{
+	API()->RemoveAllItems(menu);
+}
+
+CS2M_API int CS2M_CALL cs2m_item_count(cs2m_handle menu)
+{
+	return API()->GetItemCount(menu);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_text(cs2m_handle menu, int item, const char *text)
+{
+	API()->SetItemText(menu, item, text ? text : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_text(cs2m_handle menu, int item, char *buf, int buflen)
+{
+	// Copy immediately: the returned pointer aliases live menu storage.
+	return CopyOut(API()->GetItemText(menu, item), buf, buflen);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_info(cs2m_handle menu, int item, const char *info)
+{
+	API()->SetItemInfo(menu, item, info ? info : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_info(cs2m_handle menu, int item, char *buf, int buflen)
+{
+	return CopyOut(API()->GetItemInfo(menu, item), buf, buflen);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_disabled(cs2m_handle menu, int item, int disabled)
+{
+	API()->SetItemDisabled(menu, item, disabled != 0);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_disabled(cs2m_handle menu, int item)
+{
+	return API()->GetItemDisabled(menu, item) ? 1 : 0;
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_raw(cs2m_handle menu, int item, int raw)
+{
+	API()->SetItemRaw(menu, item, raw != 0);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_raw(cs2m_handle menu, int item)
+{
+	return API()->GetItemRaw(menu, item) ? 1 : 0;
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_icon(cs2m_handle menu, int item, const char *url)
+{
+	API()->SetItemIcon(menu, item, url ? url : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_icon(cs2m_handle menu, int item, char *buf, int buflen)
+{
+	// Copy immediately: the returned pointer aliases live menu storage.
+	return CopyOut(API()->GetItemIcon(menu, item), buf, buflen);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_submenu(cs2m_handle menu, int item, cs2m_handle child)
+{
+	API()->SetItemSubmenu(menu, item, child);
+}
+
+CS2M_API cs2m_handle CS2M_CALL cs2m_get_item_submenu(cs2m_handle menu, int item)
+{
+	return API()->GetItemSubmenu(menu, item);
+}
+
+// --- Display ---
 
 CS2M_API int CS2M_CALL cs2m_display(cs2m_handle menu, int slot, float duration)
 {
@@ -171,6 +314,8 @@ CS2M_API int CS2M_CALL cs2m_get_selected_item(int slot)
 	return API()->GetSelectedItem(slot);
 }
 
+// --- Host coordination ---
+
 CS2M_API void CS2M_CALL cs2m_set_external_busy(int slot, int busy)
 {
 	API()->SetExternalBusy(slot, busy != 0);
@@ -179,137 +324,4 @@ CS2M_API void CS2M_CALL cs2m_set_external_busy(int slot, int busy)
 CS2M_API int CS2M_CALL cs2m_get_external_busy(int slot)
 {
 	return API()->GetExternalBusy(slot) ? 1 : 0;
-}
-
-CS2M_API void CS2M_CALL cs2m_destroy(cs2m_handle menu)
-{
-	API()->DestroyMenu(menu);
-}
-
-CS2M_API int CS2M_CALL cs2m_item_count(cs2m_handle menu)
-{
-	return API()->GetItemCount(menu);
-}
-
-CS2M_API int CS2M_CALL cs2m_get_item_text(cs2m_handle menu, int item, char *buf, int buflen)
-{
-	// Copy immediately: the returned pointer aliases live menu storage.
-	return CopyOut(API()->GetItemText(menu, item), buf, buflen);
-}
-
-CS2M_API int CS2M_CALL cs2m_get_item_info(cs2m_handle menu, int item, char *buf, int buflen)
-{
-	return CopyOut(API()->GetItemInfo(menu, item), buf, buflen);
-}
-
-CS2M_API void CS2M_CALL cs2m_set_item_text(cs2m_handle menu, int item, const char *text)
-{
-	API()->SetItemText(menu, item, text ? text : "");
-}
-
-CS2M_API void CS2M_CALL cs2m_set_item_info(cs2m_handle menu, int item, const char *info)
-{
-	API()->SetItemInfo(menu, item, info ? info : "");
-}
-
-CS2M_API void CS2M_CALL cs2m_set_item_disabled(cs2m_handle menu, int item, int disabled)
-{
-	API()->SetItemDisabled(menu, item, disabled != 0);
-}
-
-CS2M_API int CS2M_CALL cs2m_get_item_disabled(cs2m_handle menu, int item)
-{
-	return API()->GetItemDisabled(menu, item) ? 1 : 0;
-}
-
-CS2M_API void CS2M_CALL cs2m_set_item_raw(cs2m_handle menu, int item, int raw)
-{
-	API()->SetItemRaw(menu, item, raw != 0);
-}
-
-CS2M_API int CS2M_CALL cs2m_get_item_raw(cs2m_handle menu, int item)
-{
-	return API()->GetItemRaw(menu, item) ? 1 : 0;
-}
-
-CS2M_API void CS2M_CALL cs2m_set_item_icon(cs2m_handle menu, int item, const char *url)
-{
-	API()->SetItemIcon(menu, item, url ? url : "");
-}
-
-CS2M_API int CS2M_CALL cs2m_get_item_icon(cs2m_handle menu, int item, char *buf, int buflen)
-{
-	// Copy immediately: the returned pointer aliases live menu storage.
-	return CopyOut(API()->GetItemIcon(menu, item), buf, buflen);
-}
-
-CS2M_API void CS2M_CALL cs2m_remove_item(cs2m_handle menu, int item)
-{
-	API()->RemoveItem(menu, item);
-}
-
-CS2M_API void CS2M_CALL cs2m_remove_all_items(cs2m_handle menu)
-{
-	API()->RemoveAllItems(menu);
-}
-
-CS2M_API int CS2M_CALL cs2m_get_start_item(cs2m_handle menu)
-{
-	return API()->GetStartItem(menu);
-}
-
-CS2M_API int CS2M_CALL cs2m_get_title(cs2m_handle menu, char *buf, int buflen)
-{
-	// Copy immediately: the returned pointer aliases live menu storage.
-	return CopyOut(API()->GetTitle(menu), buf, buflen);
-}
-
-CS2M_API int CS2M_CALL cs2m_is_valid(cs2m_handle menu)
-{
-	return API()->IsValidMenu(menu) ? 1 : 0;
-}
-
-CS2M_API int CS2M_CALL cs2m_insert_item(cs2m_handle menu, int pos, const char *text, const char *info, int disabled)
-{
-	return API()->InsertItem(menu, pos, text ? text : "", info ? info : "", disabled != 0);
-}
-
-CS2M_API cs2m_handle CS2M_CALL cs2m_get_item_submenu(cs2m_handle menu, int item)
-{
-	return API()->GetItemSubmenu(menu, item);
-}
-
-CS2M_API void CS2M_CALL cs2m_set_item_submenu(cs2m_handle menu, int item, cs2m_handle child)
-{
-	API()->SetItemSubmenu(menu, item, child);
-}
-
-CS2M_API int CS2M_CALL cs2m_get_menu_type(cs2m_handle menu)
-{
-	return static_cast<int>(API()->GetMenuType(menu));
-}
-
-CS2M_API int CS2M_CALL cs2m_get_exit_button(cs2m_handle menu)
-{
-	return API()->GetExitButton(menu) ? 1 : 0;
-}
-
-CS2M_API int CS2M_CALL cs2m_get_close_on_select(cs2m_handle menu)
-{
-	return API()->GetCloseOnSelect(menu) ? 1 : 0;
-}
-
-CS2M_API int CS2M_CALL cs2m_get_exit_item(cs2m_handle menu)
-{
-	return API()->GetExitItem(menu) ? 1 : 0;
-}
-
-CS2M_API int CS2M_CALL cs2m_get_force_type(cs2m_handle menu)
-{
-	return API()->GetMenuForceType(menu) ? 1 : 0;
-}
-
-CS2M_API int CS2M_CALL cs2m_get_menu_key(cs2m_handle menu, int action)
-{
-	return static_cast<int>(API()->GetMenuKey(menu, static_cast<MenuNavAction>(action)));
 }

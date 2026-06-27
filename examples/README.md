@@ -13,7 +13,7 @@ All require the cs2menus Metamod plugin installed and loaded on the server.
 
 ## metamod (native)
 
-Uses `ICS2Menus002` directly via `MetaFactory`.
+Uses `ICS2Menus003` directly via `MetaFactory`.
 Built as an opt-in extra target that reuses the cs2menus SDK setup.
 
 bash:

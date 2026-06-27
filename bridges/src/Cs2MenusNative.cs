@@ -11,6 +11,8 @@ namespace Cs2Menus;
 /// so we resolve it explicitly via <see cref="Load"/> and cache function pointers, rather than [DllImport].
 ///
 /// All functions are thread-safe (cs2menus is). Callbacks always arrive on the game main thread.
+///
+/// Members below mirror the ICS2Menus interface order: Handshake, Lifetime, Menu properties, Items, Display, Host.
 /// </summary>
 internal static unsafe class Cs2MenusNative
 {
@@ -18,24 +20,54 @@ internal static unsafe class Cs2MenusNative
 	private static delegate* unmanaged[Cdecl]<int> _abiVersion;
 	private static delegate* unmanaged[Cdecl]<int> _available;
 
-	// Build
+	// Lifetime
 	private static delegate* unmanaged[Cdecl]<int, byte*, nint, void*, uint> _create;
-	private static delegate* unmanaged[Cdecl]<uint, byte*, byte*, int, int> _addItem;
+	private static delegate* unmanaged[Cdecl]<uint, void> _destroy;
+	private static delegate* unmanaged[Cdecl]<uint, int> _isValid;
+
+	// Menu properties
 	private static delegate* unmanaged[Cdecl]<uint, byte*, void> _setTitle;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, int, int> _getTitle;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getMenuType;
 	private static delegate* unmanaged[Cdecl]<uint, int, void> _setExitButton;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getExitButton;
 	private static delegate* unmanaged[Cdecl]<uint, int, void> _setCloseOnSelect;
-	private static delegate* unmanaged[Cdecl]<uint, nint, void*, void> _setEndCallback;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getCloseOnSelect;
 	private static delegate* unmanaged[Cdecl]<uint, int, void> _setExitItem;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getExitItem;
+	private static delegate* unmanaged[Cdecl]<uint, int, void> _setForceType;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getForceType;
+	private static delegate* unmanaged[Cdecl]<uint, int, void> _setStartItem;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getStartItem;
+	private static delegate* unmanaged[Cdecl]<uint, nint, void*, void> _setEndCallback;
 	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setMenuKey;
+	private static delegate* unmanaged[Cdecl]<uint, int, int> _getMenuKey;
 	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setMenuLabel;
 	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getMenuLabel;
-	private static delegate* unmanaged[Cdecl]<uint, int, void> _setStartItem;
-	private static delegate* unmanaged[Cdecl]<uint, byte*, uint, byte*, int> _addSubmenu;
 	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setMenuStyle;
 	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getMenuStyle;
-	private static delegate* unmanaged[Cdecl]<uint, int, void> _setForceType;
 
-	// Show / hide
+	// Items
+	private static delegate* unmanaged[Cdecl]<uint, byte*, byte*, int, int> _addItem;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, byte*, int, int> _insertItem;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, uint, byte*, int> _addSubmenu;
+	private static delegate* unmanaged[Cdecl]<uint, int, void> _removeItem;
+	private static delegate* unmanaged[Cdecl]<uint, void> _removeAllItems;
+	private static delegate* unmanaged[Cdecl]<uint, int> _itemCount;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setItemText;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getItemText;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setItemInfo;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getItemInfo;
+	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemDisabled;
+	private static delegate* unmanaged[Cdecl]<uint, int, int> _getItemDisabled;
+	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemRaw;
+	private static delegate* unmanaged[Cdecl]<uint, int, int> _getItemRaw;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setItemIcon;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getItemIcon;
+	private static delegate* unmanaged[Cdecl]<uint, int, uint, void> _setItemSubmenu;
+	private static delegate* unmanaged[Cdecl]<uint, int, uint> _getItemSubmenu;
+
+	// Display
 	private static delegate* unmanaged[Cdecl]<uint, int, float, int> _display;
 	private static delegate* unmanaged[Cdecl]<uint, float, void> _displayToAll;
 	private static delegate* unmanaged[Cdecl]<int, void> _cancel;
@@ -47,38 +79,6 @@ internal static unsafe class Cs2MenusNative
 	// Host coordination
 	private static delegate* unmanaged[Cdecl]<int, int, void> _setExternalBusy;
 	private static delegate* unmanaged[Cdecl]<int, int> _getExternalBusy;
-
-	// Lifetime / introspection / mutation
-	private static delegate* unmanaged[Cdecl]<uint, void> _destroy;
-	private static delegate* unmanaged[Cdecl]<uint, int> _itemCount;
-	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getItemText;
-	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getItemInfo;
-	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setItemText;
-	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setItemInfo;
-	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemDisabled;
-	private static delegate* unmanaged[Cdecl]<uint, int, int> _getItemDisabled;
-	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemRaw;
-	private static delegate* unmanaged[Cdecl]<uint, int, int> _getItemRaw;
-	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setItemIcon;
-	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getItemIcon;
-	private static delegate* unmanaged[Cdecl]<uint, int, void> _removeItem;
-	private static delegate* unmanaged[Cdecl]<uint, void> _removeAllItems;
-	private static delegate* unmanaged[Cdecl]<uint, int> _getStartItem;
-
-	// Title / validity / item structure.
-	private static delegate* unmanaged[Cdecl]<uint, byte*, int, int> _getTitle;
-	private static delegate* unmanaged[Cdecl]<uint, int> _isValid;
-	private static delegate* unmanaged[Cdecl]<uint, int, byte*, byte*, int, int> _insertItem;
-	private static delegate* unmanaged[Cdecl]<uint, int, uint> _getItemSubmenu;
-	private static delegate* unmanaged[Cdecl]<uint, int, uint, void> _setItemSubmenu;
-
-	// Per-menu state read-back.
-	private static delegate* unmanaged[Cdecl]<uint, int> _getMenuType;
-	private static delegate* unmanaged[Cdecl]<uint, int> _getExitButton;
-	private static delegate* unmanaged[Cdecl]<uint, int> _getCloseOnSelect;
-	private static delegate* unmanaged[Cdecl]<uint, int> _getExitItem;
-	private static delegate* unmanaged[Cdecl]<uint, int> _getForceType;
-	private static delegate* unmanaged[Cdecl]<uint, int, int> _getMenuKey;
 
 	public static bool Loaded { get; private set; }
 
@@ -99,23 +99,54 @@ internal static unsafe class Cs2MenusNative
 
 		try
 		{
+			// Handshake
 			_abiVersion = (delegate* unmanaged[Cdecl]<int>)Get(lib, "cs2m_abi_version");
 			_available = (delegate* unmanaged[Cdecl]<int>)Get(lib, "cs2m_available");
+			// Lifetime
 			_create = (delegate* unmanaged[Cdecl]<int, byte*, nint, void*, uint>)Get(lib, "cs2m_create");
-			_addItem = (delegate* unmanaged[Cdecl]<uint, byte*, byte*, int, int>)Get(lib, "cs2m_add_item");
+			_destroy = (delegate* unmanaged[Cdecl]<uint, void>)Get(lib, "cs2m_destroy");
+			_isValid = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_is_valid");
+			// Menu properties
 			_setTitle = (delegate* unmanaged[Cdecl]<uint, byte*, void>)Get(lib, "cs2m_set_title");
+			_getTitle = (delegate* unmanaged[Cdecl]<uint, byte*, int, int>)Get(lib, "cs2m_get_title");
+			_getMenuType = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_menu_type");
 			_setExitButton = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_set_exit_button");
+			_getExitButton = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_exit_button");
 			_setCloseOnSelect = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_set_close_on_select");
-			_setEndCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)Get(lib, "cs2m_set_end_callback");
+			_getCloseOnSelect = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_close_on_select");
 			_setExitItem = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_set_exit_item");
+			_getExitItem = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_exit_item");
+			_setForceType = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_set_force_type");
+			_getForceType = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_force_type");
+			_setStartItem = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_set_start_item");
+			_getStartItem = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_start_item");
+			_setEndCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)Get(lib, "cs2m_set_end_callback");
 			_setMenuKey = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_menu_key");
+			_getMenuKey = (delegate* unmanaged[Cdecl]<uint, int, int>)Get(lib, "cs2m_get_menu_key");
 			_setMenuLabel = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)Get(lib, "cs2m_set_menu_label");
 			_getMenuLabel = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_menu_label");
-			_setStartItem = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_set_start_item");
-			_addSubmenu = (delegate* unmanaged[Cdecl]<uint, byte*, uint, byte*, int>)Get(lib, "cs2m_add_submenu");
 			_setMenuStyle = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)Get(lib, "cs2m_set_menu_style");
 			_getMenuStyle = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_menu_style");
-			_setForceType = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_set_force_type");
+			// Items
+			_addItem = (delegate* unmanaged[Cdecl]<uint, byte*, byte*, int, int>)Get(lib, "cs2m_add_item");
+			_insertItem = (delegate* unmanaged[Cdecl]<uint, int, byte*, byte*, int, int>)Get(lib, "cs2m_insert_item");
+			_addSubmenu = (delegate* unmanaged[Cdecl]<uint, byte*, uint, byte*, int>)Get(lib, "cs2m_add_submenu");
+			_removeItem = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_remove_item");
+			_removeAllItems = (delegate* unmanaged[Cdecl]<uint, void>)Get(lib, "cs2m_remove_all_items");
+			_itemCount = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_item_count");
+			_setItemText = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)Get(lib, "cs2m_set_item_text");
+			_getItemText = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_item_text");
+			_setItemInfo = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)Get(lib, "cs2m_set_item_info");
+			_getItemInfo = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_item_info");
+			_setItemDisabled = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_item_disabled");
+			_getItemDisabled = (delegate* unmanaged[Cdecl]<uint, int, int>)Get(lib, "cs2m_get_item_disabled");
+			_setItemRaw = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_item_raw");
+			_getItemRaw = (delegate* unmanaged[Cdecl]<uint, int, int>)Get(lib, "cs2m_get_item_raw");
+			_setItemIcon = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)Get(lib, "cs2m_set_item_icon");
+			_getItemIcon = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_item_icon");
+			_setItemSubmenu = (delegate* unmanaged[Cdecl]<uint, int, uint, void>)Get(lib, "cs2m_set_item_submenu");
+			_getItemSubmenu = (delegate* unmanaged[Cdecl]<uint, int, uint>)Get(lib, "cs2m_get_item_submenu");
+			// Display
 			_display = (delegate* unmanaged[Cdecl]<uint, int, float, int>)Get(lib, "cs2m_display");
 			_displayToAll = (delegate* unmanaged[Cdecl]<uint, float, void>)Get(lib, "cs2m_display_to_all");
 			_cancel = (delegate* unmanaged[Cdecl]<int, void>)Get(lib, "cs2m_cancel");
@@ -123,35 +154,9 @@ internal static unsafe class Cs2MenusNative
 			_getActiveMenu = (delegate* unmanaged[Cdecl]<int, uint>)Get(lib, "cs2m_get_active_menu");
 			_getActiveType = (delegate* unmanaged[Cdecl]<int, int>)Get(lib, "cs2m_get_active_type");
 			_getSelectedItem = (delegate* unmanaged[Cdecl]<int, int>)Get(lib, "cs2m_get_selected_item");
+			// Host coordination
 			_setExternalBusy = (delegate* unmanaged[Cdecl]<int, int, void>)Get(lib, "cs2m_set_external_busy");
 			_getExternalBusy = (delegate* unmanaged[Cdecl]<int, int>)Get(lib, "cs2m_get_external_busy");
-			_destroy = (delegate* unmanaged[Cdecl]<uint, void>)Get(lib, "cs2m_destroy");
-			_itemCount = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_item_count");
-			_getItemText = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_item_text");
-			_getItemInfo = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_item_info");
-			_setItemText = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)Get(lib, "cs2m_set_item_text");
-			_setItemInfo = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)Get(lib, "cs2m_set_item_info");
-			_setItemDisabled = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_item_disabled");
-			_getItemDisabled = (delegate* unmanaged[Cdecl]<uint, int, int>)Get(lib, "cs2m_get_item_disabled");
-			_setItemRaw = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_item_raw");
-			_getItemRaw = (delegate* unmanaged[Cdecl]<uint, int, int>)Get(lib, "cs2m_get_item_raw");
-			_setItemIcon = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)Get(lib, "cs2m_set_item_icon");
-			_getItemIcon = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_item_icon");
-			_removeItem = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_remove_item");
-			_removeAllItems = (delegate* unmanaged[Cdecl]<uint, void>)Get(lib, "cs2m_remove_all_items");
-			_getStartItem = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_start_item");
-
-			_getTitle = (delegate* unmanaged[Cdecl]<uint, byte*, int, int>)Get(lib, "cs2m_get_title");
-			_isValid = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_is_valid");
-			_insertItem = (delegate* unmanaged[Cdecl]<uint, int, byte*, byte*, int, int>)Get(lib, "cs2m_insert_item");
-			_getItemSubmenu = (delegate* unmanaged[Cdecl]<uint, int, uint>)Get(lib, "cs2m_get_item_submenu");
-			_setItemSubmenu = (delegate* unmanaged[Cdecl]<uint, int, uint, void>)Get(lib, "cs2m_set_item_submenu");
-			_getMenuType = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_menu_type");
-			_getExitButton = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_exit_button");
-			_getCloseOnSelect = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_close_on_select");
-			_getExitItem = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_exit_item");
-			_getForceType = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_force_type");
-			_getMenuKey = (delegate* unmanaged[Cdecl]<uint, int, int>)Get(lib, "cs2m_get_menu_key");
 		}
 		catch (EntryPointNotFoundException)
 		{
@@ -159,7 +164,7 @@ internal static unsafe class Cs2MenusNative
 		}
 
 		// Gate on ABI: refuse a cs2menus whose facade changed incompatibly.
-		if (_abiVersion() != 1)
+		if (_abiVersion() != 2)
 		{
 			return false;
 		}
@@ -170,8 +175,10 @@ internal static unsafe class Cs2MenusNative
 
 	private static nint Get(nint lib, string name) => NativeLibrary.GetExport(lib, name);
 
+	// --- Handshake ---
 	public static int Available() => _available();
 
+	// --- Lifetime ---
 	public static uint Create(int type, ReadOnlySpan<char> title, nint onSelect, void* user)
 	{
 		fixed (byte* t = Utf8(title))
@@ -180,6 +187,46 @@ internal static unsafe class Cs2MenusNative
 		}
 	}
 
+	public static void Destroy(uint menu) => _destroy(menu);
+	public static bool IsValid(uint menu) => _isValid(menu) != 0;
+
+	// --- Menu properties ---
+	public static void SetTitle(uint menu, ReadOnlySpan<char> title)
+	{
+		fixed (byte* t = Utf8(title)) _setTitle(menu, t);
+	}
+
+	public static string GetTitle(uint menu) => ReadString(_getTitle, menu);
+	public static int GetMenuType(uint menu) => _getMenuType(menu);
+	public static void SetExitButton(uint menu, bool v) => _setExitButton(menu, v ? 1 : 0);
+	public static bool GetExitButton(uint menu) => _getExitButton(menu) != 0;
+	public static void SetCloseOnSelect(uint menu, bool v) => _setCloseOnSelect(menu, v ? 1 : 0);
+	public static bool GetCloseOnSelect(uint menu) => _getCloseOnSelect(menu) != 0;
+	public static void SetExitItem(uint menu, bool v) => _setExitItem(menu, v ? 1 : 0);
+	public static bool GetExitItem(uint menu) => _getExitItem(menu) != 0;
+	public static void SetForceType(uint menu, bool force) => _setForceType(menu, force ? 1 : 0);
+	public static bool GetForceType(uint menu) => _getForceType(menu) != 0;
+	public static void SetStartItem(uint menu, int item) => _setStartItem(menu, item);
+	public static int GetStartItem(uint menu) => _getStartItem(menu);
+	public static void SetEndCallback(uint menu, nint onEnd, void* user) => _setEndCallback(menu, onEnd, user);
+	public static void SetMenuKey(uint menu, int action, int button) => _setMenuKey(menu, action, button);
+	public static int GetMenuKey(uint menu, int action) => _getMenuKey(menu, action);
+
+	public static void SetMenuLabel(uint menu, int label, ReadOnlySpan<char> text)
+	{
+		fixed (byte* t = Utf8(text)) _setMenuLabel(menu, label, t);
+	}
+
+	public static string GetMenuLabel(uint menu, int label) => ReadString(_getMenuLabel, menu, label);
+
+	public static void SetMenuStyle(uint menu, int field, ReadOnlySpan<char> value)
+	{
+		fixed (byte* v = Utf8(value)) _setMenuStyle(menu, field, v);
+	}
+
+	public static string GetMenuStyle(uint menu, int field) => ReadString(_getMenuStyle, menu, field);
+
+	// --- Items ---
 	public static int AddItem(uint menu, ReadOnlySpan<char> text, ReadOnlySpan<char> info, bool disabled)
 	{
 		fixed (byte* t = Utf8(text))
@@ -189,25 +236,14 @@ internal static unsafe class Cs2MenusNative
 		}
 	}
 
-	public static void SetTitle(uint menu, ReadOnlySpan<char> title)
+	public static int InsertItem(uint menu, int pos, ReadOnlySpan<char> text, ReadOnlySpan<char> info, bool disabled)
 	{
-		fixed (byte* t = Utf8(title)) _setTitle(menu, t);
+		fixed (byte* t = Utf8(text))
+		fixed (byte* i = Utf8(info))
+		{
+			return _insertItem(menu, pos, t, i, disabled ? 1 : 0);
+		}
 	}
-
-	public static void SetExitButton(uint menu, bool v) => _setExitButton(menu, v ? 1 : 0);
-	public static void SetCloseOnSelect(uint menu, bool v) => _setCloseOnSelect(menu, v ? 1 : 0);
-	public static void SetEndCallback(uint menu, nint onEnd, void* user) => _setEndCallback(menu, onEnd, user);
-	public static void SetExitItem(uint menu, bool v) => _setExitItem(menu, v ? 1 : 0);
-	public static void SetMenuKey(uint menu, int action, int button) => _setMenuKey(menu, action, button);
-
-	public static void SetMenuLabel(uint menu, int label, ReadOnlySpan<char> text)
-	{
-		fixed (byte* t = Utf8(text)) _setMenuLabel(menu, label, t);
-	}
-
-	public static string GetMenuLabel(uint menu, int label) => ReadString(_getMenuLabel, menu, label);
-
-	public static void SetStartItem(uint menu, int item) => _setStartItem(menu, item);
 
 	public static int AddSubmenu(uint parent, ReadOnlySpan<char> text, uint child, ReadOnlySpan<char> info)
 	{
@@ -218,39 +254,23 @@ internal static unsafe class Cs2MenusNative
 		}
 	}
 
-	public static void SetMenuStyle(uint menu, int field, ReadOnlySpan<char> value)
-	{
-		fixed (byte* v = Utf8(value)) _setMenuStyle(menu, field, v);
-	}
-
-	public static string GetMenuStyle(uint menu, int field) => ReadString(_getMenuStyle, menu, field);
-
-	public static void SetForceType(uint menu, bool force) => _setForceType(menu, force ? 1 : 0);
-
-	public static bool Display(uint menu, int slot, float duration) => _display(menu, slot, duration) != 0;
-	public static void DisplayToAll(uint menu, float duration) => _displayToAll(menu, duration);
-	public static void Cancel(int slot) => _cancel(slot);
-	public static bool HasMenu(int slot) => _hasMenu(slot) != 0;
-	public static uint GetActiveMenu(int slot) => _getActiveMenu(slot);
-	public static int GetActiveType(int slot) => _getActiveType(slot);
-	public static int GetSelectedItem(int slot) => _getSelectedItem(slot);
-	public static void SetExternalBusy(int slot, bool busy) => _setExternalBusy(slot, busy ? 1 : 0);
-	public static bool GetExternalBusy(int slot) => _getExternalBusy(slot) != 0;
-	public static void Destroy(uint menu) => _destroy(menu);
+	public static void RemoveItem(uint menu, int item) => _removeItem(menu, item);
+	public static void RemoveAllItems(uint menu) => _removeAllItems(menu);
 	public static int ItemCount(uint menu) => _itemCount(menu);
-
-	public static string GetItemText(uint menu, int item) => ReadString(_getItemText, menu, item);
-	public static string GetItemInfo(uint menu, int item) => ReadString(_getItemInfo, menu, item);
 
 	public static void SetItemText(uint menu, int item, ReadOnlySpan<char> text)
 	{
 		fixed (byte* t = Utf8(text)) _setItemText(menu, item, t);
 	}
 
+	public static string GetItemText(uint menu, int item) => ReadString(_getItemText, menu, item);
+
 	public static void SetItemInfo(uint menu, int item, ReadOnlySpan<char> info)
 	{
 		fixed (byte* i = Utf8(info)) _setItemInfo(menu, item, i);
 	}
+
+	public static string GetItemInfo(uint menu, int item) => ReadString(_getItemInfo, menu, item);
 
 	public static void SetItemDisabled(uint menu, int item, bool v) => _setItemDisabled(menu, item, v ? 1 : 0);
 	public static bool GetItemDisabled(uint menu, int item) => _getItemDisabled(menu, item) != 0;
@@ -264,31 +284,21 @@ internal static unsafe class Cs2MenusNative
 
 	public static string GetItemIcon(uint menu, int item) => ReadString(_getItemIcon, menu, item);
 
-	public static void RemoveItem(uint menu, int item) => _removeItem(menu, item);
-	public static void RemoveAllItems(uint menu) => _removeAllItems(menu);
-	public static int GetStartItem(uint menu) => _getStartItem(menu);
-
-	public static string GetTitle(uint menu) => ReadString(_getTitle, menu);
-	public static bool IsValid(uint menu) => _isValid(menu) != 0;
-
-	public static int InsertItem(uint menu, int pos, ReadOnlySpan<char> text, ReadOnlySpan<char> info, bool disabled)
-	{
-		fixed (byte* t = Utf8(text))
-		fixed (byte* i = Utf8(info))
-		{
-			return _insertItem(menu, pos, t, i, disabled ? 1 : 0);
-		}
-	}
-
-	public static uint GetItemSubmenu(uint menu, int item) => _getItemSubmenu(menu, item);
 	public static void SetItemSubmenu(uint menu, int item, uint child) => _setItemSubmenu(menu, item, child);
+	public static uint GetItemSubmenu(uint menu, int item) => _getItemSubmenu(menu, item);
 
-	public static int GetMenuType(uint menu) => _getMenuType(menu);
-	public static bool GetExitButton(uint menu) => _getExitButton(menu) != 0;
-	public static bool GetCloseOnSelect(uint menu) => _getCloseOnSelect(menu) != 0;
-	public static bool GetExitItem(uint menu) => _getExitItem(menu) != 0;
-	public static bool GetForceType(uint menu) => _getForceType(menu) != 0;
-	public static int GetMenuKey(uint menu, int action) => _getMenuKey(menu, action);
+	// --- Display ---
+	public static bool Display(uint menu, int slot, float duration) => _display(menu, slot, duration) != 0;
+	public static void DisplayToAll(uint menu, float duration) => _displayToAll(menu, duration);
+	public static void Cancel(int slot) => _cancel(slot);
+	public static bool HasMenu(int slot) => _hasMenu(slot) != 0;
+	public static uint GetActiveMenu(int slot) => _getActiveMenu(slot);
+	public static int GetActiveType(int slot) => _getActiveType(slot);
+	public static int GetSelectedItem(int slot) => _getSelectedItem(slot);
+
+	// --- Host coordination ---
+	public static void SetExternalBusy(int slot, bool busy) => _setExternalBusy(slot, busy ? 1 : 0);
+	public static bool GetExternalBusy(int slot) => _getExternalBusy(slot) != 0;
 
 	private static string ReadString(delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> fn, uint menu, int item)
 	{

@@ -68,41 +68,25 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.chatHeaderColor = ToLower(value);
 		}
-		else if (k == "chattitleprefix")
+		else if (k == "chattitleformat")
 		{
-			cfg->menu.chatTitlePrefix = value;
+			cfg->menu.chatTitleFormat = value;
 		}
-		else if (k == "chattitlesuffix")
+		else if (k == "chatnumberformat")
 		{
-			cfg->menu.chatTitleSuffix = value;
+			cfg->menu.chatNumberFormat = value;
 		}
-		else if (k == "chatnumberprefix")
+		else if (k == "chatdisabledformat")
 		{
-			cfg->menu.chatNumberPrefix = value;
-		}
-		else if (k == "chatnumbersuffix")
-		{
-			cfg->menu.chatNumberSuffix = value;
-		}
-		else if (k == "chatdisabledprefix")
-		{
-			cfg->menu.chatDisabledPrefix = value;
+			cfg->menu.chatDisabledFormat = value;
 		}
 		else if (k == "chatarrow")
 		{
 			cfg->menu.chatArrow = value;
 		}
-		else if (k == "chatpageprefix")
+		else if (k == "chatpageformat")
 		{
-			cfg->menu.chatPagePrefix = value;
-		}
-		else if (k == "chatpagesuffix")
-		{
-			cfg->menu.chatPageSuffix = value;
-		}
-		else if (k == "chatpageseparator")
-		{
-			cfg->menu.chatPageSeparator = value;
+			cfg->menu.chatPageFormat = value;
 		}
 		else if (k == "chatshowpage")
 		{
@@ -176,25 +160,17 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.htmlFooterSeparator = value;
 		}
-		else if (k == "htmlfooterkeyseparator")
+		else if (k == "htmlcounterformat")
 		{
-			cfg->menu.htmlFooterKeySeparator = value;
+			cfg->menu.htmlCounterFormat = value;
 		}
-		else if (k == "htmlfooterrangeseparator")
+		else if (k == "htmlfooterhintformat")
 		{
-			cfg->menu.htmlFooterRangeSeparator = value;
+			cfg->menu.htmlFooterHintFormat = value;
 		}
-		else if (k == "htmlcounterprefix")
+		else if (k == "htmlfooterrangeformat")
 		{
-			cfg->menu.htmlCounterPrefix = value;
-		}
-		else if (k == "htmlcountersuffix")
-		{
-			cfg->menu.htmlCounterSuffix = value;
-		}
-		else if (k == "htmlcounterseparator")
-		{
-			cfg->menu.htmlCounterSeparator = value;
+			cfg->menu.htmlFooterRangeFormat = value;
 		}
 		else if (k == "htmlhighlighttext")
 		{
