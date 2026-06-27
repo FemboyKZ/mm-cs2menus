@@ -203,12 +203,52 @@ public sealed class Cs2Menu : IDisposable
 
 	internal void RaiseEnded(int slot, MenuEndReason reason) => Ended?.Invoke(this, slot, reason);
 
-	// --- Build (chainable) ---
+	// --- Menu properties (chainable setters + paired getters) ---
+	public Cs2Menu SetTitle(string title) { Cs2MenusNative.SetTitle(Handle, title); return this; }
+	/// <summary>The menu's title as last set (the key/literal, not translated text).</summary>
+	public string Title => Cs2MenusNative.GetTitle(Handle);
+	/// <summary>The menu's base render type as created. For the per-viewer type of an open display use <see cref="Cs2MenusBridge.GetActiveType"/>.</summary>
+	public MenuType Type => (MenuType)Cs2MenusNative.GetMenuType(Handle);
+	public Cs2Menu SetExitButton(bool enabled) { Cs2MenusNative.SetExitButton(Handle, enabled); return this; }
+	/// <summary>Whether the trailing "0. Exit" entry is shown (see <see cref="SetExitButton"/>).</summary>
+	public bool ExitButton => Cs2MenusNative.GetExitButton(Handle);
+	public Cs2Menu SetCloseOnSelect(bool enabled) { Cs2MenusNative.SetCloseOnSelect(Handle, enabled); return this; }
+	/// <summary>Whether the menu closes after a selection (see <see cref="SetCloseOnSelect"/>).</summary>
+	public bool CloseOnSelect => Cs2MenusNative.GetCloseOnSelect(Handle);
+	public Cs2Menu SetExitItem(bool enabled) { Cs2MenusNative.SetExitItem(Handle, enabled); return this; }
+	/// <summary>Whether the HTML selectable Exit row is shown (see <see cref="SetExitItem"/>).</summary>
+	public bool ExitItem => Cs2MenusNative.GetExitItem(Handle);
+	/// <summary>
+	/// Lock this menu's render type so the viewing player's saved preference can't change it.
+	/// Use it when the menu depends on a specific type (e.g. HTML-only icons or raw markup).
+	/// </summary>
+	public Cs2Menu SetForceType(bool force = true) { Cs2MenusNative.SetForceType(Handle, force); return this; }
+	/// <summary>Whether the render type is locked against the viewer's preference (see <see cref="SetForceType"/>).</summary>
+	public bool ForceType => Cs2MenusNative.GetForceType(Handle);
+	public Cs2Menu SetStartItem(int item) { Cs2MenusNative.SetStartItem(Handle, item); return this; }
+	/// <summary>Item the menu opens on (HTML cursor / chat page). Clamped at display.</summary>
+	public int StartItem { get => Cs2MenusNative.GetStartItem(Handle); set => Cs2MenusNative.SetStartItem(Handle, value); }
+	public Cs2Menu SetMenuKey(MenuNavAction action, MenuButton button) { Cs2MenusNative.SetMenuKey(Handle, (int)action, (int)button); return this; }
+	/// <summary>The per-menu nav-key override for an action (Default if unset, None if disabled). See <see cref="SetMenuKey"/>.</summary>
+	public MenuButton GetMenuKey(MenuNavAction action) => (MenuButton)Cs2MenusNative.GetMenuKey(Handle, (int)action);
+	/// <summary>Rename a built-in label (Exit, page nav, footer hints). "" restores the configured default.</summary>
+	public Cs2Menu SetMenuLabel(MenuLabel label, string text) { Cs2MenusNative.SetMenuLabel(Handle, (int)label, text); return this; }
+	/// <summary>The label's current key (last set, or the default). This is the key/literal, not the translated text.</summary>
+	public string GetMenuLabel(MenuLabel label) => Cs2MenusNative.GetMenuLabel(Handle, (int)label);
+	/// <summary>Override one HTML style field for this menu (see <see cref="MenuStyle"/>). "" inherits the server default. No-op for chat menus.</summary>
+	public Cs2Menu SetMenuStyle(MenuStyle field, string value) { Cs2MenusNative.SetMenuStyle(Handle, (int)field, value); return this; }
+	/// <summary>This menu's effective value for a style field (the override if set, else the server default).</summary>
+	public string GetMenuStyle(MenuStyle field) => Cs2MenusNative.GetMenuStyle(Handle, (int)field);
+
+	// --- Items ---
 	public Cs2Menu AddItem(string text, string info = "", bool disabled = false)
 	{
 		Cs2MenusNative.AddItem(Handle, text, info, disabled);
 		return this;
 	}
+
+	/// <summary>Insert an item at <paramref name="pos"/> (clamped to [0, ItemCount]); later items shift down. Returns the index, or -1.</summary>
+	public int InsertItem(int pos, string text, string info = "", bool disabled = false) => Cs2MenusNative.InsertItem(Handle, pos, text, info, disabled);
 
 	public Cs2Menu AddSubMenu(string text, Cs2Menu child, string info = "")
 	{
@@ -216,38 +256,13 @@ public sealed class Cs2Menu : IDisposable
 		return this;
 	}
 
-	public Cs2Menu SetTitle(string title) { Cs2MenusNative.SetTitle(Handle, title); return this; }
-	public Cs2Menu SetExitButton(bool enabled) { Cs2MenusNative.SetExitButton(Handle, enabled); return this; }
-	public Cs2Menu SetCloseOnSelect(bool enabled) { Cs2MenusNative.SetCloseOnSelect(Handle, enabled); return this; }
-	public Cs2Menu SetExitItem(bool enabled) { Cs2MenusNative.SetExitItem(Handle, enabled); return this; }
-	public Cs2Menu SetMenuKey(MenuNavAction action, MenuButton button) { Cs2MenusNative.SetMenuKey(Handle, (int)action, (int)button); return this; }
-	/// <summary>Rename a built-in label (Exit, page nav, footer hints). "" restores the configured default.</summary>
-	public Cs2Menu SetMenuLabel(MenuLabel label, string text) { Cs2MenusNative.SetMenuLabel(Handle, (int)label, text); return this; }
-	/// <summary>The label's current key (last set, or the default). This is the key/literal, not the translated text.</summary>
-	public string GetMenuLabel(MenuLabel label) => Cs2MenusNative.GetMenuLabel(Handle, (int)label);
-	public Cs2Menu SetStartItem(int item) { Cs2MenusNative.SetStartItem(Handle, item); return this; }
-
-	/// <summary>Override one HTML style field for this menu (see <see cref="MenuStyle"/>). "" inherits the server default. No-op for chat menus.</summary>
-	public Cs2Menu SetMenuStyle(MenuStyle field, string value) { Cs2MenusNative.SetMenuStyle(Handle, (int)field, value); return this; }
-	/// <summary>This menu's effective value for a style field (the override if set, else the server default).</summary>
-	public string GetMenuStyle(MenuStyle field) => Cs2MenusNative.GetMenuStyle(Handle, (int)field);
-
-	/// <summary>
-	/// Lock this menu's render type so the viewing player's saved preference can't change it.
-	/// Use it when the menu depends on a specific type (e.g. HTML-only icons or raw markup).
-	/// </summary>
-	public Cs2Menu SetForceType(bool force = true) { Cs2MenusNative.SetForceType(Handle, force); return this; }
-
-	// --- Show ---
-	public bool Display(int slot, float duration = 0f) => Cs2MenusNative.Display(Handle, slot, duration);
-	public void DisplayToAll(float duration = 0f) => Cs2MenusNative.DisplayToAll(Handle, duration);
-
-	// --- Live mutation / introspection ---
+	public void RemoveItem(int item) => Cs2MenusNative.RemoveItem(Handle, item);
+	public void RemoveAllItems() => Cs2MenusNative.RemoveAllItems(Handle);
 	public int ItemCount => Cs2MenusNative.ItemCount(Handle);
-	public string GetItemText(int item) => Cs2MenusNative.GetItemText(Handle, item);
-	public string GetItemInfo(int item) => Cs2MenusNative.GetItemInfo(Handle, item);
 	public void SetItemText(int item, string text) => Cs2MenusNative.SetItemText(Handle, item, text);
+	public string GetItemText(int item) => Cs2MenusNative.GetItemText(Handle, item);
 	public void SetItemInfo(int item, string info) => Cs2MenusNative.SetItemInfo(Handle, item, info);
+	public string GetItemInfo(int item) => Cs2MenusNative.GetItemInfo(Handle, item);
 	public void SetItemDisabled(int item, bool disabled) => Cs2MenusNative.SetItemDisabled(Handle, item, disabled);
 	public bool GetItemDisabled(int item) => Cs2MenusNative.GetItemDisabled(Handle, item);
 	/// <summary>HTML menus: render the item's text as raw Panorama markup (unescaped). No-op for chat menus.</summary>
@@ -256,24 +271,6 @@ public sealed class Cs2Menu : IDisposable
 	/// <summary>HTML menus: show an image before the item's text (icon URL / packaged path). "" removes it.</summary>
 	public void SetItemIcon(int item, string url) => Cs2MenusNative.SetItemIcon(Handle, item, url);
 	public string GetItemIcon(int item) => Cs2MenusNative.GetItemIcon(Handle, item);
-	public void RemoveItem(int item) => Cs2MenusNative.RemoveItem(Handle, item);
-	public void RemoveAllItems() => Cs2MenusNative.RemoveAllItems(Handle);
-	public int StartItem { get => Cs2MenusNative.GetStartItem(Handle); set => Cs2MenusNative.SetStartItem(Handle, value); }
-
-	/// <summary>The menu's title as last set (the key/literal, not translated text).</summary>
-	public string Title => Cs2MenusNative.GetTitle(Handle);
-	/// <summary>True while this menu handle is still live in cs2menus.</summary>
-	public bool IsValid => Handle != 0 && Cs2MenusNative.IsValid(Handle);
-
-	/// <summary>Insert an item at <paramref name="pos"/> (clamped to [0, ItemCount]); later items shift down. Returns the index, or -1.</summary>
-	public int InsertItem(int pos, string text, string info = "", bool disabled = false) => Cs2MenusNative.InsertItem(Handle, pos, text, info, disabled);
-
-	/// <summary>The submenu a row opens (see <see cref="AddSubMenu"/>), or null if it's a normal item / not tracked by this bridge.</summary>
-	public Cs2Menu? GetItemSubmenu(int item)
-	{
-		uint h = Cs2MenusNative.GetItemSubmenu(Handle, item);
-		return h != 0 ? _owner.Find(h) : null;
-	}
 
 	/// <summary>Attach <paramref name="child"/> as an existing item's submenu (null detaches it).</summary>
 	public Cs2Menu SetItemSubmenu(int item, Cs2Menu? child)
@@ -282,18 +279,20 @@ public sealed class Cs2Menu : IDisposable
 		return this;
 	}
 
-	/// <summary>The menu's base render type as created. For the per-viewer type of an open display use <see cref="Cs2MenusBridge.GetActiveType"/>.</summary>
-	public MenuType Type => (MenuType)Cs2MenusNative.GetMenuType(Handle);
-	/// <summary>Whether the trailing "0. Exit" entry is shown (see <see cref="SetExitButton"/>).</summary>
-	public bool ExitButton => Cs2MenusNative.GetExitButton(Handle);
-	/// <summary>Whether the menu closes after a selection (see <see cref="SetCloseOnSelect"/>).</summary>
-	public bool CloseOnSelect => Cs2MenusNative.GetCloseOnSelect(Handle);
-	/// <summary>Whether the HTML selectable Exit row is shown (see <see cref="SetExitItem"/>).</summary>
-	public bool ExitItem => Cs2MenusNative.GetExitItem(Handle);
-	/// <summary>Whether the render type is locked against the viewer's preference (see <see cref="SetForceType"/>).</summary>
-	public bool ForceType => Cs2MenusNative.GetForceType(Handle);
-	/// <summary>The per-menu nav-key override for an action (Default if unset, None if disabled). See <see cref="SetMenuKey"/>.</summary>
-	public MenuButton GetMenuKey(MenuNavAction action) => (MenuButton)Cs2MenusNative.GetMenuKey(Handle, (int)action);
+	/// <summary>The submenu a row opens (see <see cref="AddSubMenu"/>), or null if it's a normal item / not tracked by this bridge.</summary>
+	public Cs2Menu? GetItemSubmenu(int item)
+	{
+		uint h = Cs2MenusNative.GetItemSubmenu(Handle, item);
+		return h != 0 ? _owner.Find(h) : null;
+	}
+
+	// --- Display ---
+	public bool Display(int slot, float duration = 0f) => Cs2MenusNative.Display(Handle, slot, duration);
+	public void DisplayToAll(float duration = 0f) => Cs2MenusNative.DisplayToAll(Handle, duration);
+
+	// --- Lifetime ---
+	/// <summary>True while this menu handle is still live in cs2menus.</summary>
+	public bool IsValid => Handle != 0 && Cs2MenusNative.IsValid(Handle);
 
 	public void Dispose()
 	{
