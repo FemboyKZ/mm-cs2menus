@@ -7,6 +7,7 @@
 #include "entity/cgamerules.h"
 #include "gamedata.h"
 #include "lang/translations.h"
+#include "menu/key_table.h"
 #include "menu/menu_manager.h"
 #include "public/ics2menus.h"
 #include "render/center_html.h"
@@ -407,62 +408,11 @@ static MenuType ParseMenuType(const std::string &name)
 	return MenuType::Chat; // "chat" and any unknown value
 }
 
-// Map a config key name to its IN_* button mask. Returns 0 for unknown names.
+// Map a config key name (canonical or alias) to its IN_* button mask. Returns 0 for unknown names.
 static uint64_t ParseNavKey(const std::string &name)
 {
-	if (name == "w" || name == "forward")
-	{
-		return in_button::Forward;
-	}
-	if (name == "s" || name == "back")
-	{
-		return in_button::Back;
-	}
-	if (name == "a" || name == "left" || name == "moveleft")
-	{
-		return in_button::MoveLeft;
-	}
-	if (name == "d" || name == "right" || name == "moveright")
-	{
-		return in_button::MoveRight;
-	}
-	if (name == "e" || name == "use" || name == "interact")
-	{
-		return in_button::Use;
-	}
-	if (name == "shift" || name == "speed" || name == "walk")
-	{
-		return in_button::Speed;
-	}
-	if (name == "ctrl" || name == "duck" || name == "crouch")
-	{
-		return in_button::Duck;
-	}
-	if (name == "space" || name == "jump")
-	{
-		return in_button::Jump;
-	}
-	if (name == "r" || name == "reload")
-	{
-		return in_button::Reload;
-	}
-	if (name == "mouse1" || name == "attack")
-	{
-		return in_button::Attack;
-	}
-	if (name == "mouse2" || name == "attack2")
-	{
-		return in_button::Attack2;
-	}
-	if (name == "tab" || name == "score")
-	{
-		return in_button::Score;
-	}
-	if (name == "f" || name == "inspect" || name == "lookatweapon")
-	{
-		return in_button::Inspect;
-	}
-	return 0;
+	const keys::KeyDef *k = keys::FindByName(name);
+	return k ? k->mask : 0;
 }
 
 // Uppercase footer label for a nav key name, e.g. "shift" to "SHIFT".
@@ -711,11 +661,6 @@ namespace
 	// The slot's open preference menu, so commands can refresh its rows live. 0 = none.
 	MenuHandle s_prefsMenu[MAXPLAYERS + 1] = {};
 
-	// Key names the in-game menu cycles through. "default" clears (use server config),
-	// "none" disables the action. The rest map through ParseNavKey.
-	const char *const kKeyCycle[] = {"default", "w", "s", "a", "d", "e", "shift", "ctrl", "space", "r", "mouse1", "mouse2", "tab", "f", "none"};
-	constexpr int kKeyCycleCount = static_cast<int>(sizeof(kKeyCycle) / sizeof(kKeyCycle[0]));
-
 	bool ParseNavActionName(const char *name, MenuNavAction &out)
 	{
 		if (!name)
@@ -846,18 +791,26 @@ namespace
 		return "chat"; // "" / "default" / unknown
 	}
 
-	// Next value when cycling a key item, wrapping through kKeyCycle.
+	// Next value when cycling a key item: default -> each key (keys::kKeys order) -> none -> default.
+	// "default" clears (use server config), "none" disables the action.
 	std::string CycleKey(const std::string &cur)
 	{
-		std::string c = (cur.empty()) ? "default" : cur;
-		for (int i = 0; i < kKeyCycleCount; i++)
+		std::string c = cur.empty() ? "default" : cur;
+		if (c == "default")
 		{
-			if (c == kKeyCycle[i])
-			{
-				return kKeyCycle[(i + 1) % kKeyCycleCount];
-			}
+			return keys::kKeys[0].canonical;
 		}
-		return kKeyCycle[0];
+		if (c == "none" || c == "off")
+		{
+			return "default";
+		}
+		const keys::KeyDef *k = keys::FindByName(c);
+		if (!k)
+		{
+			return "default"; // unknown name
+		}
+		int idx = static_cast<int>(k - keys::kKeys);
+		return (idx + 1 < keys::kKeyCount) ? keys::kKeys[idx + 1].canonical : "none";
 	}
 
 	// Refresh the slot's open preference menu rows (no-op if it isn't open).

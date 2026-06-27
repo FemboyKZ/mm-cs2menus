@@ -1,6 +1,6 @@
 #include "menu_manager.h"
-#include "src/entity/in_buttons.h"
 #include "src/lang/translations.h"
+#include "src/menu/key_table.h"
 #include "src/render/center_html.h"
 #include "src/utils/html_style.h"
 #include "src/utils/print_utils.h"
@@ -18,74 +18,24 @@ using ScopedLock = std::lock_guard<std::recursive_mutex>;
 // All bits set is never a real single-button IN_* mask.
 static constexpr uint64_t kNavDisabledSentinel = ~0ull;
 
-// Map a public MenuButton to its IN_* mask + footer label.
-// Default -> {0, ""} (inherit); None -> {sentinel, ""} (disabled).
+// Map a public MenuButton to its IN_* mask + footer label (see keys::kKeys).
+// Default (and any unknown) -> {0, ""} (inherit); None -> {sentinel, ""} (disabled).
 static void MenuButtonToBinding(MenuButton button, uint64_t &outMask, const char *&outLabel)
 {
-	switch (button)
+	if (button == MenuButton::None)
 	{
-		case MenuButton::W:
-			outMask = in_button::Forward;
-			outLabel = "W";
-			return;
-		case MenuButton::A:
-			outMask = in_button::MoveLeft;
-			outLabel = "A";
-			return;
-		case MenuButton::S:
-			outMask = in_button::Back;
-			outLabel = "S";
-			return;
-		case MenuButton::D:
-			outMask = in_button::MoveRight;
-			outLabel = "D";
-			return;
-		case MenuButton::Use:
-			outMask = in_button::Use;
-			outLabel = "E";
-			return;
-		case MenuButton::Speed:
-			outMask = in_button::Speed;
-			outLabel = "SHIFT";
-			return;
-		case MenuButton::Duck:
-			outMask = in_button::Duck;
-			outLabel = "CTRL";
-			return;
-		case MenuButton::Jump:
-			outMask = in_button::Jump;
-			outLabel = "SPACE";
-			return;
-		case MenuButton::Reload:
-			outMask = in_button::Reload;
-			outLabel = "R";
-			return;
-		case MenuButton::Attack:
-			outMask = in_button::Attack;
-			outLabel = "MOUSE1";
-			return;
-		case MenuButton::Attack2:
-			outMask = in_button::Attack2;
-			outLabel = "MOUSE2";
-			return;
-		case MenuButton::Score:
-			outMask = in_button::Score;
-			outLabel = "TAB";
-			return;
-		case MenuButton::Inspect:
-			outMask = in_button::Inspect;
-			outLabel = "F";
-			return;
-		case MenuButton::None:
-			outMask = kNavDisabledSentinel;
-			outLabel = "";
-			return;
-		case MenuButton::Default:
-		default:
-			outMask = 0;
-			outLabel = "";
-			return;
+		outMask = kNavDisabledSentinel;
+		outLabel = "";
+		return;
 	}
+	if (const keys::KeyDef *k = keys::FindByButton(button))
+	{
+		outMask = k->mask;
+		outLabel = k->label;
+		return;
+	}
+	outMask = 0; // Default / unknown: inherit the server config binding
+	outLabel = "";
 }
 
 // Map an HTML size token to its Panorama fontSize class (see html_style::IsSizeToken).
