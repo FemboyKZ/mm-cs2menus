@@ -10,6 +10,7 @@
 //   !cs2all    - DisplayMenuToAll the demo menu to every connected player
 //   !cs2cancel - CancelMenu on the caller's open menu
 //   !cs2clear  - RemoveAllItems on a dedicated menu, repopulate it, then show it
+//   !cs2theme  - stay-open menu, each row cycles item size/font/color on select
 //   !cs2info   - dump the getter API for the caller's state to the console
 //   !cs2busy   - toggle SetExternalBusy for the caller
 //
@@ -44,6 +45,19 @@ static MenuHandle g_DemoMenu = kInvalidMenuHandle;
 static MenuHandle g_SubMenu = kInvalidMenuHandle;
 static MenuHandle g_StyledMenu = kInvalidMenuHandle;
 static MenuHandle g_ClearMenu = kInvalidMenuHandle;
+static MenuHandle g_ThemeMenu = kInvalidMenuHandle;
+
+// Style values the theme menu cycles through on select, so you can eyeball that each one renders.
+static const char *const kSizeTokens[] = {"xs", "s", "sm", "m", "ml", "l", "xl", "xxl", "xxxl"};
+static const char *const kFontFaces[] = {"", "stratum-bold", "stratum-light-italic", "mono-spaced-font-bold",
+										 "stratum-black text-uppercase text-shadow-basic"};
+static const char *const kItemColors[] = {"#FFFFFF", "#ff2ee7", "#00d8ff", "#ffcc00", "#39ff14"};
+static constexpr int kSizeCount = static_cast<int>(sizeof(kSizeTokens) / sizeof(kSizeTokens[0]));
+static constexpr int kFontCount = static_cast<int>(sizeof(kFontFaces) / sizeof(kFontFaces[0]));
+static constexpr int kColorCount = static_cast<int>(sizeof(kItemColors) / sizeof(kItemColors[0]));
+static int g_sizeIdx = 3; // "m"
+static int g_fontIdx = 0;
+static int g_colorIdx = 0;
 
 class ConsumerPlugin : public ISmmPlugin, public IMetamodListener
 {
@@ -60,6 +74,7 @@ public:
 	void BuildMenu();
 	void BuildStyledMenu();
 	void BuildClearMenu();
+	void BuildThemeMenu();
 	void DumpInfo(int slot);
 	void DropMenus();
 
@@ -145,6 +160,7 @@ void ConsumerPlugin::OnPluginLoad(PluginId /*id*/)
 		g_SubMenu = kInvalidMenuHandle;
 		g_StyledMenu = kInvalidMenuHandle;
 		g_ClearMenu = kInvalidMenuHandle;
+		g_ThemeMenu = kInvalidMenuHandle;
 	}
 }
 
@@ -159,6 +175,7 @@ void ConsumerPlugin::OnPluginUnload(PluginId /*id*/)
 		g_SubMenu = kInvalidMenuHandle;
 		g_StyledMenu = kInvalidMenuHandle;
 		g_ClearMenu = kInvalidMenuHandle;
+		g_ThemeMenu = kInvalidMenuHandle;
 	}
 }
 
@@ -325,6 +342,68 @@ void ConsumerPlugin::BuildClearMenu()
 	}
 }
 
+// Push the current size/font/color into the theme menu and relabel its rows to match.
+// SetMenuStyle/SetItemText re-render any viewer, so the change shows the instant a row is picked.
+static void ApplyTheme()
+{
+	if (!g_pMenus || g_ThemeMenu == kInvalidMenuHandle)
+	{
+		return;
+	}
+
+	g_pMenus->SetMenuStyle(g_ThemeMenu, MenuStyle::ItemSize, kSizeTokens[g_sizeIdx]);
+	g_pMenus->SetMenuStyle(g_ThemeMenu, MenuStyle::FontFace, kFontFaces[g_fontIdx]);
+	g_pMenus->SetMenuStyle(g_ThemeMenu, MenuStyle::ItemColor, kItemColors[g_colorIdx]);
+
+	char buf[96];
+	snprintf(buf, sizeof(buf), "Item size: %s", kSizeTokens[g_sizeIdx]);
+	g_pMenus->SetItemText(g_ThemeMenu, 0, buf);
+	snprintf(buf, sizeof(buf), "Font: %s", kFontFaces[g_fontIdx][0] ? kFontFaces[g_fontIdx] : "default");
+	g_pMenus->SetItemText(g_ThemeMenu, 1, buf);
+	snprintf(buf, sizeof(buf), "Item color: %s", kItemColors[g_colorIdx]);
+	g_pMenus->SetItemText(g_ThemeMenu, 2, buf);
+}
+
+// A stay-open HTML menu where each row cycles one style field (size / font / color) on select.
+// The row text and the whole menu re-render with the new value so you can confirm it actually displays.
+void ConsumerPlugin::BuildThemeMenu()
+{
+	if (!g_pMenus || g_ThemeMenu != kInvalidMenuHandle)
+	{
+		return;
+	}
+
+	g_ThemeMenu = g_pMenus->CreateMenu(MenuType::Html, "\x04Theme toggle demo",
+									   [](MenuHandle menu, int /*slot*/, int item)
+									   {
+										   const char *info = g_pMenus->GetItemInfo(menu, item);
+										   if (strcmp(info, "size") == 0)
+										   {
+											   g_sizeIdx = (g_sizeIdx + 1) % kSizeCount;
+										   }
+										   else if (strcmp(info, "font") == 0)
+										   {
+											   g_fontIdx = (g_fontIdx + 1) % kFontCount;
+										   }
+										   else if (strcmp(info, "color") == 0)
+										   {
+											   g_colorIdx = (g_colorIdx + 1) % kColorCount;
+										   }
+										   ApplyTheme();
+									   });
+
+	g_pMenus->SetMenuForceType(g_ThemeMenu, true);  // HTML so the style fields actually apply
+	g_pMenus->SetCloseOnSelect(g_ThemeMenu, false); // stay open so you watch the value change
+	// HighlightText off so the cursor row keeps ItemColor too, otherwise it shows NavColor.
+	g_pMenus->SetMenuStyle(g_ThemeMenu, MenuStyle::HighlightText, "0");
+
+	g_pMenus->AddItem(g_ThemeMenu, "Item size", "size", false);
+	g_pMenus->AddItem(g_ThemeMenu, "Font", "font", false);
+	g_pMenus->AddItem(g_ThemeMenu, "Item color", "color", false);
+
+	ApplyTheme(); // seed the styles + row labels before first display
+}
+
 void ConsumerPlugin::DropMenus()
 {
 	if (g_pMenus)
@@ -341,6 +420,10 @@ void ConsumerPlugin::DropMenus()
 		{
 			g_pMenus->DestroyMenu(g_ClearMenu);
 		}
+		if (g_ThemeMenu != kInvalidMenuHandle)
+		{
+			g_pMenus->DestroyMenu(g_ThemeMenu);
+		}
 		if (g_SubMenu != kInvalidMenuHandle)
 		{
 			g_pMenus->DestroyMenu(g_SubMenu);
@@ -349,6 +432,7 @@ void ConsumerPlugin::DropMenus()
 	g_DemoMenu = kInvalidMenuHandle;
 	g_StyledMenu = kInvalidMenuHandle;
 	g_ClearMenu = kInvalidMenuHandle;
+	g_ThemeMenu = kInvalidMenuHandle;
 	g_SubMenu = kInvalidMenuHandle;
 }
 
@@ -425,6 +509,16 @@ void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CComma
 			BuildClearMenu();
 			g_pMenus->DisplayMenu(g_ClearMenu, slot, 30.0f);
 			META_CONPRINTF("[CS2Menus-test] clear menu cleared and rebuilt.\n");
+		}
+		RETURN_META(MRES_SUPERCEDE);
+	}
+
+	if (strstr(msg, "!cs2theme"))
+	{
+		if (g_pMenus)
+		{
+			BuildThemeMenu();
+			g_pMenus->DisplayMenu(g_ThemeMenu, slot, 0.0f); // no timeout, cycle styles at your own pace
 		}
 		RETURN_META(MRES_SUPERCEDE);
 	}
