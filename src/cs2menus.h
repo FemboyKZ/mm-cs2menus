@@ -19,6 +19,8 @@ public: // IMetamodListener
 					 bool background);
 	void OnLevelShutdown();
 	void AllPluginsLoaded();
+	void OnPluginLoad(PluginId id);
+	void OnPluginUnload(PluginId id);
 
 public: // SourceHook hook handlers
 	void Hook_GameFrame(bool simulating, bool bFirstTick, bool bLastTick);

@@ -1,6 +1,8 @@
 #include "cs2menus.h"
 #include "common.h"
 
+#include "admin/menu_admin_bridge.h"
+
 #include "config/config.h"
 #include "db/prefs_db.h"
 #include "entity/ccsplayercontroller.h"
@@ -700,6 +702,12 @@ static void LoadAndApplyConfig()
 // Server console / rcon command to reapply core.cfg without waiting for a map change.
 CON_COMMAND_F(cs2menus_reload, "Reload cs2menus core.cfg and re-probe HTML availability.", FCVAR_RELEASE | FCVAR_GAMEDLL)
 {
+	int slot = context.GetPlayerSlot().Get();
+	if (!MENU_AdminBridge_CanUseCommand(slot, "cs2menus_reload", CS2ADMIN_FLAG_ROOT))
+	{
+		MENU_PrintToChat(slot, "You don't have permission to use this command.");
+		return;
+	}
 	LoadAndApplyConfig();
 	EvaluateHtmlAvailability();
 	META_CONPRINTF("[CS2Menus] Config reloaded.\n");
@@ -707,6 +715,12 @@ CON_COMMAND_F(cs2menus_reload, "Reload cs2menus core.cfg and re-probe HTML avail
 
 CON_COMMAND_F(cs2menus_version, "Print the cs2menus plugin and menu-API interface versions.", FCVAR_RELEASE | FCVAR_GAMEDLL)
 {
+	int slot = context.GetPlayerSlot().Get();
+	if (!MENU_AdminBridge_CanUseCommand(slot, "cs2menus_version", CS2ADMIN_FLAG_ROOT))
+	{
+		MENU_PrintToChat(slot, "You don't have permission to use this command.");
+		return;
+	}
 	META_CONPRINTF("[CS2Menus] Plugin version %s, interface %s.\n", PLUGIN_FULL_VERSION, CS2MENUS_INTERFACE);
 }
 
@@ -1024,6 +1038,11 @@ CON_COMMAND_F(mm_menu_prefs, "Open your personal menu-preferences menu.", FCVAR_
 	{
 		return;
 	}
+	if (!MENU_AdminBridge_CanUseCommand(slot, "menu_prefs", 0))
+	{
+		MENU_PrintToChat(slot, "You don't have permission to use this command.");
+		return;
+	}
 	OpenPrefsMenu(slot);
 }
 
@@ -1032,6 +1051,11 @@ CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | defaul
 	int slot = context.GetPlayerSlot().Get();
 	if (!ValidSlot(slot) || args.ArgC() < 2)
 	{
+		return;
+	}
+	if (!MENU_AdminBridge_CanUseCommand(slot, "pref_type", 0))
+	{
+		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
 	if (!RequirePrefsDB(slot))
@@ -1065,6 +1089,11 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 	int slot = context.GetPlayerSlot().Get();
 	if (!ValidSlot(slot))
 	{
+		return;
+	}
+	if (!MENU_AdminBridge_CanUseCommand(slot, "pref_key", 0))
+	{
+		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
 	if (args.ArgC() < 3)
@@ -1118,6 +1147,11 @@ CON_COMMAND_F(mm_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_
 	int slot = context.GetPlayerSlot().Get();
 	if (!ValidSlot(slot))
 	{
+		return;
+	}
+	if (!MENU_AdminBridge_CanUseCommand(slot, "pref_show", 0))
+	{
+		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
 	if (!RequirePrefsDB(slot))
@@ -1201,6 +1235,9 @@ void CS2MenusPlugin::OnLevelShutdown()
 
 void CS2MenusPlugin::AllPluginsLoaded()
 {
+	// Resolve mm-cs2admin so admin_overrides.cfg can gate our commands.
+	MENU_AdminBridge_Init();
+
 	// Per-player preferences are opt-in and need sql_mm, which must be fully loaded by now.
 	if (!g_MenusConfig.database.enabled)
 	{
@@ -1230,8 +1267,20 @@ void CS2MenusPlugin::AllPluginsLoaded()
 		});
 }
 
+void CS2MenusPlugin::OnPluginLoad(PluginId /*id*/)
+{
+	MENU_AdminBridge_Refresh();
+}
+
+void CS2MenusPlugin::OnPluginUnload(PluginId /*id*/)
+{
+	MENU_AdminBridge_Refresh();
+}
+
 bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 {
+	MENU_AdminBridge_Shutdown();
+
 	SH_REMOVE_HOOK(IServerGameDLL, GameFrame, g_pServerGameDLL, SH_MEMBER(this, &CS2MenusPlugin::Hook_GameFrame), true);
 	SH_REMOVE_HOOK(IServerGameClients, OnClientConnected, g_pGameClients, SH_MEMBER(this, &CS2MenusPlugin::Hook_OnClientConnected), false);
 	SH_REMOVE_HOOK(IServerGameClients, ClientDisconnect, g_pGameClients, SH_MEMBER(this, &CS2MenusPlugin::Hook_ClientDisconnect), true);
@@ -1412,10 +1461,15 @@ static bool ParseChatMenuNav(const char *rawMsg, MenuNavAction &action, int &num
 
 // Client console backup for menu navigation.
 // Server console has no player slot and no menu, so it returns.
-static void RunMenuNavCommand(const CCommandContext &context, MenuNavAction action)
+// commandName gates the nav command via admin_overrides.cfg.
+static void RunMenuNavCommand(const CCommandContext &context, const char *commandName, MenuNavAction action)
 {
 	int slot = context.GetPlayerSlot().Get();
 	if (!ValidSlot(slot))
+	{
+		return;
+	}
+	if (!MENU_AdminBridge_CanUseCommand(slot, commandName, 0))
 	{
 		return;
 	}
@@ -1425,12 +1479,12 @@ static void RunMenuNavCommand(const CCommandContext &context, MenuNavAction acti
 
 CON_COMMAND_F(mm_menu_up, "Move the open menu's cursor up.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
-	RunMenuNavCommand(context, MenuNavAction::Up);
+	RunMenuNavCommand(context, "menu_up", MenuNavAction::Up);
 }
 
 CON_COMMAND_F(mm_menu_down, "Move the open menu's cursor down.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
-	RunMenuNavCommand(context, MenuNavAction::Down);
+	RunMenuNavCommand(context, "menu_down", MenuNavAction::Down);
 }
 
 // "mm_menu_select" selects the highlighted HTML row, or "mm_menu_select 3" picks chat entry 3.
@@ -1439,6 +1493,10 @@ CON_COMMAND_F(mm_menu_select, "Select a menu item: no arg = highlighted row, a n
 {
 	int slot = context.GetPlayerSlot().Get();
 	if (!ValidSlot(slot))
+	{
+		return;
+	}
+	if (!MENU_AdminBridge_CanUseCommand(slot, "menu_select", 0))
 	{
 		return;
 	}
@@ -1456,7 +1514,7 @@ CON_COMMAND_F(mm_menu_select, "Select a menu item: no arg = highlighted row, a n
 
 CON_COMMAND_F(mm_menu_close, "Close / exit the open menu.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
-	RunMenuNavCommand(context, MenuNavAction::Back);
+	RunMenuNavCommand(context, "menu_close", MenuNavAction::Back);
 }
 
 // Strip the outer quotes / surrounding whitespace / configured prefix from a say message
@@ -1505,7 +1563,10 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 		bool silent;
 		if (ParseChatPrefixWord(args.ArgS(), word, silent) && (word == "menu" || word == "prefs" || word == "menuprefs"))
 		{
-			OpenPrefsMenu(slot);
+			if (MENU_AdminBridge_CanUseCommand(slot, "menu_prefs", 0))
+			{
+				OpenPrefsMenu(slot);
+			}
 			RETURN_META(silent ? MRES_SUPERCEDE : MRES_IGNORED);
 		}
 	}
@@ -1532,6 +1593,27 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 	bool navSilent;
 	if (ParseChatMenuNav(rawMsg, navAction, navNumber, navSilent))
 	{
+		// Match the override key to the equivalent console nav command.
+		const char *navCmd = "menu_close";
+		switch (navAction)
+		{
+			case MenuNavAction::Up:
+				navCmd = "menu_up";
+				break;
+			case MenuNavAction::Down:
+				navCmd = "menu_down";
+				break;
+			case MenuNavAction::Select:
+				navCmd = "menu_select";
+				break;
+			default:
+				navCmd = "menu_close";
+				break;
+		}
+		if (!MENU_AdminBridge_CanUseCommand(slot, navCmd, 0))
+		{
+			RETURN_META(navSilent ? MRES_SUPERCEDE : MRES_IGNORED);
+		}
 		if (navAction == MenuNavAction::Select && navNumber >= 0)
 		{
 			g_MenuManager.CommandSelectNumber(slot, navNumber, curtime);
@@ -1543,7 +1625,8 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 		RETURN_META(navSilent ? MRES_SUPERCEDE : MRES_IGNORED);
 	}
 
-	if (g_MenuManager.ProcessInput(slot, rawMsg, curtime))
+	// Typing a bare item number in chat selects that row, same as menu_select.
+	if (MENU_AdminBridge_CanUseCommand(slot, "menu_select", 0) && g_MenuManager.ProcessInput(slot, rawMsg, curtime))
 	{
 		// Suppress the chat line so the number doesn't show.
 		RETURN_META(MRES_SUPERCEDE);
