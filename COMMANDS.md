@@ -8,6 +8,8 @@ cs2menus is a menu-rendering library.
 
 ## Permissions
 
+**Permission check order:**
+
 1. Group overrides (`admin_groups.cfg`).
 2. Global overrides (`cfg/cs2admin/admin_overrides.cfg`).
 3. Default flag (below).
