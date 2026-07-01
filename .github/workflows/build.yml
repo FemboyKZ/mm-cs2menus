@@ -24,8 +24,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          submodules: recursive
+          submodules: false
           fetch-depth: 0
+
+      - name: Init submodules
+        shell: bash
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git submodule update --init --recursive metamod-source hl2sdk-cs2
+          git submodule update --init
 
       - name: Install dependencies
         run: |
@@ -70,7 +77,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          submodules: recursive
+          submodules: false
+
+      - name: Init submodules
+        shell: bash
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git submodule update --init --recursive metamod-source hl2sdk-cs2
+          git submodule update --init
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -182,8 +196,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          submodules: recursive
+          submodules: false
           fetch-depth: 0
+
+      - name: Init submodules
+        shell: bash
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git submodule update --init --recursive metamod-source hl2sdk-cs2
+          git submodule update --init
 
       - name: Install dependencies (Linux)
         if: matrix.os == 'linux'
