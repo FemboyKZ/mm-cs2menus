@@ -18,12 +18,12 @@ for sdk_target in MMSPlugin.sdk_targets:
         "src/lang/translations.cpp",
         "src/menu/menu_manager.cpp",
         "src/render/center_html.cpp",
-        "src/sigscan/module.cpp",
         "src/utils/print_utils.cpp",
         "vendor/mm-utils/mmu/chat_colors.cpp",
         "vendor/mm-utils/mmu/log.cpp",
         "vendor/mm-utils/mmu/print.cpp",
         "vendor/mm-utils/mmu/schema.cpp",
+        "vendor/mm-utils/mmu/sigscan.cpp",
         "vendor/mm-utils/mmu/translations.cpp",
     ]
 

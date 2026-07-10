@@ -21,6 +21,11 @@ struct MenuDefaultsCfg
 	// cl_language is unknown or a phrase file lacks it. See translations/.
 	std::string defaultLanguage = "en";
 
+	// Mirror log output to addons/cs2menus/logs.
+	bool logToFile = true;
+	// Delete log files older than this many days, 0 keeps all.
+	int logRetentionDays = 30;
+
 	// Default state of the "0. Exit" entry for newly created menus.
 	bool exitButton = true;
 

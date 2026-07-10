@@ -1,5 +1,6 @@
 #include "config.h"
 #include "mmu/kv_parser.h"
+#include "mmu/log.h"
 #include "mmu/str_utils.h"
 
 #include <cstdlib>
@@ -35,6 +36,14 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		else if (k == "defaultlanguage")
 		{
 			cfg->menu.defaultLanguage = ToLower(value);
+		}
+		else if (k == "logtofile")
+		{
+			cfg->menu.logToFile = (value != "0");
+		}
+		else if (k == "logretentiondays")
+		{
+			cfg->menu.logRetentionDays = std::atoi(value.c_str());
 		}
 		else if (k == "exitbutton")
 		{
@@ -264,5 +273,12 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 
 bool MENU_LoadConfig(const char *path, MenusConfig &config)
 {
-	return kv::LoadFile(path ? path : "", ConfigHandler, &config);
+	if (!kv::LoadFile(path ? path : "", ConfigHandler, &config))
+	{
+		return false;
+	}
+
+	mmu::log::SetToFile(config.menu.logToFile);
+	mmu::log::SetRetentionDays(config.menu.logRetentionDays);
+	return true;
 }

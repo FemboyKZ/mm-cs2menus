@@ -2,7 +2,7 @@
 #include "mmu/log.h"
 #include "src/common.h"
 #include "src/gamedata.h"
-#include "src/sigscan/module.h"
+#include "mmu/sigscan.h"
 #include "mmu/recipient_filter.h"
 
 #include <igameevents.h>
