@@ -5,7 +5,7 @@
 
 #include "config/config.h"
 #include "db/prefs_db.h"
-#include "entity/ccsplayercontroller.h"
+#include "mmu/entity/ccsplayercontroller.h"
 #include "entity/cgamerules.h"
 #include "gamedata.h"
 #include "lang/translations.h"
@@ -15,7 +15,8 @@
 #include "render/center_html.h"
 #include "utils/html_style.h"
 #include "utils/print_utils.h"
-#include "utils/str_utils.h"
+#include "mmu/log.h"
+#include "mmu/str_utils.h"
 
 #include "vendor/ClientCvarValue/public/iclientcvarvalue.h"
 
@@ -694,7 +695,8 @@ static void LoadAndApplyConfig()
 	// Label translations. Re-acquire ClientCvarValue (optional, may load after us),
 	// reload the phrase files, and wire per-viewer language resolution.
 	g_pClientCvarValue = static_cast<IClientCvarValue *>(g_SMAPI->MetaFactory(CLIENTCVARVALUE_INTERFACE, nullptr, nullptr));
-	g_Translations.Load(g_SMAPI->GetBaseDir());
+	g_Translations.SetResolveColorTags(false);
+	g_Translations.Load(g_SMAPI->GetBaseDir(), "cs2menus");
 	g_Translations.SetDefaultLanguage(g_MenusConfig.menu.defaultLanguage);
 	g_MenuManager.SetLanguageResolver([](int slot) { return SlotLanguage(slot); });
 }
@@ -1166,6 +1168,8 @@ CON_COMMAND_F(mm_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_
 bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
 	PLUGIN_SAVEVARS();
+
+	mmu::g_logTag = "CS2Menus";
 
 	// Load runs on the game thread.
 	// Record it so the menu API can tell main-thread callers from worker-thread callers.

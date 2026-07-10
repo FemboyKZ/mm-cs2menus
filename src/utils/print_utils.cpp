@@ -1,6 +1,6 @@
 #include "print_utils.h"
 #include "src/common.h"
-#include "src/utils/recipient_filter.h"
+#include "mmu/recipient_filter.h"
 
 #include <engine/igameeventsystem.h>
 #include <networksystem/inetworkmessages.h>

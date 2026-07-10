@@ -1,6 +1,6 @@
 #include "config.h"
-#include "kv_parser.h"
-#include "src/utils/str_utils.h"
+#include "mmu/kv_parser.h"
+#include "mmu/str_utils.h"
 
 #include <cstdlib>
 #include <string>

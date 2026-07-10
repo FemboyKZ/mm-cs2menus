@@ -15,12 +15,15 @@ for sdk_target in MMSPlugin.sdk_targets:
         "src/bridge/capi.cpp",
         "src/config/config.cpp",
         "src/db/prefs_db.cpp",
-        "src/entity/schema.cpp",
         "src/lang/translations.cpp",
         "src/menu/menu_manager.cpp",
         "src/render/center_html.cpp",
         "src/sigscan/module.cpp",
         "src/utils/print_utils.cpp",
+        "vendor/mm-utils/mmu/chat_colors.cpp",
+        "vendor/mm-utils/mmu/log.cpp",
+        "vendor/mm-utils/mmu/schema.cpp",
+        "vendor/mm-utils/mmu/translations.cpp",
     ]
 
     binary.custom = [
