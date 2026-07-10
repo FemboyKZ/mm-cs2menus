@@ -1,4 +1,5 @@
 #include "menu_admin_bridge.h"
+#include "mmu/log.h"
 #include "src/common.h"
 
 static ICS2Admin *s_pAdmin = nullptr;
@@ -16,7 +17,7 @@ void MENU_AdminBridge_Init()
 	if (iface)
 	{
 		s_pAdmin = static_cast<ICS2Admin *>(iface);
-		META_CONPRINTF("[CS2Menus] mm-cs2admin found - command overrides active.\n");
+		MMU_LOG_INFO("mm-cs2admin found - command overrides active.\n");
 	}
 }
 
@@ -38,12 +39,12 @@ void MENU_AdminBridge_Refresh()
 		s_pAdmin = static_cast<ICS2Admin *>(iface);
 		if (!prev)
 		{
-			META_CONPRINTF("[CS2Menus] mm-cs2admin loaded - command overrides active.\n");
+			MMU_LOG_INFO("mm-cs2admin loaded - command overrides active.\n");
 		}
 	}
 	else if (prev)
 	{
-		META_CONPRINTF("[CS2Menus] mm-cs2admin unloaded - command overrides inactive.\n");
+		MMU_LOG_INFO("mm-cs2admin unloaded - command overrides inactive.\n");
 	}
 }
 

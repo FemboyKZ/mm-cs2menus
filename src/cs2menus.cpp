@@ -516,7 +516,7 @@ static void EvaluateHtmlAvailability()
 {
 	bool available = center_html::Available() && ProbeButtonSchema();
 	g_MenuManager.SetHtmlAvailable(available);
-	META_CONPRINTF("[CS2Menus] HTML menus %s.\n", available ? "available" : "unavailable (falling back to chat)");
+	MMU_LOG_INFO("HTML menus %s.\n", available ? "available" : "unavailable (falling back to chat)");
 }
 
 // True for a "#rrggbb" hex color. Malformed values would silently break the
@@ -572,7 +572,7 @@ static void LoadAndApplyConfig()
 
 	if (!MENU_LoadConfig(cfgPath, g_MenusConfig))
 	{
-		META_CONPRINTF("[CS2Menus] No core.cfg at %s - using defaults.\n", cfgPath);
+		MMU_LOG_INFO("No core.cfg at %s - using defaults.\n", cfgPath);
 	}
 
 	MenuManagerSettings settings;
@@ -712,7 +712,7 @@ CON_COMMAND_F(cs2menus_reload, "Reload cs2menus core.cfg and re-probe HTML avail
 	}
 	LoadAndApplyConfig();
 	EvaluateHtmlAvailability();
-	META_CONPRINTF("[CS2Menus] Config reloaded.\n");
+	MMU_LOG_INFO("Config reloaded.\n");
 }
 
 CON_COMMAND_F(cs2menus_version, "Print the cs2menus plugin and menu-API interface versions.", FCVAR_RELEASE | FCVAR_GAMEDLL)
@@ -723,7 +723,7 @@ CON_COMMAND_F(cs2menus_version, "Print the cs2menus plugin and menu-API interfac
 		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
-	META_CONPRINTF("[CS2Menus] Plugin version %s, interface %s.\n", PLUGIN_FULL_VERSION, CS2MENUS_INTERFACE);
+	MMU_LOG_INFO("Plugin version %s, interface %s.\n", PLUGIN_FULL_VERSION, CS2MENUS_INTERFACE);
 }
 
 // Per-player menu preferences (optional, sql_mm)
@@ -1211,7 +1211,7 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	EvaluateHtmlAvailability();
 	LoadAndApplyConfig();
 
-	META_CONPRINTF("[CS2Menus] Plugin loaded.\n");
+	MMU_LOG_INFO("Plugin loaded.\n");
 	return true;
 }
 
@@ -1253,7 +1253,7 @@ void CS2MenusPlugin::AllPluginsLoaded()
 	}
 	if (!g_MenuPrefsDB.Init())
 	{
-		META_CONPRINTF("[CS2Menus] Preference database unavailable, per-player preferences disabled.\n");
+		MMU_LOG_WARN("Preference database unavailable, per-player preferences disabled.\n");
 		return;
 	}
 	g_MenuPrefsDB.Connect(

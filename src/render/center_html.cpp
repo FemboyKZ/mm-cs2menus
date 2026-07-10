@@ -1,4 +1,5 @@
 #include "center_html.h"
+#include "mmu/log.h"
 #include "src/common.h"
 #include "src/gamedata.h"
 #include "src/sigscan/module.h"
@@ -33,7 +34,7 @@ bool center_html::Init()
 	size_t size = 0;
 	if (!sig::GetModuleRange(g_pServerGameDLL, base, size))
 	{
-		META_CONPRINTF("[CS2Menus] Could not locate server module - HTML menus disabled.\n");
+		MMU_LOG_WARN("Could not locate server module - HTML menus disabled.\n");
 		return false;
 	}
 
@@ -41,13 +42,13 @@ bool center_html::Init()
 	void *insn = sig::FindSignatureUnique(base, size, gamedata::kGameEventManagerSig, gamedata::kGameEventManagerSigLen, multiple);
 	if (!insn)
 	{
-		META_CONPRINTF("[CS2Menus] GameEventManager signature not found - HTML menus disabled.\n");
+		MMU_LOG_WARN("GameEventManager signature not found - HTML menus disabled.\n");
 		return false;
 	}
 	if (multiple)
 	{
 		// Ambiguous match.
-		META_CONPRINTF("[CS2Menus] GameEventManager signature matched multiple times - HTML menus disabled.\n");
+		MMU_LOG_WARN("GameEventManager signature matched multiple times - HTML menus disabled.\n");
 		return false;
 	}
 
@@ -57,7 +58,7 @@ bool center_html::Init()
 		return false;
 	}
 
-	META_CONPRINTF("[CS2Menus] GameEventManager resolved - HTML menus available.\n");
+	MMU_LOG_INFO("GameEventManager resolved - HTML menus available.\n");
 	return true;
 }
 

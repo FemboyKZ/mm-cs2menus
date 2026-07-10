@@ -1,4 +1,5 @@
 #include "prefs_db.h"
+#include "mmu/log.h"
 
 #include "src/common.h"
 #include "src/config/config.h"
@@ -41,7 +42,7 @@ bool MenuPrefsDB::Init()
 	m_sql = static_cast<ISQLInterface *>(g_SMAPI->MetaFactory(SQLMM_INTERFACE, nullptr, nullptr));
 	if (!m_sql)
 	{
-		META_CONPRINTF("[CS2Menus] Failed to get ISQLInterface. Is sql_mm loaded?\n");
+		MMU_LOG_WARN("Failed to get ISQLInterface. Is sql_mm loaded?\n");
 		return false;
 	}
 
@@ -51,10 +52,10 @@ bool MenuPrefsDB::Init()
 		m_mysql = m_sql->GetMySQLClient();
 		if (!m_mysql)
 		{
-			META_CONPRINTF("[CS2Menus] Failed to get MySQL client from sql_mm.\n");
+			MMU_LOG_WARN("Failed to get MySQL client from sql_mm.\n");
 			return false;
 		}
-		META_CONPRINTF("[CS2Menus] Preference database: MySQL.\n");
+		MMU_LOG_INFO("Preference database: MySQL.\n");
 	}
 	else
 	{
@@ -62,10 +63,10 @@ bool MenuPrefsDB::Init()
 		m_sqlite = m_sql->GetSQLiteClient();
 		if (!m_sqlite)
 		{
-			META_CONPRINTF("[CS2Menus] Failed to get SQLite client from sql_mm.\n");
+			MMU_LOG_WARN("Failed to get SQLite client from sql_mm.\n");
 			return false;
 		}
-		META_CONPRINTF("[CS2Menus] Preference database: SQLite.\n");
+		MMU_LOG_INFO("Preference database: SQLite.\n");
 	}
 	return true;
 }
@@ -77,7 +78,7 @@ void MenuPrefsDB::Connect(std::function<void(bool)> cb)
 		m_connected = success;
 		if (success)
 		{
-			META_CONPRINTF("[CS2Menus] Preference database connected.\n");
+			MMU_LOG_INFO("Preference database connected.\n");
 			if (m_isSqlite)
 			{
 				Query("PRAGMA journal_mode=WAL", [](ISQLQuery *) {});
@@ -90,7 +91,7 @@ void MenuPrefsDB::Connect(std::function<void(bool)> cb)
 		}
 		else
 		{
-			META_CONPRINTF("[CS2Menus] Preference database connection failed.\n");
+			MMU_LOG_WARN("Preference database connection failed.\n");
 		}
 		if (cb)
 		{
@@ -116,7 +117,7 @@ void MenuPrefsDB::Connect(std::function<void(bool)> cb)
 	{
 		if (!m_mysql || g_MenusConfig.database.host.empty() || g_MenusConfig.database.name.empty())
 		{
-			META_CONPRINTF("[CS2Menus] Cannot connect: MySQL host/name empty or client missing. Check core.cfg.\n");
+			MMU_LOG_WARN("Cannot connect: MySQL host/name empty or client missing. Check core.cfg.\n");
 			if (cb)
 			{
 				cb(false);
@@ -134,7 +135,7 @@ void MenuPrefsDB::Connect(std::function<void(bool)> cb)
 
 	if (!m_conn)
 	{
-		META_CONPRINTF("[CS2Menus] Failed to create database connection object.\n");
+		MMU_LOG_WARN("Failed to create database connection object.\n");
 		if (cb)
 		{
 			cb(false);
@@ -214,7 +215,7 @@ void MenuPrefsDB::CreateSchema()
 				 table.c_str());
 	}
 	Query(query, [](ISQLQuery *) {});
-	META_CONPRINTF("[CS2Menus] Preference schema created/verified.\n");
+	MMU_LOG_INFO("Preference schema created/verified.\n");
 }
 
 void MenuPrefsDB::LoadPrefs(uint64_t steamId64, std::function<void(bool, const MenuPrefsRow &)> cb)
