@@ -1169,7 +1169,11 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 {
 	PLUGIN_SAVEVARS();
 
-	mmu::g_logTag = "CS2Menus";
+	mmu::log::Setup logSetup;
+	logSetup.channelName = "CS2Menus";
+	logSetup.addonName = "cs2menus";
+	logSetup.toFile = true;
+	mmu::log::Init(logSetup);
 
 	// Load runs on the game thread.
 	// Record it so the menu API can tell main-thread callers from worker-thread callers.
@@ -1294,6 +1298,8 @@ bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 	g_MenuManager.Shutdown();
 	g_MenuPrefsDB.Shutdown();
 	center_html::Shutdown();
+
+	mmu::log::Shutdown();
 
 	return true;
 }
