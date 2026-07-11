@@ -457,16 +457,6 @@ void *CS2MenusPlugin::OnMetamodQuery(const char *iface, int *ret)
 	return nullptr;
 }
 
-CGlobalVars *GetGameGlobals()
-{
-	INetworkGameServer *pServer = g_pNetworkServerService->GetIGameServer();
-	if (!pServer)
-	{
-		return nullptr;
-	}
-	return pServer->GetGlobals();
-}
-
 static MenuType ParseMenuType(const std::string &name)
 {
 	if (name == "html")

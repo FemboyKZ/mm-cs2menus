@@ -50,7 +50,12 @@ extern PluginId g_PLID;
 extern SourceHook::ISourceHook *g_SHPtr;
 
 // CGlobalVars accessor, only valid during an active game
-CGlobalVars *GetGameGlobals();
+#include "mmu/print.h"
+
+inline CGlobalVars *GetGameGlobals()
+{
+	return mmu::GetGameGlobals();
+}
 
 // Resolve CGameEntitySystem via g_pGameResourceServiceServer + gamedata offset.
 CGameEntitySystem *GameEntitySystem();
