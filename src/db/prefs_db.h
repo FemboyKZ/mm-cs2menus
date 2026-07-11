@@ -1,16 +1,11 @@
 #ifndef _INCLUDE_MENU_PREFS_DB_H_
 #define _INCLUDE_MENU_PREFS_DB_H_
 
+#include "mmu/sql.h"
+
 #include <cstdint>
 #include <functional>
 #include <string>
-
-// Forward declarations from sql_mm.
-class ISQLInterface;
-class ISQLConnection;
-class ISQLQuery;
-class IMySQLClient;
-class ISQLiteClient;
 
 // One row of a player's stored menu preferences.
 // Empty strings mean "no preference" (fall back to the server config).
@@ -30,8 +25,6 @@ struct MenuPrefsRow
 class MenuPrefsDB
 {
 public:
-	~MenuPrefsDB();
-
 	// Acquire ISQLInterface from MetaFactory and pick the configured client.
 	// Call in AllPluginsLoaded or later (sql_mm must load first). Returns false if unavailable.
 	bool Init();
@@ -43,12 +36,12 @@ public:
 
 	bool IsConnected() const
 	{
-		return m_connected;
+		return m_conn.IsConnected();
 	}
 
 	bool IsShuttingDown() const
 	{
-		return m_shuttingDown;
+		return m_conn.IsShuttingDown();
 	}
 
 	// Load one player's prefs. cb(found, row) fires on the main thread.
@@ -59,18 +52,23 @@ public:
 
 private:
 	void CreateSchema();
-	void Query(const char *query, std::function<void(ISQLQuery *)> cb);
-	std::string Escape(const char *str);
+
+	// Forwarders to the shared connection.
+	void Query(const char *query, std::function<void(ISQLQuery *)> cb)
+	{
+		m_conn.Query(query, std::move(cb));
+	}
+
+	std::string Escape(const char *str)
+	{
+		return m_conn.Escape(str);
+	}
+
 	// "<prefix>_prefs"
 	std::string Table() const;
 
-	ISQLInterface *m_sql = nullptr;
-	IMySQLClient *m_mysql = nullptr;
-	ISQLiteClient *m_sqlite = nullptr;
-	ISQLConnection *m_conn = nullptr;
+	mmu::sql::Connection m_conn;
 	bool m_isSqlite = true;
-	bool m_connected = false;
-	bool m_shuttingDown = false;
 };
 
 extern MenuPrefsDB g_MenuPrefsDB;

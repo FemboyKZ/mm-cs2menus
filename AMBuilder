@@ -24,6 +24,7 @@ for sdk_target in MMSPlugin.sdk_targets:
         "vendor/mm-utils/mmu/print.cpp",
         "vendor/mm-utils/mmu/schema.cpp",
         "vendor/mm-utils/mmu/sigscan.cpp",
+        "vendor/mm-utils/mmu/sql.cpp",
         "vendor/mm-utils/mmu/translations.cpp",
     ]
 

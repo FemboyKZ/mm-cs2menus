@@ -5,18 +5,11 @@
 #include "src/config/config.h"
 
 #include <sql_mm.h>
-#include <mysql_mm.h>
-#include <sqlite_mm.h>
 
 #include <cctype>
 #include <cstdio>
 
 MenuPrefsDB g_MenuPrefsDB;
-
-MenuPrefsDB::~MenuPrefsDB()
-{
-	Shutdown();
-}
 
 std::string MenuPrefsDB::Table() const
 {
@@ -39,147 +32,30 @@ std::string MenuPrefsDB::Table() const
 
 bool MenuPrefsDB::Init()
 {
-	m_sql = static_cast<ISQLInterface *>(g_SMAPI->MetaFactory(SQLMM_INTERFACE, nullptr, nullptr));
-	if (!m_sql)
+	m_isSqlite = (g_MenusConfig.database.type != "mysql");
+	if (!m_conn.Init(m_isSqlite ? mmu::sql::DbType::SQLite : mmu::sql::DbType::MySQL))
 	{
-		MMU_LOG_WARN("Failed to get ISQLInterface. Is sql_mm loaded?\n");
 		return false;
 	}
-
-	if (g_MenusConfig.database.type == "mysql")
-	{
-		m_isSqlite = false;
-		m_mysql = m_sql->GetMySQLClient();
-		if (!m_mysql)
-		{
-			MMU_LOG_WARN("Failed to get MySQL client from sql_mm.\n");
-			return false;
-		}
-		MMU_LOG_INFO("Preference database: MySQL.\n");
-	}
-	else
-	{
-		m_isSqlite = true;
-		m_sqlite = m_sql->GetSQLiteClient();
-		if (!m_sqlite)
-		{
-			MMU_LOG_WARN("Failed to get SQLite client from sql_mm.\n");
-			return false;
-		}
-		MMU_LOG_INFO("Preference database: SQLite.\n");
-	}
+	m_conn.SetSchemaHook([this] { CreateSchema(); });
 	return true;
 }
 
 void MenuPrefsDB::Connect(std::function<void(bool)> cb)
 {
-	auto onConnect = [this, cb](bool success)
-	{
-		m_connected = success;
-		if (success)
-		{
-			MMU_LOG_INFO("Preference database connected.\n");
-			if (m_isSqlite)
-			{
-				Query("PRAGMA journal_mode=WAL", [](ISQLQuery *) {});
-			}
-			else
-			{
-				Query("SET NAMES utf8mb4", [](ISQLQuery *) {});
-			}
-			CreateSchema();
-		}
-		else
-		{
-			MMU_LOG_WARN("Preference database connection failed.\n");
-		}
-		if (cb)
-		{
-			cb(success);
-		}
-	};
-
-	if (m_isSqlite)
-	{
-		if (!m_sqlite)
-		{
-			if (cb)
-			{
-				cb(false);
-			}
-			return;
-		}
-		SQLiteConnectionInfo info;
-		info.database = g_MenusConfig.database.path.c_str();
-		m_conn = m_sqlite->CreateSQLiteConnection(info);
-	}
-	else
-	{
-		if (!m_mysql || g_MenusConfig.database.host.empty() || g_MenusConfig.database.name.empty())
-		{
-			MMU_LOG_WARN("Cannot connect: MySQL host/name empty or client missing. Check core.cfg.\n");
-			if (cb)
-			{
-				cb(false);
-			}
-			return;
-		}
-		MySQLConnectionInfo info;
-		info.host = g_MenusConfig.database.host.c_str();
-		info.user = g_MenusConfig.database.user.c_str();
-		info.pass = g_MenusConfig.database.pass.c_str();
-		info.database = g_MenusConfig.database.name.c_str();
-		info.port = g_MenusConfig.database.port;
-		m_conn = m_mysql->CreateMySQLConnection(info);
-	}
-
-	if (!m_conn)
-	{
-		MMU_LOG_WARN("Failed to create database connection object.\n");
-		if (cb)
-		{
-			cb(false);
-		}
-		return;
-	}
-	m_conn->Connect(onConnect);
+	mmu::sql::ConnectParams p;
+	p.path = g_MenusConfig.database.path;
+	p.host = g_MenusConfig.database.host;
+	p.user = g_MenusConfig.database.user;
+	p.pass = g_MenusConfig.database.pass;
+	p.database = g_MenusConfig.database.name;
+	p.port = g_MenusConfig.database.port;
+	m_conn.Connect(p, std::move(cb));
 }
 
 void MenuPrefsDB::Shutdown()
 {
-	m_shuttingDown = true;
-	if (m_conn)
-	{
-		m_conn->Destroy();
-		m_conn = nullptr;
-	}
-	m_connected = false;
-	m_mysql = nullptr;
-	m_sqlite = nullptr;
-	m_sql = nullptr;
-}
-
-void MenuPrefsDB::Query(const char *query, std::function<void(ISQLQuery *)> cb)
-{
-	if (m_shuttingDown || !m_conn || !m_connected)
-	{
-		if (cb)
-		{
-			cb(nullptr);
-		}
-		return;
-	}
-	// sql_mm requires a valid callback, never pass a null std::function.
-	m_conn->Query(query, cb ? cb : [](ISQLQuery *) {});
-}
-
-std::string MenuPrefsDB::Escape(const char *str)
-{
-	if (!m_conn)
-	{
-		return str ? str : "";
-	}
-	return m_conn->Escape(str);
+	m_conn.Shutdown();
 }
 
 void MenuPrefsDB::CreateSchema()
@@ -220,7 +96,7 @@ void MenuPrefsDB::CreateSchema()
 
 void MenuPrefsDB::LoadPrefs(uint64_t steamId64, std::function<void(bool, const MenuPrefsRow &)> cb)
 {
-	if (!m_connected)
+	if (!m_conn.IsConnected())
 	{
 		if (cb)
 		{
@@ -267,7 +143,7 @@ void MenuPrefsDB::LoadPrefs(uint64_t steamId64, std::function<void(bool, const M
 
 void MenuPrefsDB::SavePrefs(uint64_t steamId64, const MenuPrefsRow &row)
 {
-	if (!m_connected)
+	if (!m_conn.IsConnected())
 	{
 		return;
 	}
