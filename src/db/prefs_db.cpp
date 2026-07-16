@@ -90,8 +90,19 @@ void MenuPrefsDB::CreateSchema()
 				 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 				 table.c_str());
 	}
-	Query(query, [](ISQLQuery *) {});
-	MMU_LOG_INFO("Preference schema created/verified.\n");
+	// Logged from the query callback, which only fires once the statement actually round-trips.
+	Query(query,
+		  [](ISQLQuery *q)
+		  {
+			  if (q)
+			  {
+				  MMU_LOG_INFO("Preference schema created/verified.\n");
+			  }
+			  else
+			  {
+				  MMU_LOG_WARN("Preference schema creation failed, table may be missing.\n");
+			  }
+		  });
 }
 
 void MenuPrefsDB::LoadPrefs(uint64_t steamId64, std::function<void(bool, const MenuPrefsRow &)> cb)
