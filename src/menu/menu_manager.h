@@ -184,7 +184,7 @@ public:
 
 	// Feed a player's current held-button bitmask (read from the pawn each frame).
 	// Drives HTML-menu navigation on newly-pressed nav keys.
-	void PollButtons(int slot, uint64_t heldButtons, float curtime);
+	void PollButtons(int slot, uint64_t heldButtons, uint64_t pressedButtons, float curtime);
 
 	// Drive the open menu from a console/chat command (backup for button input).
 	// No-op without an open menu.

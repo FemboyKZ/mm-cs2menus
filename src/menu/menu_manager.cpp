@@ -1414,7 +1414,7 @@ bool MenuManager::AnyHtmlMenuActive() const
 	return false;
 }
 
-void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
+void MenuManager::PollButtons(int slot, uint64_t heldButtons, uint64_t pressedButtons, float curtime)
 {
 	ScopedLock lock(m_mutex);
 	if (!ValidSlot(slot))
@@ -1442,7 +1442,10 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, float curtime)
 		return;
 	}
 
-	uint64_t newly = heldButtons & ~pm.prevButtons;
+	// Rising edge on the held mask, plus any button tapped and released inside this tick,
+	// which never shows up in the held mask at all.
+	// A button pressed and then kept down appears in both terms on the same tick, so it still only fires once.
+	uint64_t newly = (heldButtons & ~pm.prevButtons) | pressedButtons;
 	pm.prevButtons = heldButtons;
 	if (newly == 0)
 	{

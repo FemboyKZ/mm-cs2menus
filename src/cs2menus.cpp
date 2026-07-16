@@ -1304,7 +1304,7 @@ void CS2MenusPlugin::Hook_GameFrame(bool /*simulating*/, bool /*bFirstTick*/, bo
 			{
 				continue;
 			}
-			g_MenuManager.PollButtons(slot, pawn->GetHeldButtons(), curtime);
+			g_MenuManager.PollButtons(slot, pawn->GetHeldButtons(), pawn->GetPressedButtons(), curtime);
 		}
 	}
 
