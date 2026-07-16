@@ -14,10 +14,12 @@
 #include <cstring>
 #include <string>
 
-// A player slot in the valid 0..MAXPLAYERS range.
+// A player slot in the valid 0..MAXPLAYERS-1 range.
+// The bound is exclusive: slots are 0 based, and MAXPLAYERS matches the engine's ABSOLUTE_PLAYER_LIMIT,
+// so slot MAXPLAYERS has no bit in a CPlayerBitVec.
 inline bool ValidSlot(int slot)
 {
-	return slot >= 0 && slot <= MAXPLAYERS;
+	return slot >= 0 && slot < MAXPLAYERS;
 }
 
 // Plugin-specific engine interfaces. Shared ones live in mmu/plugin_globals.h.
