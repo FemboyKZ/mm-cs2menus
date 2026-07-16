@@ -10,6 +10,11 @@ for sdk_target in MMSPlugin.sdk_targets:
     )
 
     binary.sources += [
+        os.path.join(sdk["path"], "tier1", "keyvalues3.cpp"),
+        os.path.join(sdk["path"], "entity2", "entitysystem.cpp"),
+        os.path.join(sdk["path"], "entity2", "entityidentity.cpp"),
+        os.path.join(sdk["path"], "entity2", "entitykeyvalues.cpp"),
+
         "src/cs2menus.cpp",
         "src/admin/menu_admin_bridge.cpp",
         "src/bridge/capi.cpp",
@@ -19,6 +24,7 @@ for sdk_target in MMSPlugin.sdk_targets:
         "src/menu/menu_manager.cpp",
         "src/render/center_html.cpp",
         "src/utils/print_utils.cpp",
+
         "vendor/mm-utils/mmu/chat_colors.cpp",
         "vendor/mm-utils/mmu/log.cpp",
         "vendor/mm-utils/mmu/print.cpp",
