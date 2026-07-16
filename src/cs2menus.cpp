@@ -75,30 +75,10 @@ static CCSGameRules *FindGameRules()
 		return s_pGameRules;
 	}
 
-	for (int idx = 0; idx < 4096; idx++)
+	EntityInstanceByClassIter_t iter("cs_gamerules");
+	if (CEntityInstance *inst = iter.First())
 	{
-		int chunk = idx / MAX_ENTITIES_IN_LIST;
-		int off = idx % MAX_ENTITIES_IN_LIST;
-		if (chunk < 0 || chunk >= MAX_ENTITY_LISTS)
-		{
-			break;
-		}
-		CEntityIdentity *pChunk = g_pEntitySystem->m_EntityList.m_pIdentityChunks[chunk];
-		if (!pChunk)
-		{
-			continue;
-		}
-		CEntityInstance *inst = pChunk[off].m_pInstance;
-		if (!inst)
-		{
-			continue;
-		}
-		const char *cls = inst->GetClassname();
-		if (cls && strcmp(cls, "cs_gamerules") == 0)
-		{
-			s_pGameRules = reinterpret_cast<CCSGameRulesProxy *>(inst)->GetGameRules();
-			break;
-		}
+		s_pGameRules = static_cast<CCSGameRulesProxy *>(inst)->GetGameRules();
 	}
 	return s_pGameRules;
 }

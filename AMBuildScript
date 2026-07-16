@@ -500,6 +500,10 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
             binary.sources += [
                 os.path.join(sdk["path"], "public", "tier0", "memoverride.cpp"),
                 os.path.join(sdk["path"], "tier1", "convar.cpp"),
+                os.path.join(sdk["path"], "tier1", "keyvalues3.cpp"),
+                os.path.join(sdk["path"], "entity2", "entitysystem.cpp"),
+                os.path.join(sdk["path"], "entity2", "entityidentity.cpp"),
+                os.path.join(sdk["path"], "entity2", "entitykeyvalues.cpp"),
             ]
 
         SdkHelpers.configureCxx(context, binary, sdk)
