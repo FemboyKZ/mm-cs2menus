@@ -91,6 +91,11 @@ void center_html::Send(int slot, const char *html, int durationSecs)
 		return;
 	}
 
+	if (!g_pEngine || !g_pEngine->GetPlayerNetInfo(CPlayerSlot(slot)))
+	{
+		return;
+	}
+
 	if (!s_pEvent)
 	{
 		s_pEvent = g_pGameEventManager->CreateEvent("show_survival_respawn_status");
@@ -125,7 +130,12 @@ void center_html::Send(int slot, const char *html, int durationSecs)
 		return;
 	}
 
-	CNetMessagePB<CMsgSource1LegacyGameEvent> *data = pMsg->AllocateMessage()->ToPB<CMsgSource1LegacyGameEvent>();
+	CNetMessage *raw = pMsg->AllocateMessage();
+	if (!raw)
+	{
+		return;
+	}
+	CNetMessagePB<CMsgSource1LegacyGameEvent> *data = raw->ToPB<CMsgSource1LegacyGameEvent>();
 	g_pGameEventManager->SerializeEvent(s_pEvent, data);
 
 	CSingleRecipientFilter filter(slot);
