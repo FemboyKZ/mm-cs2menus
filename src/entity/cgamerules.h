@@ -14,33 +14,38 @@ public:
 	DECLARE_SCHEMA_CLASS(CGameRules)
 };
 
-// Accessors guard against a 0 (failed) schema offset.
 class CCSGameRules : public CGameRules
 {
 public:
 	DECLARE_SCHEMA_CLASS(CCSGameRules)
 
+	SCHEMA_FIELD(GameTime_t, m_flRestartRoundTime)
+
+	// Offset only. A reader would invite treating this write-only fake as truth.
+	SCHEMA_FIELD_OFFSET_FN(m_bGameRestart)
+
 	// Reads m_flRestartRoundTime. Returns false if the offset couldn't resolve.
 	bool GetRestartRoundTime(float &out)
 	{
-		static int16_t off = schema::GetOffset("CCSGameRules", FNV1a("CCSGameRules"), "m_flRestartRoundTime", FNV1a("m_flRestartRoundTime"));
-		if (off <= 0)
+		if (m_flRestartRoundTime_Offset() <= 0)
 		{
 			return false;
 		}
-		out = reinterpret_cast<GameTime_t *>(reinterpret_cast<uintptr_t>(this) + off)->GetTime();
+		out = m_flRestartRoundTime().GetTime();
 		return true;
 	}
 
 	// Writes m_bGameRestart. Returns false if the offset couldn't resolve.
+	// Deliberately not SCHEMA_FIELD_NETWORKED: CCSGameRules is not a CEntityInstance,
+	// so there is no NetworkStateChanged to call, and this fake is server-side only.
 	bool SetGameRestart(bool value)
 	{
-		static int16_t off = schema::GetOffset("CCSGameRules", FNV1a("CCSGameRules"), "m_bGameRestart", FNV1a("m_bGameRestart"));
-		if (off <= 0)
+		const int16_t offset = m_bGameRestart_Offset();
+		if (offset <= 0)
 		{
 			return false;
 		}
-		*reinterpret_cast<bool *>(reinterpret_cast<uintptr_t>(this) + off) = value;
+		*reinterpret_cast<bool *>(reinterpret_cast<uintptr_t>(this) + offset) = value;
 		return true;
 	}
 };
@@ -51,14 +56,11 @@ class CCSGameRulesProxy : public CBaseEntity
 public:
 	DECLARE_SCHEMA_CLASS(CCSGameRulesProxy)
 
+	SCHEMA_FIELD(CCSGameRules *, m_pGameRules)
+
 	CCSGameRules *GetGameRules()
 	{
-		static int16_t off = schema::GetOffset("CCSGameRulesProxy", FNV1a("CCSGameRulesProxy"), "m_pGameRules", FNV1a("m_pGameRules"));
-		if (off <= 0)
-		{
-			return nullptr;
-		}
-		return *reinterpret_cast<CCSGameRules **>(reinterpret_cast<uintptr_t>(this) + off);
+		return m_pGameRules();
 	}
 };
 
