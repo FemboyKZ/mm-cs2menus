@@ -3,9 +3,9 @@ FROM registry.gitlab.steamos.cloud/steamrt/sniper/sdk
 WORKDIR /app
 VOLUME /app/build
 
-RUN apt update && apt install -y git python3-pip
+RUN apt update -o Acquire::Check-Valid-Until=false -y && apt install -y git
 RUN git clone https://github.com/alliedmodders/ambuild
-RUN pip install ./ambuild
+RUN cd ambuild && python3 setup.py install
 RUN git config --global --add safe.directory /app
 
 COPY . .
