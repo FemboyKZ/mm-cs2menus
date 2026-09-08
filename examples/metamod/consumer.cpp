@@ -22,7 +22,6 @@
 // reusing the cs2menus SDK setup. Not shipped in releases (PackageScript ignores it).
 
 #include <ISmmPlugin.h>
-#include <sh_vector.h>
 
 #include <eiface.h>
 #include <icvar.h>
@@ -36,8 +35,6 @@
 #define CONSUMER_MAXPLAYERS 64
 
 PLUGIN_GLOBALVARS();
-
-SH_DECL_HOOK3_void(ICvar, DispatchConCommand, SH_NOATTRIB, 0, ConCommandRef, const CCommandContext &, const CCommand &);
 
 static ICvar *g_pICvar = nullptr;
 static ICS2Menus *g_pMenus = nullptr;
@@ -70,6 +67,8 @@ static int g_colorIdx = 0;
 class ConsumerPlugin : public ISmmPlugin, public IMetamodListener
 {
 public:
+	ConsumerPlugin();
+
 	bool Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late) override;
 	bool Unload(char *error, size_t maxlen) override;
 
@@ -77,7 +76,7 @@ public:
 	void OnPluginLoad(PluginId id) override;
 	void OnPluginUnload(PluginId id) override;
 
-	void Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args);
+	KHook::Return<void> Hook_DispatchConCommand(ICvar *, ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args);
 
 	void BuildMenu();
 	void BuildStyledMenu();
@@ -126,7 +125,12 @@ public:
 	{
 		return "MENU-TEST";
 	}
+
+private:
+	KHook::Virtual<ICvar, void, ConCommandRef, const CCommandContext &, const CCommand &> m_DispatchConCommand;
 };
+
+ConsumerPlugin::ConsumerPlugin() : m_DispatchConCommand(&ICvar::DispatchConCommand, this, &ConsumerPlugin::Hook_DispatchConCommand, nullptr) {}
 
 ConsumerPlugin g_ThisPlugin;
 PLUGIN_EXPOSE(ConsumerPlugin, g_ThisPlugin);
@@ -138,7 +142,7 @@ bool ConsumerPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	GET_V_IFACE_CURRENT(GetEngineFactory, g_pICvar, ICvar, CVAR_INTERFACE_VERSION);
 
 	g_SMAPI->AddListener(this, this);
-	SH_ADD_HOOK(ICvar, DispatchConCommand, g_pICvar, SH_MEMBER(this, &ConsumerPlugin::Hook_DispatchConCommand), false);
+	m_DispatchConCommand.Add(g_pICvar);
 
 	g_pMenus = (ICS2Menus *)g_SMAPI->MetaFactory(CS2MENUS_INTERFACE, nullptr, nullptr);
 	if (!g_pMenus)
@@ -152,7 +156,7 @@ bool ConsumerPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 
 bool ConsumerPlugin::Unload(char * /*error*/, size_t /*maxlen*/)
 {
-	SH_REMOVE_HOOK(ICvar, DispatchConCommand, g_pICvar, SH_MEMBER(this, &ConsumerPlugin::Hook_DispatchConCommand), false);
+	m_DispatchConCommand.Remove(g_pICvar);
 
 	// Destroy everything we created so cs2menus never calls our (soon-gone) lambdas.
 	DropMenus();
@@ -496,24 +500,24 @@ void ConsumerPlugin::DropMenus()
 	g_SubMenu = kInvalidMenuHandle;
 }
 
-void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CCommandContext &ctx, const CCommand &args)
+KHook::Return<void> ConsumerPlugin::Hook_DispatchConCommand(ICvar *, ConCommandRef /*cmd*/, const CCommandContext &ctx, const CCommand &args)
 {
 	const char *cmdName = args.Arg(0);
 	if (!cmdName || (strcmp(cmdName, "say") != 0 && strcmp(cmdName, "say_team") != 0))
 	{
-		RETURN_META(MRES_IGNORED);
+		return {KHook::Action::Ignore};
 	}
 
 	int slot = ctx.GetPlayerSlot().Get();
 	if (slot < 0 || slot > CONSUMER_MAXPLAYERS)
 	{
-		RETURN_META(MRES_IGNORED);
+		return {KHook::Action::Ignore};
 	}
 
 	const char *msg = args.ArgS();
 	if (!msg)
 	{
-		RETURN_META(MRES_IGNORED);
+		return {KHook::Action::Ignore};
 	}
 
 	// args.ArgS() includes the quotes CS2 wraps around chat, so substring-match.
@@ -522,11 +526,11 @@ void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CComma
 		if (!g_pMenus)
 		{
 			META_CONPRINTF("[CS2Menus-test] cs2menus unavailable.\n");
-			RETURN_META(MRES_SUPERCEDE);
+			return {KHook::Action::Supersede};
 		}
 		BuildMenu();
 		g_pMenus->DisplayMenu(g_DemoMenu, slot, 30.0f);
-		RETURN_META(MRES_SUPERCEDE);
+		return {KHook::Action::Supersede};
 	}
 
 	if (strstr(msg, "!cs2styled"))
@@ -534,11 +538,11 @@ void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CComma
 		if (!g_pMenus)
 		{
 			META_CONPRINTF("[CS2Menus-test] cs2menus unavailable.\n");
-			RETURN_META(MRES_SUPERCEDE);
+			return {KHook::Action::Supersede};
 		}
 		BuildStyledMenu();
 		g_pMenus->DisplayMenu(g_StyledMenu, slot, 30.0f);
-		RETURN_META(MRES_SUPERCEDE);
+		return {KHook::Action::Supersede};
 	}
 
 	if (strstr(msg, "!cs2all"))
@@ -549,7 +553,7 @@ void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CComma
 			g_pMenus->DisplayMenuToAll(g_DemoMenu, 30.0f);
 			META_CONPRINTF("[CS2Menus-test] demo menu displayed to all.\n");
 		}
-		RETURN_META(MRES_SUPERCEDE);
+		return {KHook::Action::Supersede};
 	}
 
 	if (strstr(msg, "!cs2cancel"))
@@ -559,7 +563,7 @@ void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CComma
 			g_pMenus->CancelMenu(slot);
 			META_CONPRINTF("[CS2Menus-test] slot %d menu cancelled.\n", slot);
 		}
-		RETURN_META(MRES_SUPERCEDE);
+		return {KHook::Action::Supersede};
 	}
 
 	if (strstr(msg, "!cs2clear"))
@@ -570,7 +574,7 @@ void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CComma
 			g_pMenus->DisplayMenu(g_ClearMenu, slot, 30.0f);
 			META_CONPRINTF("[CS2Menus-test] clear menu cleared and rebuilt.\n");
 		}
-		RETURN_META(MRES_SUPERCEDE);
+		return {KHook::Action::Supersede};
 	}
 
 	if (strstr(msg, "!cs2theme"))
@@ -580,7 +584,7 @@ void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CComma
 			BuildThemeMenu();
 			g_pMenus->DisplayMenu(g_ThemeMenu, slot, 0.0f); // no timeout, cycle styles at your own pace
 		}
-		RETURN_META(MRES_SUPERCEDE);
+		return {KHook::Action::Supersede};
 	}
 
 	if (strstr(msg, "!cs2icon"))
@@ -590,13 +594,13 @@ void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CComma
 			BuildIconMenu();
 			g_pMenus->DisplayMenu(g_IconMenu, slot, 0.0f);
 		}
-		RETURN_META(MRES_SUPERCEDE);
+		return {KHook::Action::Supersede};
 	}
 
 	if (strstr(msg, "!cs2info"))
 	{
 		DumpInfo(slot);
-		RETURN_META(MRES_SUPERCEDE);
+		return {KHook::Action::Supersede};
 	}
 
 	if (strstr(msg, "!cs2busy"))
@@ -607,8 +611,8 @@ void ConsumerPlugin::Hook_DispatchConCommand(ConCommandRef /*cmd*/, const CComma
 			g_pMenus->SetExternalBusy(slot, busy);
 			META_CONPRINTF("[CS2Menus-test] slot %d external-busy: %d\n", slot, busy ? 1 : 0);
 		}
-		RETURN_META(MRES_SUPERCEDE);
+		return {KHook::Action::Supersede};
 	}
 
-	RETURN_META(MRES_IGNORED);
+	return {KHook::Action::Ignore};
 }
