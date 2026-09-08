@@ -32,12 +32,6 @@
 #include <networksystem/inetworkmessages.h>
 #include <schemasystem/schemasystem.h>
 
-SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
-SH_DECL_HOOK6_void(IServerGameClients, OnClientConnected, SH_NOATTRIB, 0, CPlayerSlot, const char *, uint64, const char *, const char *, bool);
-SH_DECL_HOOK5_void(IServerGameClients, ClientDisconnect, SH_NOATTRIB, 0, CPlayerSlot, ENetworkDisconnectionReason, const char *, uint64,
-				   const char *);
-SH_DECL_HOOK3_void(ICvar, DispatchConCommand, SH_NOATTRIB, 0, ConCommandRef, const CCommandContext &, const CCommand &);
-
 IServerGameDLL *g_pServerGameDLL = nullptr;
 IServerGameClients *g_pGameClients = nullptr;
 IVEngineServer *g_pEngine = nullptr;
@@ -1135,6 +1129,14 @@ CON_COMMAND_F(mm_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_
 					 KeyDisplay(p.down).c_str(), KeyDisplay(p.select).c_str(), KeyDisplay(p.back).c_str());
 }
 
+CS2MenusPlugin::CS2MenusPlugin()
+	: m_GameFrame(&IServerGameDLL::GameFrame, this, nullptr, &CS2MenusPlugin::Hook_GameFrame),
+	  m_OnClientConnected(&IServerGameClients::OnClientConnected, this, &CS2MenusPlugin::Hook_OnClientConnected, nullptr),
+	  m_ClientDisconnect(&IServerGameClients::ClientDisconnect, this, nullptr, &CS2MenusPlugin::Hook_ClientDisconnect),
+	  m_DispatchConCommand(&ICvar::DispatchConCommand, this, &CS2MenusPlugin::Hook_DispatchConCommand, nullptr)
+{
+}
+
 bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
 	PLUGIN_SAVEVARS();
@@ -1161,10 +1163,10 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 
 	g_SMAPI->AddListener(this, this);
 
-	SH_ADD_HOOK(IServerGameDLL, GameFrame, g_pServerGameDLL, SH_MEMBER(this, &CS2MenusPlugin::Hook_GameFrame), true);
-	SH_ADD_HOOK(IServerGameClients, OnClientConnected, g_pGameClients, SH_MEMBER(this, &CS2MenusPlugin::Hook_OnClientConnected), false);
-	SH_ADD_HOOK(IServerGameClients, ClientDisconnect, g_pGameClients, SH_MEMBER(this, &CS2MenusPlugin::Hook_ClientDisconnect), true);
-	SH_ADD_HOOK(ICvar, DispatchConCommand, g_pICvar, SH_MEMBER(this, &CS2MenusPlugin::Hook_DispatchConCommand), false);
+	m_GameFrame.Add(g_pServerGameDLL);
+	m_OnClientConnected.Add(g_pGameClients);
+	m_ClientDisconnect.Add(g_pGameClients);
+	m_DispatchConCommand.Add(g_pICvar);
 
 	g_pCVar = g_pICvar;
 	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL);
@@ -1259,10 +1261,10 @@ bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 {
 	MENU_AdminBridge_Shutdown();
 
-	SH_REMOVE_HOOK(IServerGameDLL, GameFrame, g_pServerGameDLL, SH_MEMBER(this, &CS2MenusPlugin::Hook_GameFrame), true);
-	SH_REMOVE_HOOK(IServerGameClients, OnClientConnected, g_pGameClients, SH_MEMBER(this, &CS2MenusPlugin::Hook_OnClientConnected), false);
-	SH_REMOVE_HOOK(IServerGameClients, ClientDisconnect, g_pGameClients, SH_MEMBER(this, &CS2MenusPlugin::Hook_ClientDisconnect), true);
-	SH_REMOVE_HOOK(ICvar, DispatchConCommand, g_pICvar, SH_MEMBER(this, &CS2MenusPlugin::Hook_DispatchConCommand), false);
+	m_GameFrame.Remove(g_pServerGameDLL);
+	m_OnClientConnected.Remove(g_pGameClients);
+	m_ClientDisconnect.Remove(g_pGameClients);
+	m_DispatchConCommand.Remove(g_pICvar);
 
 	// Drop all menus + displays without firing callbacks into consumer plugins.
 	g_MenuManager.Shutdown();
@@ -1274,12 +1276,12 @@ bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 	return true;
 }
 
-void CS2MenusPlugin::Hook_GameFrame(bool /*simulating*/, bool /*bFirstTick*/, bool /*bLastTick*/)
+KHook::Return<void> CS2MenusPlugin::Hook_GameFrame(IServerGameDLL *, bool /*simulating*/, bool /*bFirstTick*/, bool /*bLastTick*/)
 {
 	CGlobalVars *globals = GetGameGlobals();
 	if (!globals)
 	{
-		RETURN_META(MRES_IGNORED);
+		return {KHook::Action::Ignore};
 	}
 
 	float curtime = globals->curtime;
@@ -1310,22 +1312,22 @@ void CS2MenusPlugin::Hook_GameFrame(bool /*simulating*/, bool /*bFirstTick*/, bo
 
 	g_MenuManager.Tick(curtime);
 	ApplyHudFlashingFix(curtime);
-	RETURN_META(MRES_IGNORED);
+	return {KHook::Action::Ignore};
 }
 
-void CS2MenusPlugin::Hook_OnClientConnected(CPlayerSlot slot, const char * /*pszName*/, uint64 xuid, const char * /*pszNetworkID*/,
-											const char * /*pszAddress*/, bool bFakePlayer)
+KHook::Return<void> CS2MenusPlugin::Hook_OnClientConnected(IServerGameClients *, CPlayerSlot slot, const char * /*pszName*/, uint64 xuid,
+														   const char * /*pszNetworkID*/, const char * /*pszAddress*/, bool bFakePlayer)
 {
 	int s = slot.Get();
 	if (!bFakePlayer && ValidSlot(s))
 	{
 		LoadSlot(s, xuid);
 	}
-	RETURN_META(MRES_IGNORED);
+	return {KHook::Action::Ignore};
 }
 
-void CS2MenusPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectionReason /*reason*/, const char * /*pszName*/, uint64 /*xuid*/,
-										   const char * /*pszNetworkID*/)
+KHook::Return<void> CS2MenusPlugin::Hook_ClientDisconnect(IServerGameClients *, CPlayerSlot slot, ENetworkDisconnectionReason /*reason*/,
+														  const char * /*pszName*/, uint64 /*xuid*/, const char * /*pszNetworkID*/)
 {
 	int s = slot.Get();
 	g_MenuManager.OnPlayerDisconnect(s);
@@ -1335,7 +1337,7 @@ void CS2MenusPlugin::Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnecti
 		s_prefs[s] = SlotPrefs {};
 		s_prefsMenu[s] = kInvalidMenuHandle;
 	}
-	RETURN_META(MRES_IGNORED);
+	return {KHook::Action::Ignore};
 }
 
 // Map a bare command body to a nav action. "menu_close" also answers to exit/back.
@@ -1514,24 +1516,24 @@ static bool ParseChatPrefixWord(const char *rawMsg, std::string &word, bool &sil
 	return true;
 }
 
-void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args)
+KHook::Return<void> CS2MenusPlugin::Hook_DispatchConCommand(ICvar *, ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args)
 {
 	const char *cmdName = args.Arg(0);
 	if (!cmdName)
 	{
-		RETURN_META(MRES_IGNORED);
+		return {KHook::Action::Ignore};
 	}
 
 	bool isSay = (strcmp(cmdName, "say") == 0 || strcmp(cmdName, "say_team") == 0);
 	if (!isSay)
 	{
-		RETURN_META(MRES_IGNORED);
+		return {KHook::Action::Ignore};
 	}
 
 	int slot = ctx.GetPlayerSlot().Get();
 	if (!ValidSlot(slot))
 	{
-		RETURN_META(MRES_IGNORED);
+		return {KHook::Action::Ignore};
 	}
 
 	// "!menu" / "!prefs" opens the preference menu, with or without a menu already open.
@@ -1547,19 +1549,19 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 			{
 				OpenPrefsMenu(slot);
 			}
-			RETURN_META(silent ? MRES_SUPERCEDE : MRES_IGNORED);
+			return {silent ? KHook::Action::Supersede : KHook::Action::Ignore};
 		}
 	}
 
 	if (!g_MenuManager.HasMenu(slot))
 	{
-		RETURN_META(MRES_IGNORED);
+		return {KHook::Action::Ignore};
 	}
 
 	const char *rawMsg = args.ArgS();
 	if (!rawMsg || !rawMsg[0])
 	{
-		RETURN_META(MRES_IGNORED);
+		return {KHook::Action::Ignore};
 	}
 
 	// ProcessInput strips the outer quotes CS2 wraps around the say message.
@@ -1592,7 +1594,7 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 		}
 		if (!MENU_AdminBridge_CanUseCommand(slot, navCmd, 0))
 		{
-			RETURN_META(navSilent ? MRES_SUPERCEDE : MRES_IGNORED);
+			return {navSilent ? KHook::Action::Supersede : KHook::Action::Ignore};
 		}
 		if (navAction == MenuNavAction::Select && navNumber >= 0)
 		{
@@ -1602,15 +1604,15 @@ void CS2MenusPlugin::Hook_DispatchConCommand(ConCommandRef cmd, const CCommandCo
 		{
 			g_MenuManager.CommandNav(slot, navAction, curtime);
 		}
-		RETURN_META(navSilent ? MRES_SUPERCEDE : MRES_IGNORED);
+		return {navSilent ? KHook::Action::Supersede : KHook::Action::Ignore};
 	}
 
 	// Typing a bare item number in chat selects that row, same as menu_select.
 	if (MENU_AdminBridge_CanUseCommand(slot, "menu_select", 0) && g_MenuManager.ProcessInput(slot, rawMsg, curtime))
 	{
 		// Suppress the chat line so the number doesn't show.
-		RETURN_META(MRES_SUPERCEDE);
+		return {KHook::Action::Supersede};
 	}
 
-	RETURN_META(MRES_IGNORED);
+	return {KHook::Action::Ignore};
 }

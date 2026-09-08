@@ -5,11 +5,12 @@
 #include <ISmmPlugin.h>
 #include <igameevents.h>
 #include <iserver.h>
-#include <sh_vector.h>
 
 class CS2MenusPlugin : public ISmmPlugin, public IMetamodListener
 {
 public:
+	CS2MenusPlugin();
+
 	bool Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late);
 	bool Unload(char *error, size_t maxlen);
 
@@ -22,12 +23,13 @@ public: // IMetamodListener
 	void OnPluginLoad(PluginId id);
 	void OnPluginUnload(PluginId id);
 
-public: // SourceHook hook handlers
-	void Hook_GameFrame(bool simulating, bool bFirstTick, bool bLastTick);
-	void Hook_OnClientConnected(CPlayerSlot slot, const char *pszName, uint64 xuid, const char *pszNetworkID, const char *pszAddress,
-								bool bFakePlayer);
-	void Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectionReason reason, const char *pszName, uint64 xuid, const char *pszNetworkID);
-	void Hook_DispatchConCommand(ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args);
+public: // KHook hook handlers
+	KHook::Return<void> Hook_GameFrame(IServerGameDLL *, bool simulating, bool bFirstTick, bool bLastTick);
+	KHook::Return<void> Hook_OnClientConnected(IServerGameClients *, CPlayerSlot slot, const char *pszName, uint64 xuid, const char *pszNetworkID,
+											   const char *pszAddress, bool bFakePlayer);
+	KHook::Return<void> Hook_ClientDisconnect(IServerGameClients *, CPlayerSlot slot, ENetworkDisconnectionReason reason, const char *pszName,
+											  uint64 xuid, const char *pszNetworkID);
+	KHook::Return<void> Hook_DispatchConCommand(ICvar *, ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args);
 
 public:
 	const char *GetAuthor()
@@ -69,6 +71,12 @@ public:
 	{
 		return PLUGIN_LOGTAG;
 	}
+
+private:
+	KHook::Virtual<IServerGameDLL, void, bool, bool, bool> m_GameFrame;
+	KHook::Virtual<IServerGameClients, void, CPlayerSlot, const char *, uint64, const char *, const char *, bool> m_OnClientConnected;
+	KHook::Virtual<IServerGameClients, void, CPlayerSlot, ENetworkDisconnectionReason, const char *, uint64, const char *> m_ClientDisconnect;
+	KHook::Virtual<ICvar, void, ConCommandRef, const CCommandContext &, const CCommand &> m_DispatchConCommand;
 };
 
 extern CS2MenusPlugin g_ThisPlugin;

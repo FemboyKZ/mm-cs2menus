@@ -7,7 +7,6 @@
 #include <ISmmPlugin.h>
 #include <igameevents.h>
 #include <iserver.h>
-#include <sh_vector.h>
 
 #include <cstdint>
 #include <cstdio>
