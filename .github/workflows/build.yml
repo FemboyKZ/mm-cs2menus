@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
-          apt-get update -y
+          apt-get update -o Acquire::Check-Valid-Until=false -y
           apt-get install -y python3 python3-pip
           git clone https://github.com/alliedmodders/ambuild.git
           pip3 install ./ambuild
