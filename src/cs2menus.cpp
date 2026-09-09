@@ -840,7 +840,7 @@ namespace
 		std::string c = cur.empty() ? "default" : cur;
 		if (c == "default")
 		{
-			return keys::kKeys[0].canonical;
+			return keys::Canonical(keys::kKeys[0]);
 		}
 		if (c == "none" || c == "off")
 		{
@@ -852,7 +852,7 @@ namespace
 			return "default"; // unknown name
 		}
 		int idx = static_cast<int>(k - keys::kKeys);
-		return (idx + 1 < keys::kKeyCount) ? keys::kKeys[idx + 1].canonical : "none";
+		return (idx + 1 < keys::kKeyCount) ? keys::Canonical(keys::kKeys[idx + 1]) : "none";
 	}
 
 	// Refresh the slot's open preference menu rows (no-op if it isn't open).

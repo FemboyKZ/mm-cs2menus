@@ -7,71 +7,34 @@
 #include <cstdint>
 #include <string>
 
+// Engine-side half of a menu key: the IN_* bit we test and the footer label we draw.
+// The names a config may use live in ics2menus.h (kMenuButtonNames).
+// Keep kKeys in the same order as kMenuButtonNames, the preference menu cycles keys by index.
 namespace keys
 {
 	struct KeyDef
 	{
-		MenuButton button;     // public enum value (Default/None are handled separately)
-		uint64_t mask;         // IN_* button bit
-		const char *canonical; // short name stored in configs/DB ("shift")
-		const char *label;     // footer hint ("SHIFT")
-		const char *aliases;   // space-separated alternates also accepted on input ("speed walk")
+		MenuButton button; // public enum value (Default/None are handled separately)
+		uint64_t mask;     // IN_* button bit
+		const char *label; // footer hint ("SHIFT")
 	};
 
 	inline const KeyDef kKeys[] = {
-		{MenuButton::W, in_button::Forward, "w", "W", "forward"},
-		{MenuButton::S, in_button::Back, "s", "S", "back"},
-		{MenuButton::A, in_button::MoveLeft, "a", "A", "left moveleft"},
-		{MenuButton::D, in_button::MoveRight, "d", "D", "right moveright"},
-		{MenuButton::Use, in_button::Use, "e", "E", "use interact"},
-		{MenuButton::Speed, in_button::Speed, "shift", "SHIFT", "speed walk"},
-		{MenuButton::Duck, in_button::Duck, "ctrl", "CTRL", "duck crouch"},
-		{MenuButton::Jump, in_button::Jump, "space", "SPACE", "jump"},
-		{MenuButton::Reload, in_button::Reload, "r", "R", "reload"},
-		{MenuButton::Attack, in_button::Attack, "mouse1", "MOUSE1", "attack"},
-		{MenuButton::Attack2, in_button::Attack2, "mouse2", "MOUSE2", "attack2"},
-		{MenuButton::Score, in_button::Score, "tab", "TAB", "score"},
-		{MenuButton::Inspect, in_button::Inspect, "f", "F", "inspect lookatweapon"},
+		{MenuButton::W, in_button::Forward, "W"},
+		{MenuButton::S, in_button::Back, "S"},
+		{MenuButton::A, in_button::MoveLeft, "A"},
+		{MenuButton::D, in_button::MoveRight, "D"},
+		{MenuButton::Use, in_button::Use, "E"},
+		{MenuButton::Speed, in_button::Speed, "SHIFT"},
+		{MenuButton::Duck, in_button::Duck, "CTRL"},
+		{MenuButton::Jump, in_button::Jump, "SPACE"},
+		{MenuButton::Reload, in_button::Reload, "R"},
+		{MenuButton::Attack, in_button::Attack, "MOUSE1"},
+		{MenuButton::Attack2, in_button::Attack2, "MOUSE2"},
+		{MenuButton::Score, in_button::Score, "TAB"},
+		{MenuButton::Inspect, in_button::Inspect, "F"},
 	};
 	inline constexpr int kKeyCount = static_cast<int>(sizeof(kKeys) / sizeof(kKeys[0]));
-
-	// True if `name` is a whitespace-delimited token of `list`.
-	inline bool ContainsWord(const char *list, const std::string &name)
-	{
-		std::string tok;
-		for (const char *p = list;; p++)
-		{
-			if (*p == ' ' || *p == '\0')
-			{
-				if (!tok.empty() && tok == name)
-				{
-					return true;
-				}
-				tok.clear();
-				if (*p == '\0')
-				{
-					return false;
-				}
-			}
-			else
-			{
-				tok += *p;
-			}
-		}
-	}
-
-	// Look up a key by any accepted name (canonical or alias). Expects a lowercase name.
-	inline const KeyDef *FindByName(const std::string &name)
-	{
-		for (const KeyDef &k : kKeys)
-		{
-			if (name == k.canonical || ContainsWord(k.aliases, name))
-			{
-				return &k;
-			}
-		}
-		return nullptr;
-	}
 
 	// Look up a key by its public MenuButton value.
 	inline const KeyDef *FindByButton(MenuButton button)
@@ -84,6 +47,19 @@ namespace keys
 			}
 		}
 		return nullptr;
+	}
+
+	// Look up a key by any accepted name (canonical or alias). Expects a lowercase name.
+	// Null for "none"/"off" and for anything unrecognised, neither of which maps to a real key.
+	inline const KeyDef *FindByName(const std::string &name)
+	{
+		return FindByButton(ParseMenuButton(name));
+	}
+
+	// Canonical short name of a key, as written to configs and the prefs DB.
+	inline const char *Canonical(const KeyDef &k)
+	{
+		return GetMenuButtonName(k.button);
 	}
 
 	// Look up a key by its IN_* button mask.

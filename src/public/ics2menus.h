@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <string>
 
 // Public menu API for CS2Menus.
 //
@@ -68,6 +69,88 @@ enum class MenuButton : int
 	Inspect, // F (look at weapon)
 	None,    // disable this action for the menu
 };
+
+// The names a server operator may write in a config for each MenuButton.
+struct MenuButtonName
+{
+	MenuButton button;
+	const char *canonical; // short name written back to configs and the prefs DB
+	const char *aliases;   // space-separated alternates also accepted on input
+};
+
+inline const MenuButtonName kMenuButtonNames[] = {
+	{MenuButton::W, "w", "forward"},
+	{MenuButton::S, "s", "back"},
+	{MenuButton::A, "a", "left moveleft"},
+	{MenuButton::D, "d", "right moveright"},
+	{MenuButton::Use, "e", "use interact"},
+	{MenuButton::Speed, "shift", "speed walk"},
+	{MenuButton::Duck, "ctrl", "duck crouch"},
+	{MenuButton::Jump, "space", "jump"},
+	{MenuButton::Reload, "r", "reload"},
+	{MenuButton::Attack, "mouse1", "attack"},
+	{MenuButton::Attack2, "mouse2", "attack2"},
+	{MenuButton::Score, "tab", "score"},
+	{MenuButton::Inspect, "f", "inspect lookatweapon"},
+};
+inline constexpr int kMenuButtonNameCount = static_cast<int>(sizeof(kMenuButtonNames) / sizeof(kMenuButtonNames[0]));
+
+// True if `name` is a whitespace-delimited token of `list`.
+inline bool MenuButtonNameMatches(const char *list, const std::string &name)
+{
+	std::string tok;
+	for (const char *p = list;; p++)
+	{
+		if (*p == ' ' || *p == '\0')
+		{
+			if (!tok.empty() && tok == name)
+			{
+				return true;
+			}
+			tok.clear();
+			if (*p == '\0')
+			{
+				return false;
+			}
+		}
+		else
+		{
+			tok += *p;
+		}
+	}
+}
+
+// Resolve a config key name to a MenuButton. Expects an already-lowercased name.
+// "none"/"off" disables the action.
+// Anything unknown (including "default") returns MenuButton::Default.
+inline MenuButton ParseMenuButton(const std::string &name)
+{
+	if (name == "none" || name == "off")
+	{
+		return MenuButton::None;
+	}
+	for (const MenuButtonName &k : kMenuButtonNames)
+	{
+		if (name == k.canonical || MenuButtonNameMatches(k.aliases, name))
+		{
+			return k.button;
+		}
+	}
+	return MenuButton::Default;
+}
+
+// Canonical short name for a button, or nullptr for Default/None.
+inline const char *GetMenuButtonName(MenuButton button)
+{
+	for (const MenuButtonName &k : kMenuButtonNames)
+	{
+		if (k.button == button)
+		{
+			return k.canonical;
+		}
+	}
+	return nullptr;
+}
 
 // HTML-menu navigation actions whose key can be overridden per menu.
 enum class MenuNavAction : int
