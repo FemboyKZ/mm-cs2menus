@@ -28,7 +28,6 @@ For commands see: [COMMANDS.md](./COMMANDS.md).
 
 - CS2 Server
 - [Metamod:Source 2.0](https://www.metamodsource.net/downloads.php?branch=dev)
-- (Optional) [ClientConvarValue](https://github.com/komashchenko/ClientCvarValue) - For client translation support
 - (Optional) [sql_mm](https://github.com/zer0k-z/sql_mm) - For per-player menu preferences (see below)
 - (Optional) [MM-CS2Admin](https://github.com/FemboyKZ/mm-cs2admin) - For command overrides (gate commands to admins only).
 

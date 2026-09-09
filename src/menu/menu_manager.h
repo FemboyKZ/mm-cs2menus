@@ -226,7 +226,7 @@ public:
 	void SetHtmlAvailable(bool available);
 
 	// Resolve a viewing player's language key for label translation.
-	// Set by the plugin from the optional ClientCvarValue interface.
+	// Set by the plugin from the client's reported cl_language.
 	// When unset (or it returns ""), the translation default language is used.
 	void SetLanguageResolver(std::function<std::string(int slot)> resolver);
 

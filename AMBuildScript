@@ -43,8 +43,6 @@ def additionalIncludes(context, binary, sdk):
         os.path.join(builder.sourcePath, "src"),
         # sql_mm public headers for the optional player-preference store
         os.path.join(builder.sourcePath, "vendor", "sql_mm", "src", "public"),
-        # clientcvarvalue public headers for the optional client translations
-        os.path.join(builder.sourcePath, "vendor", "ClientCvarValue", "public"),
         os.path.join(builder.sourcePath, "vendor", "mm-utils"),
     ]
 

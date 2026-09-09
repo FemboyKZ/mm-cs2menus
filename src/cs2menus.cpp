@@ -15,10 +15,9 @@
 #include "render/center_html.h"
 #include "utils/html_style.h"
 #include "utils/print_utils.h"
+#include "mmu/cvarquery.h"
 #include "mmu/log.h"
 #include "mmu/str_utils.h"
-
-#include "vendor/ClientCvarValue/public/iclientcvarvalue.h"
 
 #include <cctype>
 #include <cstdio>
@@ -38,13 +37,11 @@ IVEngineServer *g_pEngine = nullptr;
 ICvar *g_pICvar = nullptr;
 IGameEventSystem *g_pGameEventSystem = nullptr;
 
-static IClientCvarValue *g_pClientCvarValue = nullptr;
-
 // Language key for the player in `slot`, mapped from their cl_language.
 // Empty string when unavailable, which makes Translate use the default language.
 static std::string SlotLanguage(int slot)
 {
-	const char *raw = g_pClientCvarValue ? g_pClientCvarValue->GetClientLanguage(CPlayerSlot(slot)) : nullptr;
+	const char *raw = mmu::cvarquery::GetClientLanguage(slot);
 	return g_Translations.MapClientLanguage(raw);
 }
 
@@ -656,9 +653,6 @@ static void LoadAndApplyConfig()
 
 	g_MenuManager.Configure(settings);
 
-	// Label translations. Re-acquire ClientCvarValue (optional, may load after us),
-	// reload the phrase files, and wire per-viewer language resolution.
-	g_pClientCvarValue = static_cast<IClientCvarValue *>(g_SMAPI->MetaFactory(CLIENTCVARVALUE_INTERFACE, nullptr, nullptr));
 	g_Translations.SetResolveColorTags(false);
 	g_Translations.Load(g_SMAPI->GetBaseDir(), "cs2menus");
 	g_Translations.SetDefaultLanguage(g_MenusConfig.menu.defaultLanguage);
@@ -1163,6 +1157,9 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 
 	g_SMAPI->AddListener(this, this);
 
+	// Non fatal, labels fall back to the default language.
+	mmu::cvarquery::Init(g_pEngine);
+
 	m_GameFrame.Add(g_pServerGameDLL);
 	m_OnClientConnected.Add(g_pGameClients);
 	m_ClientDisconnect.Add(g_pGameClients);
@@ -1266,6 +1263,9 @@ bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 	m_ClientDisconnect.Remove(g_pGameClients);
 	m_DispatchConCommand.Remove(g_pICvar);
 
+	// Drops pending callbacks pointing into this binary.
+	mmu::cvarquery::Shutdown();
+
 	// Drop all menus + displays without firing callbacks into consumer plugins.
 	g_MenuManager.Shutdown();
 	g_MenuPrefsDB.Shutdown();
@@ -1319,6 +1319,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_OnClientConnected(IServerGameClients *,
 														   const char * /*pszNetworkID*/, const char * /*pszAddress*/, bool bFakePlayer)
 {
 	int s = slot.Get();
+	mmu::cvarquery::OnClientConnected(s, bFakePlayer);
 	if (!bFakePlayer && ValidSlot(s))
 	{
 		LoadSlot(s, xuid);
@@ -1330,6 +1331,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_ClientDisconnect(IServerGameClients *, 
 														  const char * /*pszName*/, uint64 /*xuid*/, const char * /*pszNetworkID*/)
 {
 	int s = slot.Get();
+	mmu::cvarquery::OnClientDisconnect(s);
 	g_MenuManager.OnPlayerDisconnect(s);
 	if (ValidSlot(s))
 	{
