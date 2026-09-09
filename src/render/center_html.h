@@ -5,7 +5,7 @@
 
 namespace center_html
 {
-	// Resolve IGameEventManager2 by signature (see gamedata.h).
+	// Resolve IGameEventManager2 by signature (see mmu/gamedata.h).
 	// Call once after the engine interfaces are available.
 	// Returns false if the signature didn't match,
 	// in which case HTML menus are unavailable but chat menus still work.

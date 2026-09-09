@@ -1,7 +1,7 @@
 #include "center_html.h"
 #include "mmu/log.h"
 #include "src/common.h"
-#include "src/gamedata.h"
+#include "mmu/gamedata.h"
 #include "mmu/sigscan.h"
 #include "mmu/recipient_filter.h"
 
@@ -39,7 +39,7 @@ bool center_html::Init()
 	}
 
 	bool multiple = false;
-	void *insn = sig::FindSignatureUnique(base, size, gamedata::kGameEventManagerSig, gamedata::kGameEventManagerSigLen, multiple);
+	void *insn = sig::FindSignatureUnique(base, size, mmu::gamedata::kGameEventManagerSig, multiple);
 	if (!insn)
 	{
 		MMU_LOG_WARN("GameEventManager signature not found - HTML menus disabled.\n");

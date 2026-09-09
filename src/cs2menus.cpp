@@ -7,7 +7,7 @@
 #include "db/prefs_db.h"
 #include "mmu/entity/ccsplayercontroller.h"
 #include "entity/cgamerules.h"
-#include "gamedata.h"
+#include "mmu/entity/entity_system.h"
 #include "lang/translations.h"
 #include "menu/key_table.h"
 #include "menu/menu_manager.h"
@@ -49,11 +49,7 @@ CGameEntitySystem *g_pEntitySystem = nullptr;
 
 CGameEntitySystem *GameEntitySystem()
 {
-	if (!g_pGameResourceServiceServer)
-	{
-		return nullptr;
-	}
-	return *reinterpret_cast<CGameEntitySystem **>(reinterpret_cast<uintptr_t>(g_pGameResourceServiceServer) + gamedata::kGameEntitySystemOffset);
+	return mmu::EntitySystem();
 }
 
 // Cached gamerules for the HUD-flashing workaround. Re-found each map.
