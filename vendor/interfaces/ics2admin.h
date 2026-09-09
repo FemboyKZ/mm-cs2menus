@@ -1,7 +1,9 @@
 #ifndef _INCLUDE_ICS2ADMIN_H_
 #define _INCLUDE_ICS2ADMIN_H_
 
+#include <cctype>
 #include <cstdint>
+#include <string>
 
 #define CS2ADMIN_INTERFACE "ICS2Admin002"
 
@@ -31,6 +33,111 @@ enum CS2AdminFlag : uint32_t
 	CS2ADMIN_FLAG_CUSTOM6 = (1 << 19),    // t - Custom 6
 	CS2ADMIN_FLAG_ROOT = (1 << 25),       // z - Root (all access)
 };
+
+// Resolve a permission name from a consumer plugin's config to a single flag bit.
+// Accepts a flag name ("changemap", "root", "reservation") or a single SourceMod letter a-z.
+//
+// Unknown input resolves to root, so a typo in a config locks the command down to root rather than opening it up.
+// Callers that want "no flag required" must not call this, they should pass 0 themselves (an empty permission string usually means open).
+inline uint32_t ParseAdminFlagName(const std::string &name)
+{
+	if (name == "reservation")
+	{
+		return CS2ADMIN_FLAG_RESERVATION;
+	}
+	if (name == "generic")
+	{
+		return CS2ADMIN_FLAG_GENERIC;
+	}
+	if (name == "kick")
+	{
+		return CS2ADMIN_FLAG_KICK;
+	}
+	if (name == "ban")
+	{
+		return CS2ADMIN_FLAG_BAN;
+	}
+	if (name == "unban")
+	{
+		return CS2ADMIN_FLAG_UNBAN;
+	}
+	if (name == "slay")
+	{
+		return CS2ADMIN_FLAG_SLAY;
+	}
+	if (name == "changemap")
+	{
+		return CS2ADMIN_FLAG_CHANGEMAP;
+	}
+	if (name == "convars")
+	{
+		return CS2ADMIN_FLAG_CONVARS;
+	}
+	if (name == "config")
+	{
+		return CS2ADMIN_FLAG_CONFIG;
+	}
+	if (name == "chat")
+	{
+		return CS2ADMIN_FLAG_CHAT;
+	}
+	if (name == "vote")
+	{
+		return CS2ADMIN_FLAG_VOTE;
+	}
+	if (name == "password")
+	{
+		return CS2ADMIN_FLAG_PASSWORD;
+	}
+	if (name == "rcon")
+	{
+		return CS2ADMIN_FLAG_RCON;
+	}
+	if (name == "cheats")
+	{
+		return CS2ADMIN_FLAG_CHEATS;
+	}
+	if (name == "custom1")
+	{
+		return CS2ADMIN_FLAG_CUSTOM1;
+	}
+	if (name == "custom2")
+	{
+		return CS2ADMIN_FLAG_CUSTOM2;
+	}
+	if (name == "custom3")
+	{
+		return CS2ADMIN_FLAG_CUSTOM3;
+	}
+	if (name == "custom4")
+	{
+		return CS2ADMIN_FLAG_CUSTOM4;
+	}
+	if (name == "custom5")
+	{
+		return CS2ADMIN_FLAG_CUSTOM5;
+	}
+	if (name == "custom6")
+	{
+		return CS2ADMIN_FLAG_CUSTOM6;
+	}
+	if (name == "root")
+	{
+		return CS2ADMIN_FLAG_ROOT;
+	}
+
+	// Single SourceMod letter a-z: a=(1<<0) ... y=(1<<24), z=root.
+	if (name.size() == 1)
+	{
+		char c = static_cast<char>(tolower(static_cast<unsigned char>(name[0])));
+		if (c >= 'a' && c <= 'z')
+		{
+			return (c == 'z') ? CS2ADMIN_FLAG_ROOT : (1u << (c - 'a'));
+		}
+	}
+
+	return CS2ADMIN_FLAG_ROOT;
+}
 
 // Public admin interface for CS2Admin.
 // Provides read-only access to admin status and permission checks,
