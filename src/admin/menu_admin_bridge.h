@@ -6,7 +6,7 @@
 // If mm-cs2admin is not loaded, commands with a default flag of 0 stay open
 // and any command with a non-zero default flag is denied.
 
-#include "interfaces/cs2admin/ics2admin.h"
+#include "mmu/admin_access.h"
 #include <cstdint>
 
 // Call once in AllPluginsLoaded() to try to acquire the ICS2Admin interface.

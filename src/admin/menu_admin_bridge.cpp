@@ -1,9 +1,8 @@
 #include "menu_admin_bridge.h"
-#include "mmu/interface_bridge.h"
 #include "mmu/log.h"
 #include "src/common.h"
 
-static mmu::InterfaceBridge<ICS2Admin> s_admin(CS2ADMIN_INTERFACE);
+static mmu::AdminAccess s_admin("cs2menus");
 
 void MENU_AdminBridge_Init()
 {
@@ -35,18 +34,5 @@ void MENU_AdminBridge_Shutdown()
 
 bool MENU_AdminBridge_CanUseCommand(int slot, const char *commandName, uint32_t defaultFlag)
 {
-	// Console always passes
-	if (slot < 0)
-	{
-		return true;
-	}
-
-	// Admin plugin not loaded. Open commands (defaultFlag 0) stay open,
-	// commands with a configured flag stay blocked (restrictive fallback).
-	if (!s_admin)
-	{
-		return defaultFlag == 0;
-	}
-
-	return s_admin->CanUseCommand(slot, commandName, "cs2menus", defaultFlag);
+	return s_admin.CanUseCommand(slot, commandName, defaultFlag);
 }
