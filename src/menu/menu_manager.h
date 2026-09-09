@@ -2,7 +2,7 @@
 #define _INCLUDE_MENU_MANAGER_H_
 
 #include "src/common.h"
-#include "src/public/ics2menus.h"
+#include "interfaces/cs2menus/ics2menus.h"
 
 #include <cstdint>
 #include <functional>

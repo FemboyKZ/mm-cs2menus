@@ -11,7 +11,7 @@
 #include "lang/translations.h"
 #include "menu/key_table.h"
 #include "menu/menu_manager.h"
-#include "public/ics2menus.h"
+#include "interfaces/cs2menus/ics2menus.h"
 #include "render/center_html.h"
 #include "utils/html_style.h"
 #include "utils/print_utils.h"

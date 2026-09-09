@@ -2,8 +2,8 @@
 // See src/public/cs2menus_capi.h for the contract.
 
 #define CS2MENUS_EXPORTS
-#include "src/public/cs2menus_capi.h"
-#include "src/public/ics2menus.h"
+#include "interfaces/cs2menus/cs2menus_capi.h"
+#include "interfaces/cs2menus/ics2menus.h"
 
 #include <cstring>
 
