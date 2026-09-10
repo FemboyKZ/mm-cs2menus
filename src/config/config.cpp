@@ -39,11 +39,11 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		}
 		else if (k == "logtofile")
 		{
-			cfg->menu.logToFile = (value != "0");
+			cfg->log.toFile = (value != "0");
 		}
 		else if (k == "logretentiondays")
 		{
-			cfg->menu.logRetentionDays = std::atoi(value.c_str());
+			cfg->log.retentionDays = std::atoi(value.c_str());
 		}
 		else if (k == "exitbutton")
 		{
@@ -234,39 +234,11 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 	{
 		if (k == "enabled")
 		{
-			cfg->database.enabled = (value != "0");
+			cfg->databaseEnabled = (value != "0");
 		}
-		else if (k == "type")
+		else
 		{
-			cfg->database.type = ToLower(value);
-		}
-		else if (k == "prefix")
-		{
-			cfg->database.prefix = value;
-		}
-		else if (k == "path")
-		{
-			cfg->database.path = value;
-		}
-		else if (k == "host")
-		{
-			cfg->database.host = value;
-		}
-		else if (k == "user")
-		{
-			cfg->database.user = value;
-		}
-		else if (k == "pass" || k == "password")
-		{
-			cfg->database.pass = value;
-		}
-		else if (k == "name" || k == "database")
-		{
-			cfg->database.name = value;
-		}
-		else if (k == "port")
-		{
-			cfg->database.port = std::atoi(value.c_str());
+			mmu::config::ApplyDatabaseKey(cfg->database, k, value);
 		}
 	}
 }
@@ -278,7 +250,6 @@ bool MENU_LoadConfig(const char *path, MenusConfig &config)
 		return false;
 	}
 
-	mmu::log::SetToFile(config.menu.logToFile);
-	mmu::log::SetRetentionDays(config.menu.logRetentionDays);
+	mmu::config::ApplyLogBlock(config.log);
 	return true;
 }

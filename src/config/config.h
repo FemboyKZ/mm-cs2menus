@@ -1,6 +1,8 @@
 #ifndef _INCLUDE_MENU_CONFIG_H_
 #define _INCLUDE_MENU_CONFIG_H_
 
+#include "mmu/config_blocks.h"
+
 #include <string>
 
 struct MenuGeneralCfg
@@ -20,11 +22,6 @@ struct MenuDefaultsCfg
 	// Fallback language key for built-in label translations, used when a client's
 	// cl_language is unknown or a phrase file lacks it. See translations/.
 	std::string defaultLanguage = "en";
-
-	// Mirror log output to addons/cs2menus/logs.
-	bool logToFile = true;
-	// Delete log files older than this many days, 0 keeps all.
-	int logRetentionDays = 30;
 
 	// Default state of the "0. Exit" entry for newly created menus.
 	bool exitButton = true;
@@ -117,28 +114,16 @@ struct MenuDefaultsCfg
 
 // Optional sql_mm-backed store for per-player menu preferences (type + HTML nav keys).
 // Off by default. When disabled, cs2menus uses only the server config (no per-player overrides).
-struct MenuDatabaseCfg
-{
-	bool enabled = false;
-	// "sqlite" or "mysql".
-	std::string type = "sqlite";
-	// Table-name prefix (the prefs table is "<prefix>_prefs").
-	std::string prefix = "cs2menus";
-	// SQLite: path relative to the game dir (e.g. game/csgo/).
-	std::string path = "addons/cs2menus/cs2menus.db";
-	// MySQL connection.
-	std::string host = "localhost";
-	std::string user = "root";
-	std::string pass;
-	std::string name = "cs2menus";
-	int port = 3306;
-};
-
 struct MenusConfig
 {
 	MenuGeneralCfg general;
 	MenuDefaultsCfg menu;
-	MenuDatabaseCfg database;
+
+	mmu::config::LogBlock log;
+
+	// Prefs table is "<prefix>_prefs".
+	bool databaseEnabled = false;
+	mmu::config::DatabaseBlock database = mmu::config::DatabaseBlock::Defaults("cs2menus", "addons/cs2menus/cs2menus.db", "cs2menus");
 };
 
 // Parse cfg/cs2menus/core.cfg into `config`. Returns true on success,

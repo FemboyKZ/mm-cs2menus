@@ -7,9 +7,8 @@
 #include <cstdint>
 #include <string>
 
-// Engine-side half of a menu key: the IN_* bit we test and the footer label we draw.
-// The names a config may use live in ics2menus.h (kMenuButtonNames).
-// Keep kKeys in the same order as kMenuButtonNames, the preference menu cycles keys by index.
+// IN_* mask and footer label per key. Config names live in ics2menus.h (kMenuButtonNames).
+// kKeys order is the prefs menu cycle order.
 namespace keys
 {
 	struct KeyDef
@@ -50,13 +49,13 @@ namespace keys
 	}
 
 	// Look up a key by any accepted name (canonical or alias). Expects a lowercase name.
-	// Null for "none"/"off" and for anything unrecognised, neither of which maps to a real key.
+	// Null for "none", "off" and unknown names.
 	inline const KeyDef *FindByName(const std::string &name)
 	{
 		return FindByButton(ParseMenuButton(name));
 	}
 
-	// Canonical short name of a key, as written to configs and the prefs DB.
+	// Name written to configs and the prefs DB.
 	inline const char *Canonical(const KeyDef &k)
 	{
 		return GetMenuButtonName(k.button);

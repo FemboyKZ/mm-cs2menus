@@ -32,7 +32,7 @@ std::string MenuPrefsDB::Table() const
 
 bool MenuPrefsDB::Init()
 {
-	m_isSqlite = (g_MenusConfig.database.type != "mysql");
+	m_isSqlite = !g_MenusConfig.database.IsMySQL();
 	if (!m_conn.Init(m_isSqlite ? mmu::sql::DbType::SQLite : mmu::sql::DbType::MySQL))
 	{
 		return false;
@@ -44,12 +44,7 @@ bool MenuPrefsDB::Init()
 void MenuPrefsDB::Connect(std::function<void(bool)> cb)
 {
 	mmu::sql::ConnectParams p;
-	p.path = g_MenusConfig.database.path;
-	p.host = g_MenusConfig.database.host;
-	p.user = g_MenusConfig.database.user;
-	p.pass = g_MenusConfig.database.pass;
-	p.database = g_MenusConfig.database.name;
-	p.port = g_MenusConfig.database.port;
+	p = g_MenusConfig.database.ToConnectParams();
 	m_conn.Connect(p, std::move(cb));
 }
 

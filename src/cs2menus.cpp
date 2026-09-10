@@ -1131,23 +1131,14 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 {
 	PLUGIN_SAVEVARS();
 
-	mmu::log::Setup logSetup;
-	logSetup.channelName = "CS2Menus";
-	logSetup.addonName = "cs2menus";
-	logSetup.toFile = true;
-	mmu::log::Init(logSetup);
+	mmu::log::Init("CS2Menus", "cs2menus");
 
 	// Load runs on the game thread.
 	// Record it so the menu API can tell main-thread callers from worker-thread callers.
 	g_MenuManager.SetMainThread();
 
-	GET_V_IFACE_CURRENT(GetEngineFactory, g_pEngine, IVEngineServer, INTERFACEVERSION_VENGINESERVER);
-	GET_V_IFACE_CURRENT(GetEngineFactory, g_pICvar, ICvar, CVAR_INTERFACE_VERSION);
-	GET_V_IFACE_ANY(GetServerFactory, g_pServerGameDLL, IServerGameDLL, INTERFACEVERSION_SERVERGAMEDLL);
-	GET_V_IFACE_ANY(GetServerFactory, g_pGameClients, IServerGameClients, INTERFACEVERSION_SERVERGAMECLIENTS);
+	MMU_GET_CORE_INTERFACES();
 	GET_V_IFACE_ANY(GetEngineFactory, g_pNetworkServerService, INetworkServerService, NETWORKSERVERSERVICE_INTERFACE_VERSION);
-	GET_V_IFACE_ANY(GetEngineFactory, g_pGameEventSystem, IGameEventSystem, GAMEEVENTSYSTEM_INTERFACE_VERSION);
-	GET_V_IFACE_ANY(GetEngineFactory, g_pNetworkMessages, INetworkMessages, NETWORKMESSAGES_INTERFACE_VERSION);
 	GET_V_IFACE_ANY(GetEngineFactory, g_pSchemaSystem, ISchemaSystem, SCHEMASYSTEM_INTERFACE_VERSION);
 	GET_V_IFACE_ANY(GetEngineFactory, g_pGameResourceServiceServer, IGameResourceService, GAMERESOURCESERVICESERVER_INTERFACE_VERSION);
 
@@ -1212,7 +1203,7 @@ void CS2MenusPlugin::AllPluginsLoaded()
 	MENU_AdminBridge_Init();
 
 	// Per-player preferences are opt-in and need sql_mm, which must be fully loaded by now.
-	if (!g_MenusConfig.database.enabled)
+	if (!g_MenusConfig.databaseEnabled)
 	{
 		return;
 	}
