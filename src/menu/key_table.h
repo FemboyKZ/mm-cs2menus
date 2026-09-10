@@ -34,6 +34,7 @@ namespace keys
 		{MenuButton::Inspect, in_button::Inspect, "F"},
 	};
 	inline constexpr int kKeyCount = static_cast<int>(sizeof(kKeys) / sizeof(kKeys[0]));
+	static_assert(kKeyCount == kMenuButtonNameCount, "every key needs an entry in kMenuButtonNames");
 
 	// Look up a key by its public MenuButton value.
 	inline const KeyDef *FindByButton(MenuButton button)
