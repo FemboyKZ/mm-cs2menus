@@ -47,6 +47,15 @@ inline CGlobalVars *GetGameGlobals()
 	return mmu::GetGameGlobals();
 }
 
+// Clock for every menu time value, callable from any thread.
+// Not globals->curtime, which restarts each map, so a menu open across a map change would wait on the old map's times.
+// Counted from first use so the float keeps its precision over a long uptime.
+inline float MenuNow()
+{
+	static const double start = Plat_FloatTime();
+	return static_cast<float>(Plat_FloatTime() - start);
+}
+
 // Resolve CGameEntitySystem via g_pGameResourceServiceServer + gamedata offset.
 CGameEntitySystem *GameEntitySystem();
 

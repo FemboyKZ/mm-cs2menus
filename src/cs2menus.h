@@ -29,6 +29,7 @@ public: // KHook hook handlers
 											   const char *pszAddress, bool bFakePlayer);
 	KHook::Return<void> Hook_ClientDisconnect(IServerGameClients *, CPlayerSlot slot, ENetworkDisconnectionReason reason, const char *pszName,
 											  uint64 xuid, const char *pszNetworkID);
+	KHook::Return<void> Hook_ClientPutInServer(IServerGameClients *, CPlayerSlot slot, char const *pszName, int type, uint64 xuid);
 	KHook::Return<void> Hook_DispatchConCommand(ICvar *, ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args);
 	KHook::Return<void> Hook_ClientSvcUserMessage(IServerGameClients *, CPlayerSlot slot, int type, uint32 size, const void *buf);
 	KHook::Return<void> Hook_CheckTransmit(ISource2GameEntities *, CCheckTransmitInfo **pInfo, int infoCount, CBitVec<16384> &, CBitVec<16384> &,
@@ -80,6 +81,7 @@ private:
 	KHook::Virtual<IServerGameDLL, void, bool, bool, bool> m_GameFrame;
 	KHook::Virtual<IServerGameClients, void, CPlayerSlot, const char *, uint64, const char *, const char *, bool> m_OnClientConnected;
 	KHook::Virtual<IServerGameClients, void, CPlayerSlot, ENetworkDisconnectionReason, const char *, uint64, const char *> m_ClientDisconnect;
+	KHook::Virtual<IServerGameClients, void, CPlayerSlot, char const *, int, uint64> m_ClientPutInServer;
 	KHook::Virtual<ICvar, void, ConCommandRef, const CCommandContext &, const CCommand &> m_DispatchConCommand;
 	KHook::Virtual<IServerGameClients, void, CPlayerSlot, int, uint32, const void *> m_ClientSvcUserMessage;
 	KHook::Virtual<ISource2GameEntities, void, CCheckTransmitInfo **, int, CBitVec<16384> &, CBitVec<16384> &, const Entity2Networkable_t **,

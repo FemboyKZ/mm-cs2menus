@@ -65,6 +65,9 @@ CGameEntitySystem *GameEntitySystem()
 // Cached gamerules for the HUD-flashing workaround. Re-found each map.
 static CCSGameRules *s_pGameRules = nullptr;
 
+// Set at ClientPutInServer. A client before that can't legitimately chat, so its say input doesn't drive menus.
+static bool s_inGame[MAXPLAYERS] = {};
+
 static CCSGameRules *FindGameRules()
 {
 	if (s_pGameRules || !g_pEntitySystem)
@@ -334,15 +337,8 @@ class CS2MenusAPI : public ICS2Menus
 
 	bool DisplayMenu(MenuHandle menu, int slot, float duration) override
 	{
-		// GetGameGlobals is main-thread only. Off-thread passes 0,
-		// the manager stamps curtime when it drains the queue on GameFrame.
-		float curtime = 0.0f;
-		if (g_MenuManager.OnMainThread())
-		{
-			CGlobalVars *globals = GetGameGlobals();
-			curtime = globals ? globals->curtime : 0.0f;
-		}
-		return g_MenuManager.DisplayMenu(menu, slot, duration, curtime);
+		// Off-thread calls are queued, and the manager stamps the time when it drains the queue on GameFrame.
+		return g_MenuManager.DisplayMenu(menu, slot, duration, MenuNow());
 	}
 
 	void DisplayMenuToAll(MenuHandle menu, float duration) override
@@ -357,7 +353,7 @@ class CS2MenusAPI : public ICS2Menus
 					return;
 				}
 				int maxClients = globals->maxClients;
-				float curtime = globals->curtime;
+				float curtime = MenuNow();
 				for (int slot = 0; slot < maxClients && slot <= MAXPLAYERS; slot++)
 				{
 					if (!CCSPlayerController::FromSlot(slot))
@@ -1061,9 +1057,7 @@ namespace
 										 });
 		s_prefsMenu[slot] = menu;
 		RefreshPrefsItems(slot);
-		// Opened from a command / say hook on the main thread, so curtime is available.
-		CGlobalVars *globals = GetGameGlobals();
-		g_MenuManager.DisplayMenu(menu, slot, 0.0f, globals ? globals->curtime : 0.0f);
+		g_MenuManager.DisplayMenu(menu, slot, 0.0f, MenuNow());
 	}
 
 	// Reset a slot and load its stored preferences from the database (async).
@@ -1235,6 +1229,7 @@ CS2MenusPlugin::CS2MenusPlugin()
 	: m_GameFrame(&IServerGameDLL::GameFrame, this, nullptr, &CS2MenusPlugin::Hook_GameFrame),
 	  m_OnClientConnected(&IServerGameClients::OnClientConnected, this, &CS2MenusPlugin::Hook_OnClientConnected, nullptr),
 	  m_ClientDisconnect(&IServerGameClients::ClientDisconnect, this, nullptr, &CS2MenusPlugin::Hook_ClientDisconnect),
+	  m_ClientPutInServer(&IServerGameClients::ClientPutInServer, this, nullptr, &CS2MenusPlugin::Hook_ClientPutInServer),
 	  m_DispatchConCommand(&ICvar::DispatchConCommand, this, &CS2MenusPlugin::Hook_DispatchConCommand, nullptr),
 	  m_ClientSvcUserMessage(&IServerGameClients::ClientSvcUserMessage, this, &CS2MenusPlugin::Hook_ClientSvcUserMessage, nullptr),
 	  m_CheckTransmit(&ISource2GameEntities::CheckTransmit, this, nullptr, &CS2MenusPlugin::Hook_CheckTransmit),
@@ -1267,6 +1262,7 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	m_GameFrame.Add(g_pServerGameDLL);
 	m_OnClientConnected.Add(g_pGameClients);
 	m_ClientDisconnect.Add(g_pGameClients);
+	m_ClientPutInServer.Add(g_pGameClients);
 	m_DispatchConCommand.Add(g_pICvar);
 	m_ClientSvcUserMessage.Add(g_pGameClients);
 	m_CheckTransmit.Add(g_pSource2GameEntities);
@@ -1282,6 +1278,11 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	// On a late load the map is already running, so grab the entity system now.
 	if (late)
 	{
+		// Anyone with a SteamID is past ClientPutInServer already, which fired before we were here to see it.
+		for (int slot = 0; slot < MAXPLAYERS; slot++)
+		{
+			s_inGame[slot] = g_pEngine->GetClientXUID(CPlayerSlot(slot)) != 0;
+		}
 		g_pEntitySystem = GameEntitySystem();
 		// A reload leaves the previous load's panorama windows behind.
 		panorama_hud::RemoveOrphans();
@@ -1376,6 +1377,7 @@ bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 	m_GameFrame.Remove(g_pServerGameDLL);
 	m_OnClientConnected.Remove(g_pGameClients);
 	m_ClientDisconnect.Remove(g_pGameClients);
+	m_ClientPutInServer.Remove(g_pGameClients);
 	m_DispatchConCommand.Remove(g_pICvar);
 	m_ClientSvcUserMessage.Remove(g_pGameClients);
 	m_CheckTransmit.Remove(g_pSource2GameEntities);
@@ -1403,7 +1405,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_GameFrame(IServerGameDLL *, bool /*simu
 		return {KHook::Action::Ignore};
 	}
 
-	float curtime = globals->curtime;
+	float curtime = MenuNow();
 
 	if (g_pEntitySystem)
 	{
@@ -1439,9 +1441,22 @@ KHook::Return<void> CS2MenusPlugin::Hook_OnClientConnected(IServerGameClients *,
 {
 	int s = slot.Get();
 	mmu::cvarquery::OnClientConnected(s, bFakePlayer);
+	if (ValidSlot(s))
+	{
+		s_inGame[s] = false;
+	}
 	if (!bFakePlayer && ValidSlot(s))
 	{
 		LoadSlot(s, xuid);
+	}
+	return {KHook::Action::Ignore};
+}
+
+KHook::Return<void> CS2MenusPlugin::Hook_ClientPutInServer(IServerGameClients *, CPlayerSlot slot, char const *, int, uint64)
+{
+	if (ValidSlot(slot.Get()))
+	{
+		s_inGame[slot.Get()] = true;
 	}
 	return {KHook::Action::Ignore};
 }
@@ -1455,6 +1470,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_ClientDisconnect(IServerGameClients *, 
 	panorama_hud::OnClientDisconnect(s);
 	if (ValidSlot(s))
 	{
+		s_inGame[s] = false;
 		g_MenuManager.ClearPlayerPrefs(s);
 		s_prefs[s] = SlotPrefs {};
 		s_prefsMenu[s] = kInvalidMenuHandle;
@@ -1474,8 +1490,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_ClientSvcUserMessage(IServerGameClients
 	panorama_hud::Click click = panorama_hud::ParseClick(slot.Get(), layout, buttonId.c_str(), index);
 	if (click != panorama_hud::Click::None)
 	{
-		CGlobalVars *globals = GetGameGlobals();
-		g_MenuManager.OnPanoramaClick(slot.Get(), click, index, globals ? globals->curtime : 0.0f);
+		g_MenuManager.OnPanoramaClick(slot.Get(), click, index, MenuNow());
 	}
 	// Other layouts, like cs2kz's menu, read the same message.
 	return {KHook::Action::Ignore};
@@ -1610,8 +1625,7 @@ static void RunMenuNavCommand(const CCommandContext &context, const char *comman
 	{
 		return;
 	}
-	CGlobalVars *globals = GetGameGlobals();
-	g_MenuManager.CommandNav(slot, action, globals ? globals->curtime : 0.0f);
+	g_MenuManager.CommandNav(slot, action, MenuNow());
 }
 
 CON_COMMAND_F(mm_menu_up, "Move the open menu's cursor up.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
@@ -1637,8 +1651,7 @@ CON_COMMAND_F(mm_menu_select, "Select a menu item: no arg = highlighted row, a n
 	{
 		return;
 	}
-	CGlobalVars *globals = GetGameGlobals();
-	float curtime = globals ? globals->curtime : 0.0f;
+	float curtime = MenuNow();
 	if (args.ArgC() > 1)
 	{
 		g_MenuManager.CommandSelectNumber(slot, atoi(args.Arg(1)), curtime);
@@ -1687,7 +1700,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_DispatchConCommand(ICvar *, ConCommandR
 	}
 
 	int slot = ctx.GetPlayerSlot().Get();
-	if (!ValidSlot(slot))
+	if (!ValidSlot(slot) || !s_inGame[slot])
 	{
 		return {KHook::Action::Ignore};
 	}
@@ -1721,8 +1734,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_DispatchConCommand(ICvar *, ConCommandR
 	}
 
 	// ProcessInput strips the outer quotes CS2 wraps around the say message.
-	CGlobalVars *globals = GetGameGlobals();
-	float curtime = globals ? globals->curtime : 0.0f;
+	float curtime = MenuNow();
 
 	// Backup nav via chat: "!menu_up" / "/menu_close" / "!menu_select 3".
 	// The silent prefix hides the chat line, the normal prefix leaves it visible.
