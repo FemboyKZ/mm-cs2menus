@@ -35,6 +35,11 @@
 #include <networksystem/inetworkmessages.h>
 #include <schemasystem/schemasystem.h>
 
+// KHook needs a complete type for the StartupServer hook, the SDK only forward declares it.
+class GameSessionConfiguration_t
+{
+};
+
 IServerGameDLL *g_pServerGameDLL = nullptr;
 IServerGameClients *g_pGameClients = nullptr;
 IVEngineServer *g_pEngine = nullptr;
