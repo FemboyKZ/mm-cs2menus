@@ -144,8 +144,7 @@ void center_html::Send(int slot, const char *html, int durationSecs)
 	g_pNetworkMessages->DeallocateNetMessageAbstract(pMsg, data);
 }
 
-// Hex for each CS2 chat color control byte, or nullptr if it isn't a color code.
-static const char *ChatCodeToHex(unsigned char c)
+const char *center_html::ChatCodeToHex(unsigned char c)
 {
 	switch (c)
 	{

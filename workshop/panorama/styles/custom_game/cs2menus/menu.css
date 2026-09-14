@@ -180,12 +180,17 @@ VerticalScrollBar:hover .ScrollThumb {
 	visibility: collapse;
 }
 
-.item-label {
+/* One Label per differently colored run of the item text. */
+.item-text {
 	width: fill-parent-flow(1);
+	flow-children: right;
 	vertical-align: middle;
+	overflow: clip;
+}
+
+.item-seg {
 	font-size: 17px;
 	white-space: nowrap;
-	text-overflow: ellipsis;
 }
 
 .item-value {
@@ -194,6 +199,29 @@ VerticalScrollBar:hover .ScrollThumb {
 	font-size: 16px;
 	white-space: nowrap;
 }
+
+/* --- text colors, kPalette in panorama_hud.cpp. cm-col1 to cm-col16 are the chat color codes 0x01-0x10 --- */
+
+.cm-col1 { color: #FFFFFF; }
+.cm-col2 { color: #C03030; }
+.cm-col3 { color: #FF6699; }
+.cm-col4 { color: #4CAF50; }
+.cm-col5 { color: #9EB825; }
+.cm-col6 { color: #66CC66; }
+.cm-col7 { color: #CC3030; }
+.cm-col8 { color: #CCCCCC; }
+.cm-col9 { color: #FFFF00; }
+.cm-col10 { color: #B0C4DE; }
+.cm-col11 { color: #5070FF; }
+.cm-col12 { color: #3050C0; }
+.cm-col13 { color: #8090A0; }
+.cm-col14 { color: #E060C0; }
+.cm-col15 { color: #FF5050; }
+.cm-col16 { color: #FFD700; }
+.cm-col17 { color: #707070; }
+.cm-col18 { color: #A0A0A0; }
+.cm-col19 { color: #000000; }
+.cm-col20 { color: #FF2EE7; }
 
 /* --- sounds, on when the server adds "snd" to cm_root --- */
 

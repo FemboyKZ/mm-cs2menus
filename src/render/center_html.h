@@ -22,6 +22,9 @@ namespace center_html
 	// `html` uses CS2 markup: <font color='#hex' class='fontSize-s|sm|m'>, <br>.
 	void Send(int slot, const char *html, int durationSecs);
 
+	// "#RRGGBB" for a CS2 chat color control byte (0x01-0x10), nullptr for anything else.
+	const char *ChatCodeToHex(unsigned char c);
+
 	// Escape &, <, >, ", ' so arbitrary item text can't break the menu markup.
 	std::string Escape(const std::string &text);
 

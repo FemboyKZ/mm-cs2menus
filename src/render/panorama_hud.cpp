@@ -1,6 +1,7 @@
 #include "panorama_hud.h"
 #include "src/common.h"
 #include "src/entity/ccscustomhudlayout.h"
+#include "src/render/center_html.h"
 #include "mmu/gamedata.h"
 #include "mmu/log.h"
 #include "mmu/sigscan.h"
@@ -10,7 +11,9 @@
 #include <entity2/entitysystem.h>
 #include <filesystem.h>
 
+#include <climits>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <unordered_map>
 
@@ -43,15 +46,56 @@ namespace
 		return s_createEntity && s_dispatchSpawn && s_removeEntity && s_setHasClass && s_setDialogVariableString && s_setInputCaptureEnabled;
 	}
 
+	// The layout rejects markup, so colors are classes. Keep in step with the cm-col rules in menu.css.
+	// The first 16 are the chat color codes 0x01-0x10 as center_html renders them.
+	struct PaletteColor
+	{
+		const char *className;
+		int r, g, b;
+	};
+
+	constexpr PaletteColor kPalette[] = {
+		{"cm-col1", 0xFF, 0xFF, 0xFF},  {"cm-col2", 0xC0, 0x30, 0x30},  {"cm-col3", 0xFF, 0x66, 0x99},  {"cm-col4", 0x4C, 0xAF, 0x50},
+		{"cm-col5", 0x9E, 0xB8, 0x25},  {"cm-col6", 0x66, 0xCC, 0x66},  {"cm-col7", 0xCC, 0x30, 0x30},  {"cm-col8", 0xCC, 0xCC, 0xCC},
+		{"cm-col9", 0xFF, 0xFF, 0x00},  {"cm-col10", 0xB0, 0xC4, 0xDE}, {"cm-col11", 0x50, 0x70, 0xFF}, {"cm-col12", 0x30, 0x50, 0xC0},
+		{"cm-col13", 0x80, 0x90, 0xA0}, {"cm-col14", 0xE0, 0x60, 0xC0}, {"cm-col15", 0xFF, 0x50, 0x50}, {"cm-col16", 0xFF, 0xD7, 0x00},
+		{"cm-col17", 0x70, 0x70, 0x70}, {"cm-col18", 0xA0, 0xA0, 0xA0}, {"cm-col19", 0x00, 0x00, 0x00}, {"cm-col20", 0xFF, 0x2E, 0xE7},
+	};
+
+	const char *ColorClass(const std::string &hex)
+	{
+		unsigned int rgb = 0xFFFFFF;
+		if (hex.size() == 7 && hex[0] == '#')
+		{
+			rgb = static_cast<unsigned int>(strtoul(hex.c_str() + 1, nullptr, 16));
+		}
+		const int r = (rgb >> 16) & 0xFF;
+		const int g = (rgb >> 8) & 0xFF;
+		const int b = rgb & 0xFF;
+		const PaletteColor *best = &kPalette[0];
+		int bestDistance = INT_MAX;
+		for (const PaletteColor &color : kPalette)
+		{
+			const int distance = (color.r - r) * (color.r - r) + (color.g - g) * (color.g - g) + (color.b - b) * (color.b - b);
+			if (distance < bestDistance)
+			{
+				best = &color;
+				bestDistance = distance;
+			}
+		}
+		return best->className;
+	}
+
 	struct Window
 	{
 		CEntityHandle entity;
 		bool shown = false;
 		bool capture = false;
-		std::string font;
 		// Last written values, keyed "panel class" and "panel var", so unchanged writes are skipped.
 		std::unordered_map<std::string, bool> classes;
 		std::unordered_map<std::string, std::string> vars;
+		// The one class per panel from a set, like its font or color, keyed by panel.
+		std::unordered_map<std::string, std::string> swaps;
 	};
 
 	Window s_windows[MAXPLAYERS];
@@ -137,6 +181,25 @@ namespace
 		window.vars[key] = value;
 	}
 
+	// Replaces the panel's previous class from the same set. Empty removes it.
+	void WriteSwap(int slot, CCSCustomHudLayout *layout, const char *panel, const std::string &cls)
+	{
+		std::string &current = s_windows[slot].swaps[panel];
+		if (current == cls)
+		{
+			return;
+		}
+		if (!current.empty())
+		{
+			WriteClass(slot, layout, panel, current.c_str(), false);
+		}
+		if (!cls.empty())
+		{
+			WriteClass(slot, layout, panel, cls.c_str(), true);
+		}
+		current = cls;
+	}
+
 	bool SetCapture(int slot, CCSCustomHudLayout *layout, bool enabled)
 	{
 		schema::Collection<CCSCustomHudLayoutState> states = layout->m_vecPlayerLayoutStates();
@@ -217,6 +280,29 @@ std::string panorama_hud::StripColors(const std::string &text)
 	return out;
 }
 
+std::vector<panorama_hud::View::Segment> panorama_hud::SplitColors(const std::string &text, const std::string &baseColor)
+{
+	std::vector<View::Segment> segments;
+	std::string color = baseColor;
+	for (unsigned char c : text)
+	{
+		if (c >= 0x01 && c <= 0x10)
+		{
+			const char *hex = center_html::ChatCodeToHex(c);
+			color = hex ? hex : baseColor;
+			continue;
+		}
+		// Whitespace has no visible color, so it stays in the run before it.
+		const bool extend = !segments.empty() && (segments.back().color == color || c == ' ' || segments.size() >= static_cast<size_t>(kRowSegments));
+		if (!extend)
+		{
+			segments.push_back({std::string(), color});
+		}
+		segments.back().text += static_cast<char>(c);
+	}
+	return segments;
+}
+
 bool panorama_hud::Init()
 {
 	if (Resolved())
@@ -273,25 +359,15 @@ bool panorama_hud::Show(int slot, const View &view)
 	}
 
 	WriteClass(slot, layout, "cm_root", "snd", view.sounds);
-	if (window.font != view.fontClass)
-	{
-		if (!window.font.empty())
-		{
-			WriteClass(slot, layout, "cm_root", window.font.c_str(), false);
-		}
-		window.font = view.fontClass;
-	}
-	if (!view.fontClass.empty())
-	{
-		WriteClass(slot, layout, "cm_root", view.fontClass.c_str(), true);
-	}
+	WriteSwap(slot, layout, "cm_root", view.fontClass);
 	WriteVar(slot, layout, "cm_title", "cm_title", view.title);
+	WriteSwap(slot, layout, "cm_title", ColorClass(view.titleColor));
 	WriteClass(slot, layout, "cm_close", "hidden", !view.closeButton);
 	WriteClass(slot, layout, "cm_pages", "hidden", view.nav.empty());
 
 	char panel[24];
 	char label[24];
-	char var[24];
+	const std::string navClass = ColorClass(view.navColor);
 	for (int i = 0; i < kNavSlots; i++)
 	{
 		const bool used = i < static_cast<int>(view.nav.size());
@@ -299,8 +375,8 @@ bool panorama_hud::Show(int slot, const View &view)
 		if (used)
 		{
 			snprintf(label, sizeof(label), "cm_nav_lbl%d", i);
-			snprintf(var, sizeof(var), "cm_nl%d", i);
-			WriteVar(slot, layout, label, var, view.nav[i].label);
+			WriteVar(slot, layout, label, label, view.nav[i].label);
+			WriteSwap(slot, layout, label, navClass);
 			WriteClass(slot, layout, panel, "selected", view.nav[i].selected);
 		}
 		WriteClass(slot, layout, panel, "hidden", !used);
@@ -312,12 +388,23 @@ bool panorama_hud::Show(int slot, const View &view)
 		if (used)
 		{
 			const View::Row &row = view.rows[i];
-			snprintf(label, sizeof(label), "cm_item_lbl%d", i);
-			snprintf(var, sizeof(var), "cm_il%d", i);
-			WriteVar(slot, layout, label, var, row.text);
-			snprintf(label, sizeof(label), "cm_item_val%d", i);
-			snprintf(var, sizeof(var), "cm_iv%d", i);
-			WriteVar(slot, layout, label, var, row.value);
+			for (int s = 0; s < kRowSegments; s++)
+			{
+				// Unused runs are emptied, not hidden, so they take no width and keep their last class.
+				snprintf(label, sizeof(label), "cm_seg%d_%d", i, s);
+				const bool filled = s < static_cast<int>(row.segments.size());
+				WriteVar(slot, layout, label, label, filled ? row.segments[s].text : std::string());
+				if (filled)
+				{
+					WriteSwap(slot, layout, label, ColorClass(row.segments[s].color));
+				}
+			}
+			snprintf(label, sizeof(label), "cm_val%d", i);
+			WriteVar(slot, layout, label, label, row.value);
+			if (!row.segments.empty())
+			{
+				WriteSwap(slot, layout, label, ColorClass(row.segments[0].color));
+			}
 			WriteClass(slot, layout, panel, "disabled", row.disabled);
 		}
 		WriteClass(slot, layout, panel, "hidden", !used);

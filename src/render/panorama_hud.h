@@ -15,17 +15,26 @@ namespace panorama_hud
 	// Fixed by the layout.
 	constexpr int kItemSlots = 40;
 	constexpr int kNavSlots = 20;
+	// Differently colored runs per row.
+	// The layout only takes plain text, so each run is its own label with a palette class.
+	constexpr int kRowSegments = 10;
 
 	// CS_UM_CustomHudClicked
 	constexpr int kClickMessageId = 390;
 
-	// Every text field is Panorama markup.
+	// Text is plain, colors are "#RRGGBB" snapped to the addon's palette.
 	struct View
 	{
-		struct Row
+		struct Segment
 		{
 			std::string text;
-			std::string value; // right-aligned
+			std::string color;
+		};
+
+		struct Row
+		{
+			std::vector<Segment> segments; // at most kRowSegments
+			std::string value;             // right-aligned, in the first segment's color
 			bool disabled = false;
 		};
 
@@ -36,6 +45,8 @@ namespace panorama_hud
 		};
 
 		std::string title;
+		std::string titleColor;
+		std::string navColor;
 		bool closeButton = true;
 		std::vector<Row> rows; // at most kItemSlots
 		std::vector<Nav> nav;  // at most kNavSlots, empty hides the left column
@@ -51,8 +62,11 @@ namespace panorama_hud
 		Item, // index = row on the page
 	};
 
-	// Drops chat color codes from text that isn't turned into markup.
+	// Drops chat color codes.
 	std::string StripColors(const std::string &text);
+
+	// Splits chat-colored text into runs, starting in baseColor. Past kRowSegments the rest joins the last run.
+	std::vector<View::Segment> SplitColors(const std::string &text, const std::string &baseColor);
 
 	// No-op once the signatures resolve.
 	bool Init();

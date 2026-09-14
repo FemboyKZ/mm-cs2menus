@@ -10,10 +10,14 @@ Unlike the rest of this repository, everything in this folder is licensed under 
 
 Panel ids, dialog variables and classes are written by `src/render/panorama_hud.cpp`. Keep both sides in step:
 
-- Every panel id and dialog variable starts with `cm_`. The client matches them by name across all custom HUD layouts, so an unprefixed `item0` would collide with cs2kz's menu.
-- Slot counts: 20 `cm_nav<N>`, 40 `cm_item<N>` (`kNavSlots`, `kItemSlots` in `src/render/panorama_hud.h`).
+- Every panel id and dialog variable starts with `cm_`.
+  The client matches them by name across all custom HUD layouts, so an unprefixed `item0` would collide with cs2kz's menu.
+- The client validates custom HUD layouts: only `Panel`, `Label` and `Button`, and a `Label` rejects `html`.
+  Text is plain, colors are classes.
+- Slot counts: 20 `cm_nav<N>`, 40 `cm_item<N>` with 10 `cm_seg<N>_<S>` runs each
+  (`kNavSlots`, `kItemSlots`, `kRowSegments` in `src/render/panorama_hud.h`).
+- The `cm-col<N>` classes in `menu.css` match `kPalette` in `src/render/panorama_hud.cpp`.
 - Font classes in `fonts.css` match `kPanoramaFonts` in `src/cs2menus.cpp`.
-- Labels are `html="true"`, the plugin sends `<font color>` markup.
 
 ## Building and publishing
 

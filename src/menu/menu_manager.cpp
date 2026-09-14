@@ -2259,12 +2259,13 @@ void MenuManager::RenderPanorama(int slot)
 	const std::string &titleColor = pick(st.titleColor, m_settings.panoramaTitleColor);
 	const std::string &itemColor = pick(st.itemColor, m_settings.panoramaItemColor);
 	const std::string &disabledColor = pick(st.disabledColor, m_settings.panoramaDisabledColor);
-	auto font = [](const std::string &color, const std::string &markup) { return "<font color='" + color + "'>" + markup + "</font>"; };
-
 	panorama_hud::View view;
 	view.fontClass = m_settings.panoramaFontClass;
 	view.sounds = m_settings.panoramaSounds;
-	view.title = st.rawTitle == 1 ? font(titleColor, def->title) : center_html::ColorizeChat(def->title, titleColor.c_str(), "");
+	// The layout only takes plain text, so raw markup shows as typed.
+	view.title = panorama_hud::StripColors(def->title);
+	view.titleColor = titleColor;
+	view.navColor = itemColor;
 	// In a submenu it steps back to the parent, see NavClose.
 	view.closeButton = def->exitButton || (def->parent != kInvalidMenuHandle && Find(def->parent));
 
@@ -2273,12 +2274,11 @@ void MenuManager::RenderPanorama(int slot)
 	for (int i = first; i < last; i++)
 	{
 		const MenuItem &item = def->items[i];
-		const std::string &color = item.disabled ? disabledColor : itemColor;
 		panorama_hud::View::Row row;
-		row.text = item.raw ? font(color, item.text) : center_html::ColorizeChat(item.text, color.c_str(), "");
+		row.segments = panorama_hud::SplitColors(item.text, item.disabled ? disabledColor : itemColor);
 		if (item.submenu != kInvalidMenuHandle)
 		{
-			row.value = font(color, "\xE2\x80\xBA"); // ›
+			row.value = "\xE2\x80\xBA"; // ›
 		}
 		row.disabled = item.disabled;
 		view.rows.push_back(std::move(row));
@@ -2288,7 +2288,7 @@ void MenuManager::RenderPanorama(int slot)
 	pm.panoramaNav.clear();
 	auto addNav = [&](int page, const std::string &label)
 	{
-		view.nav.push_back({font(itemColor, center_html::Escape(label)), page == pm.page});
+		view.nav.push_back({label, page == pm.page});
 		pm.panoramaNav.push_back(page);
 	};
 	if (pageCount > 1)
