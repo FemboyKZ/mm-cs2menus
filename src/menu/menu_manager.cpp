@@ -496,6 +496,10 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 		case MenuStyle::FooterRangeFormat:
 			s.footerRangeFormat = v;
 			break;
+		// Panorama
+		case MenuStyle::PagePrefixDelimiter:
+			s.pagePrefixDelimiter = v.size() == 1 ? v[0] : 0;
+			break;
 	}
 	RefreshMenu(menu);
 }
@@ -569,6 +573,13 @@ const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 			return s.footerHintFormat.empty() ? m_settings.footerHintFormat.c_str() : s.footerHintFormat.c_str();
 		case MenuStyle::FooterRangeFormat:
 			return s.footerRangeFormat.empty() ? m_settings.footerRangeFormat.c_str() : s.footerRangeFormat.c_str();
+		// Panorama
+		case MenuStyle::PagePrefixDelimiter:
+		{
+			static thread_local std::string buf;
+			buf = s.pagePrefixDelimiter ? std::string(1, s.pagePrefixDelimiter) : std::string();
+			return buf.c_str();
+		}
 	}
 	return "";
 }
@@ -2213,9 +2224,23 @@ void MenuManager::RenderHtml(int slot)
 	}
 }
 
-// The character at skip, uppercased when ASCII, for "A - D" style page labels.
-static std::string IndexLetter(const std::string &text, size_t skip)
+// The first character, uppercased when ASCII, for "A - D" style page labels.
+// With a delimiter it skips a leading prefix of up to 5 letters or digits ending in it, see MenuStyle::PagePrefixDelimiter.
+static std::string IndexLetter(const std::string &text, char delimiter)
 {
+	size_t skip = 0;
+	for (size_t i = 0; delimiter && i < text.size() && i <= 5; i++)
+	{
+		if (text[i] == delimiter)
+		{
+			skip = i > 0 ? i + 1 : 0;
+			break;
+		}
+		if (!isalnum(static_cast<unsigned char>(text[i])))
+		{
+			break;
+		}
+	}
 	if (skip >= text.size())
 	{
 		return std::string();
@@ -2294,28 +2319,6 @@ void MenuManager::RenderPanorama(int slot)
 	};
 	if (pageCount > 1)
 	{
-		std::vector<std::string> texts;
-		texts.reserve(def->items.size());
-		for (const MenuItem &item : def->items)
-		{
-			texts.push_back(panorama_hud::StripColors(item.text));
-		}
-		// Skip a prefix every item shares, like "kz_" on a map list.
-		size_t skip = texts[0].size();
-		for (const std::string &text : texts)
-		{
-			size_t n = 0;
-			while (n < skip && n < text.size() && text[n] == texts[0][n])
-			{
-				n++;
-			}
-			skip = n;
-		}
-		while (skip > 0 && (static_cast<unsigned char>(texts[0][skip]) & 0xC0) == 0x80)
-		{
-			skip--;
-		}
-
 		std::string lang = m_langResolver ? m_langResolver(slot) : std::string();
 		const std::string pageFormat = g_Translations.Translate(lang, "Page {n}");
 		// First to last letter on each page, numbered when several pages share a range, like "B (1)" and "B (2)".
@@ -2325,8 +2328,8 @@ void MenuManager::RenderPanorama(int slot)
 		{
 			const int firstItem = page * panorama_hud::kItemSlots;
 			const int lastItem = (std::min)(firstItem + panorama_hud::kItemSlots, itemCount) - 1;
-			const std::string from = IndexLetter(texts[firstItem], skip);
-			const std::string to = IndexLetter(texts[lastItem], skip);
+			const std::string from = IndexLetter(panorama_hud::StripColors(def->items[firstItem].text), st.pagePrefixDelimiter);
+			const std::string to = IndexLetter(panorama_hud::StripColors(def->items[lastItem].text), st.pagePrefixDelimiter);
 			labels[page] = from.empty() || to.empty() ? std::string() : (from == to ? from : from + " - " + to);
 			if (!labels[page].empty())
 			{

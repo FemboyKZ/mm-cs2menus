@@ -296,12 +296,13 @@ private:
 		std::string footerSize;
 		std::string submenuSuffix; // empty = inherit (a space = no suffix)
 		std::string footerSeparator;
-		std::string align;      // empty = inherit ("left"/"center"/"right")
-		int showCounter = -1;   // -1 inherit, 0 off, 1 on
-		int showFooter = -1;    // -1 inherit, 0 off, 1 on
-		int highlightText = -1; // -1 inherit, 0 off, 1 on
-		int visibleItems = -1;  // -1 inherit, else the scroll-window size (clamped at render)
-		int rawTitle = -1;      // -1/0 plain, 1 raw markup (per-menu only, no server default)
+		std::string align;            // empty = inherit ("left"/"center"/"right")
+		int showCounter = -1;         // -1 inherit, 0 off, 1 on
+		int showFooter = -1;          // -1 inherit, 0 off, 1 on
+		int highlightText = -1;       // -1 inherit, 0 off, 1 on
+		int visibleItems = -1;        // -1 inherit, else the scroll-window size (clamped at render)
+		int rawTitle = -1;            // -1/0 plain, 1 raw markup (per-menu only, no server default)
+		char pagePrefixDelimiter = 0; // 0 none (per-menu only, no server default)
 		// Templates (see FillTemplate). Empty = inherit the server default.
 		std::string counterFormat;     // position counter, placeholders {cur} {total}
 		std::string footerHintFormat;  // one footer hint, placeholders {label} {keys}

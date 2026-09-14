@@ -53,7 +53,8 @@ public enum MenuStyle
 	FooterSize,
 	FooterSeparator,
 	FooterHintFormat,
-	FooterRangeFormat
+	FooterRangeFormat,
+	PagePrefixDelimiter
 }
 
 /// <summary>
