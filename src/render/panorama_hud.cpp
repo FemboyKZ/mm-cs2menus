@@ -64,10 +64,11 @@ namespace
 
 	const char *ColorClass(const std::string &hex)
 	{
+		// "#RRGGBB" or "#RRGGBBAA". The palette has no alpha, so it's dropped.
 		unsigned int rgb = 0xFFFFFF;
-		if (hex.size() == 7 && hex[0] == '#')
+		if ((hex.size() == 7 || hex.size() == 9) && hex[0] == '#')
 		{
-			rgb = static_cast<unsigned int>(strtoul(hex.c_str() + 1, nullptr, 16));
+			rgb = static_cast<unsigned int>(strtoul(hex.substr(1, 6).c_str(), nullptr, 16));
 		}
 		const int r = (rgb >> 16) & 0xFF;
 		const int g = (rgb >> 8) & 0xFF;

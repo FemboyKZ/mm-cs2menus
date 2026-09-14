@@ -60,7 +60,7 @@ struct MenuDefaultsCfg
 	// Show a selectable "Exit" row in HTML menus.
 	// Auto-forced on anyway when the Back key is disabled, so the menu is never left unexitable.
 	bool htmlExitItem = false;
-	// Hex colors for HTML markup.
+	// Hex colors for HTML markup, "#RRGGBB" or "#RRGGBBAA".
 	std::string htmlNavColor = "#ff2ee7";      // cursor row + marker
 	std::string htmlFooterColor = "#909090";   // key-hint footer
 	std::string htmlDisabledColor = "#808080"; // greyed-out items

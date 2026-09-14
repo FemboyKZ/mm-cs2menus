@@ -490,11 +490,11 @@ static void EvaluateHtmlAvailability()
 	MMU_LOG_INFO("HTML menus %s.\n", available ? "available" : "unavailable (falling back to chat)");
 }
 
-// True for a "#rrggbb" hex color. Malformed values would silently break the
+// True for a "#RRGGBB" or "#RRGGBBAA" hex color. Malformed values would silently break the
 // HTML markup, so we reject them and keep the built-in default.
 static bool IsValidHexColor(const std::string &s)
 {
-	if (s.size() != 7 || s[0] != '#')
+	if ((s.size() != 7 && s.size() != 9) || s[0] != '#')
 	{
 		return false;
 	}
@@ -506,6 +506,17 @@ static bool IsValidHexColor(const std::string &s)
 		}
 	}
 	return true;
+}
+
+// Keeps `target` and says so when a color key can't be used, since a silently ignored color reads as a broken setting.
+static void ApplyHexColor(const char *key, const std::string &value, std::string &target)
+{
+	if (IsValidHexColor(value))
+	{
+		target = value;
+		return;
+	}
+	MMU_LOG_WARN("%s \"%s\" is not a #RRGGBB or #RRGGBBAA color, keeping %s.\n", key, value.c_str(), target.c_str());
 }
 
 // Resolve a chat color name to its client control byte (see CHAT_COLOR_* in common.h).
@@ -614,33 +625,15 @@ static void LoadAndApplyConfig()
 	settings.chatHeader = m.chatHeader;
 	settings.htmlVisibleItems = g_MenusConfig.menu.htmlVisibleItems;
 	settings.defaultExitItem = g_MenusConfig.menu.htmlExitItem;
-	if (IsValidHexColor(g_MenusConfig.menu.htmlNavColor))
-	{
-		settings.navColor = g_MenusConfig.menu.htmlNavColor;
-	}
-	if (IsValidHexColor(g_MenusConfig.menu.htmlFooterColor))
-	{
-		settings.footerColor = g_MenusConfig.menu.htmlFooterColor;
-	}
-	if (IsValidHexColor(g_MenusConfig.menu.htmlDisabledColor))
-	{
-		settings.disabledColor = g_MenusConfig.menu.htmlDisabledColor;
-	}
-	if (IsValidHexColor(g_MenusConfig.menu.htmlTitleColor))
-	{
-		settings.titleColor = g_MenusConfig.menu.htmlTitleColor;
-	}
-	if (IsValidHexColor(g_MenusConfig.menu.htmlItemColor))
-	{
-		settings.itemColor = g_MenusConfig.menu.htmlItemColor;
-	}
+	ApplyHexColor("HtmlNavColor", g_MenusConfig.menu.htmlNavColor, settings.navColor);
+	ApplyHexColor("HtmlFooterColor", g_MenusConfig.menu.htmlFooterColor, settings.footerColor);
+	ApplyHexColor("HtmlDisabledColor", g_MenusConfig.menu.htmlDisabledColor, settings.disabledColor);
+	ApplyHexColor("HtmlTitleColor", g_MenusConfig.menu.htmlTitleColor, settings.titleColor);
+	ApplyHexColor("HtmlItemColor", g_MenusConfig.menu.htmlItemColor, settings.itemColor);
 	// Font face is an arbitrary Panorama class, accepted as-is (empty keeps the game default).
 	settings.fontFace = g_MenusConfig.menu.htmlFontFace;
 	settings.marker = g_MenusConfig.menu.htmlMarker;
-	if (IsValidHexColor(g_MenusConfig.menu.htmlCounterColor))
-	{
-		settings.counterColor = g_MenusConfig.menu.htmlCounterColor;
-	}
+	ApplyHexColor("HtmlCounterColor", g_MenusConfig.menu.htmlCounterColor, settings.counterColor);
 	if (html_style::IsSizeToken(g_MenusConfig.menu.htmlFooterSize))
 	{
 		settings.footerSize = g_MenusConfig.menu.htmlFooterSize;
@@ -711,18 +704,13 @@ static void LoadAndApplyConfig()
 	{
 		settings.panoramaFontClass = "font-" + p.font;
 	}
-	if (IsValidHexColor(p.titleColor))
+	else
 	{
-		settings.panoramaTitleColor = p.titleColor;
+		MMU_LOG_WARN("Panorama Font \"%s\" is not in fonts.css, keeping %s.\n", p.font.c_str(), settings.panoramaFontClass.c_str());
 	}
-	if (IsValidHexColor(p.itemColor))
-	{
-		settings.panoramaItemColor = p.itemColor;
-	}
-	if (IsValidHexColor(p.disabledColor))
-	{
-		settings.panoramaDisabledColor = p.disabledColor;
-	}
+	ApplyHexColor("Panorama TitleColor", p.titleColor, settings.panoramaTitleColor);
+	ApplyHexColor("Panorama ItemColor", p.itemColor, settings.panoramaItemColor);
+	ApplyHexColor("Panorama DisabledColor", p.disabledColor, settings.panoramaDisabledColor);
 	settings.panoramaSounds = p.sounds;
 
 	g_MenuManager.Configure(settings);
