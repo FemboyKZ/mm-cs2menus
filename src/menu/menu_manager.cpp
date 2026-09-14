@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <initializer_list>
+#include <map>
 #include <utility>
 
 // Recursive so a callback can re-enter the API on the same thread.
@@ -2212,24 +2213,24 @@ void MenuManager::RenderHtml(int slot)
 	}
 }
 
-// Shortest prefix of text past skip that tells it apart from neighbor, like a dictionary's guide words.
-static std::string GuidePrefix(const std::string &text, const std::string &neighbor, size_t skip)
+// The character at skip, uppercased when ASCII, for "A - D" style page labels.
+static std::string IndexLetter(const std::string &text, size_t skip)
 {
 	if (skip >= text.size())
 	{
-		return text;
+		return std::string();
 	}
-	size_t n = skip;
-	while (n < text.size() && n < neighbor.size() && text[n] == neighbor[n])
-	{
-		n++;
-	}
-	n = (std::min)(text.size(), (std::max)(n + 1, skip + 3));
+	size_t n = skip + 1;
 	while (n < text.size() && (static_cast<unsigned char>(text[n]) & 0xC0) == 0x80)
 	{
 		n++;
 	}
-	return text.substr(skip, n - skip);
+	std::string letter = text.substr(skip, n - skip);
+	if (letter.size() == 1)
+	{
+		letter[0] = static_cast<char>(toupper(static_cast<unsigned char>(letter[0])));
+	}
+	return letter;
 }
 
 void MenuManager::RenderPanorama(int slot)
@@ -2317,18 +2318,30 @@ void MenuManager::RenderPanorama(int slot)
 
 		std::string lang = m_langResolver ? m_langResolver(slot) : std::string();
 		const std::string pageFormat = g_Translations.Translate(lang, "Page {n}");
-		auto pageLabel = [&](int page)
+		// First to last letter on each page, numbered when several pages share a range, like "B (1)" and "B (2)".
+		std::vector<std::string> labels(pageCount);
+		std::map<std::string, int> rangeTotals;
+		for (int page = 0; page < pageCount; page++)
 		{
 			const int firstItem = page * panorama_hud::kItemSlots;
 			const int lastItem = (std::min)(firstItem + panorama_hud::kItemSlots, itemCount) - 1;
-			static const std::string kNone;
-			std::string label = GuidePrefix(texts[firstItem], firstItem > 0 ? texts[firstItem - 1] : kNone, skip);
-			if (lastItem > firstItem)
+			const std::string from = IndexLetter(texts[firstItem], skip);
+			const std::string to = IndexLetter(texts[lastItem], skip);
+			labels[page] = from.empty() || to.empty() ? std::string() : (from == to ? from : from + " - " + to);
+			if (!labels[page].empty())
 			{
-				label += " - " + GuidePrefix(texts[lastItem], lastItem + 1 < itemCount ? texts[lastItem + 1] : kNone, skip);
+				rangeTotals[labels[page]]++;
 			}
-			return texts[firstItem].size() > skip ? label : FillTemplate(pageFormat, {{"n", std::to_string(page + 1)}});
-		};
+		}
+		std::map<std::string, int> rangeSeen;
+		for (std::string &label : labels)
+		{
+			if (!label.empty() && rangeTotals[label] > 1)
+			{
+				label += " (" + std::to_string(++rangeSeen[label]) + ")";
+			}
+		}
+		auto pageLabel = [&](int page) { return labels[page].empty() ? FillTemplate(pageFormat, {{"n", std::to_string(page + 1)}}) : labels[page]; };
 
 		// The arrows jump a whole window.
 		const int window = pageCount <= panorama_hud::kNavSlots ? pageCount : panorama_hud::kNavSlots - 2;

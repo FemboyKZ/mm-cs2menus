@@ -86,6 +86,23 @@
                 <Label id="cm_seg0_7" class="item-seg" text="{s:cm_seg0_7}" />
                 <Label id="cm_seg0_8" class="item-seg" text="{s:cm_seg0_8}" />
                 <Label id="cm_seg0_9" class="item-seg" text="{s:cm_seg0_9}" />
+                <Label id="cm_seg0_10" class="item-seg" text="{s:cm_seg0_10}" />
+                <Label id="cm_seg0_11" class="item-seg" text="{s:cm_seg0_11}" />
+                <Label id="cm_seg0_12" class="item-seg" text="{s:cm_seg0_12}" />
+                <Label id="cm_seg0_13" class="item-seg" text="{s:cm_seg0_13}" />
+                <Label id="cm_seg0_14" class="item-seg" text="{s:cm_seg0_14}" />
+                <Label id="cm_seg0_15" class="item-seg" text="{s:cm_seg0_15}" />
+                <Label id="cm_seg0_16" class="item-seg" text="{s:cm_seg0_16}" />
+                <Label id="cm_seg0_17" class="item-seg" text="{s:cm_seg0_17}" />
+                <Label id="cm_seg0_18" class="item-seg" text="{s:cm_seg0_18}" />
+                <Label id="cm_seg0_19" class="item-seg" text="{s:cm_seg0_19}" />
+                <Label id="cm_seg0_20" class="item-seg" text="{s:cm_seg0_20}" />
+                <Label id="cm_seg0_21" class="item-seg" text="{s:cm_seg0_21}" />
+                <Label id="cm_seg0_22" class="item-seg" text="{s:cm_seg0_22}" />
+                <Label id="cm_seg0_23" class="item-seg" text="{s:cm_seg0_23}" />
+                <Label id="cm_seg0_24" class="item-seg" text="{s:cm_seg0_24}" />
+                <Label id="cm_seg0_25" class="item-seg" text="{s:cm_seg0_25}" />
+                <Label id="cm_seg0_26" class="item-seg" text="{s:cm_seg0_26}" />
               </Panel>
               <Label id="cm_val0" class="item-value" text="{s:cm_val0}" />
             </Button>
@@ -101,6 +118,23 @@
                 <Label id="cm_seg1_7" class="item-seg" text="{s:cm_seg1_7}" />
                 <Label id="cm_seg1_8" class="item-seg" text="{s:cm_seg1_8}" />
                 <Label id="cm_seg1_9" class="item-seg" text="{s:cm_seg1_9}" />
+                <Label id="cm_seg1_10" class="item-seg" text="{s:cm_seg1_10}" />
+                <Label id="cm_seg1_11" class="item-seg" text="{s:cm_seg1_11}" />
+                <Label id="cm_seg1_12" class="item-seg" text="{s:cm_seg1_12}" />
+                <Label id="cm_seg1_13" class="item-seg" text="{s:cm_seg1_13}" />
+                <Label id="cm_seg1_14" class="item-seg" text="{s:cm_seg1_14}" />
+                <Label id="cm_seg1_15" class="item-seg" text="{s:cm_seg1_15}" />
+                <Label id="cm_seg1_16" class="item-seg" text="{s:cm_seg1_16}" />
+                <Label id="cm_seg1_17" class="item-seg" text="{s:cm_seg1_17}" />
+                <Label id="cm_seg1_18" class="item-seg" text="{s:cm_seg1_18}" />
+                <Label id="cm_seg1_19" class="item-seg" text="{s:cm_seg1_19}" />
+                <Label id="cm_seg1_20" class="item-seg" text="{s:cm_seg1_20}" />
+                <Label id="cm_seg1_21" class="item-seg" text="{s:cm_seg1_21}" />
+                <Label id="cm_seg1_22" class="item-seg" text="{s:cm_seg1_22}" />
+                <Label id="cm_seg1_23" class="item-seg" text="{s:cm_seg1_23}" />
+                <Label id="cm_seg1_24" class="item-seg" text="{s:cm_seg1_24}" />
+                <Label id="cm_seg1_25" class="item-seg" text="{s:cm_seg1_25}" />
+                <Label id="cm_seg1_26" class="item-seg" text="{s:cm_seg1_26}" />
               </Panel>
               <Label id="cm_val1" class="item-value" text="{s:cm_val1}" />
             </Button>
@@ -116,6 +150,23 @@
                 <Label id="cm_seg2_7" class="item-seg" text="{s:cm_seg2_7}" />
                 <Label id="cm_seg2_8" class="item-seg" text="{s:cm_seg2_8}" />
                 <Label id="cm_seg2_9" class="item-seg" text="{s:cm_seg2_9}" />
+                <Label id="cm_seg2_10" class="item-seg" text="{s:cm_seg2_10}" />
+                <Label id="cm_seg2_11" class="item-seg" text="{s:cm_seg2_11}" />
+                <Label id="cm_seg2_12" class="item-seg" text="{s:cm_seg2_12}" />
+                <Label id="cm_seg2_13" class="item-seg" text="{s:cm_seg2_13}" />
+                <Label id="cm_seg2_14" class="item-seg" text="{s:cm_seg2_14}" />
+                <Label id="cm_seg2_15" class="item-seg" text="{s:cm_seg2_15}" />
+                <Label id="cm_seg2_16" class="item-seg" text="{s:cm_seg2_16}" />
+                <Label id="cm_seg2_17" class="item-seg" text="{s:cm_seg2_17}" />
+                <Label id="cm_seg2_18" class="item-seg" text="{s:cm_seg2_18}" />
+                <Label id="cm_seg2_19" class="item-seg" text="{s:cm_seg2_19}" />
+                <Label id="cm_seg2_20" class="item-seg" text="{s:cm_seg2_20}" />
+                <Label id="cm_seg2_21" class="item-seg" text="{s:cm_seg2_21}" />
+                <Label id="cm_seg2_22" class="item-seg" text="{s:cm_seg2_22}" />
+                <Label id="cm_seg2_23" class="item-seg" text="{s:cm_seg2_23}" />
+                <Label id="cm_seg2_24" class="item-seg" text="{s:cm_seg2_24}" />
+                <Label id="cm_seg2_25" class="item-seg" text="{s:cm_seg2_25}" />
+                <Label id="cm_seg2_26" class="item-seg" text="{s:cm_seg2_26}" />
               </Panel>
               <Label id="cm_val2" class="item-value" text="{s:cm_val2}" />
             </Button>
@@ -131,6 +182,23 @@
                 <Label id="cm_seg3_7" class="item-seg" text="{s:cm_seg3_7}" />
                 <Label id="cm_seg3_8" class="item-seg" text="{s:cm_seg3_8}" />
                 <Label id="cm_seg3_9" class="item-seg" text="{s:cm_seg3_9}" />
+                <Label id="cm_seg3_10" class="item-seg" text="{s:cm_seg3_10}" />
+                <Label id="cm_seg3_11" class="item-seg" text="{s:cm_seg3_11}" />
+                <Label id="cm_seg3_12" class="item-seg" text="{s:cm_seg3_12}" />
+                <Label id="cm_seg3_13" class="item-seg" text="{s:cm_seg3_13}" />
+                <Label id="cm_seg3_14" class="item-seg" text="{s:cm_seg3_14}" />
+                <Label id="cm_seg3_15" class="item-seg" text="{s:cm_seg3_15}" />
+                <Label id="cm_seg3_16" class="item-seg" text="{s:cm_seg3_16}" />
+                <Label id="cm_seg3_17" class="item-seg" text="{s:cm_seg3_17}" />
+                <Label id="cm_seg3_18" class="item-seg" text="{s:cm_seg3_18}" />
+                <Label id="cm_seg3_19" class="item-seg" text="{s:cm_seg3_19}" />
+                <Label id="cm_seg3_20" class="item-seg" text="{s:cm_seg3_20}" />
+                <Label id="cm_seg3_21" class="item-seg" text="{s:cm_seg3_21}" />
+                <Label id="cm_seg3_22" class="item-seg" text="{s:cm_seg3_22}" />
+                <Label id="cm_seg3_23" class="item-seg" text="{s:cm_seg3_23}" />
+                <Label id="cm_seg3_24" class="item-seg" text="{s:cm_seg3_24}" />
+                <Label id="cm_seg3_25" class="item-seg" text="{s:cm_seg3_25}" />
+                <Label id="cm_seg3_26" class="item-seg" text="{s:cm_seg3_26}" />
               </Panel>
               <Label id="cm_val3" class="item-value" text="{s:cm_val3}" />
             </Button>
@@ -146,6 +214,23 @@
                 <Label id="cm_seg4_7" class="item-seg" text="{s:cm_seg4_7}" />
                 <Label id="cm_seg4_8" class="item-seg" text="{s:cm_seg4_8}" />
                 <Label id="cm_seg4_9" class="item-seg" text="{s:cm_seg4_9}" />
+                <Label id="cm_seg4_10" class="item-seg" text="{s:cm_seg4_10}" />
+                <Label id="cm_seg4_11" class="item-seg" text="{s:cm_seg4_11}" />
+                <Label id="cm_seg4_12" class="item-seg" text="{s:cm_seg4_12}" />
+                <Label id="cm_seg4_13" class="item-seg" text="{s:cm_seg4_13}" />
+                <Label id="cm_seg4_14" class="item-seg" text="{s:cm_seg4_14}" />
+                <Label id="cm_seg4_15" class="item-seg" text="{s:cm_seg4_15}" />
+                <Label id="cm_seg4_16" class="item-seg" text="{s:cm_seg4_16}" />
+                <Label id="cm_seg4_17" class="item-seg" text="{s:cm_seg4_17}" />
+                <Label id="cm_seg4_18" class="item-seg" text="{s:cm_seg4_18}" />
+                <Label id="cm_seg4_19" class="item-seg" text="{s:cm_seg4_19}" />
+                <Label id="cm_seg4_20" class="item-seg" text="{s:cm_seg4_20}" />
+                <Label id="cm_seg4_21" class="item-seg" text="{s:cm_seg4_21}" />
+                <Label id="cm_seg4_22" class="item-seg" text="{s:cm_seg4_22}" />
+                <Label id="cm_seg4_23" class="item-seg" text="{s:cm_seg4_23}" />
+                <Label id="cm_seg4_24" class="item-seg" text="{s:cm_seg4_24}" />
+                <Label id="cm_seg4_25" class="item-seg" text="{s:cm_seg4_25}" />
+                <Label id="cm_seg4_26" class="item-seg" text="{s:cm_seg4_26}" />
               </Panel>
               <Label id="cm_val4" class="item-value" text="{s:cm_val4}" />
             </Button>
@@ -161,6 +246,23 @@
                 <Label id="cm_seg5_7" class="item-seg" text="{s:cm_seg5_7}" />
                 <Label id="cm_seg5_8" class="item-seg" text="{s:cm_seg5_8}" />
                 <Label id="cm_seg5_9" class="item-seg" text="{s:cm_seg5_9}" />
+                <Label id="cm_seg5_10" class="item-seg" text="{s:cm_seg5_10}" />
+                <Label id="cm_seg5_11" class="item-seg" text="{s:cm_seg5_11}" />
+                <Label id="cm_seg5_12" class="item-seg" text="{s:cm_seg5_12}" />
+                <Label id="cm_seg5_13" class="item-seg" text="{s:cm_seg5_13}" />
+                <Label id="cm_seg5_14" class="item-seg" text="{s:cm_seg5_14}" />
+                <Label id="cm_seg5_15" class="item-seg" text="{s:cm_seg5_15}" />
+                <Label id="cm_seg5_16" class="item-seg" text="{s:cm_seg5_16}" />
+                <Label id="cm_seg5_17" class="item-seg" text="{s:cm_seg5_17}" />
+                <Label id="cm_seg5_18" class="item-seg" text="{s:cm_seg5_18}" />
+                <Label id="cm_seg5_19" class="item-seg" text="{s:cm_seg5_19}" />
+                <Label id="cm_seg5_20" class="item-seg" text="{s:cm_seg5_20}" />
+                <Label id="cm_seg5_21" class="item-seg" text="{s:cm_seg5_21}" />
+                <Label id="cm_seg5_22" class="item-seg" text="{s:cm_seg5_22}" />
+                <Label id="cm_seg5_23" class="item-seg" text="{s:cm_seg5_23}" />
+                <Label id="cm_seg5_24" class="item-seg" text="{s:cm_seg5_24}" />
+                <Label id="cm_seg5_25" class="item-seg" text="{s:cm_seg5_25}" />
+                <Label id="cm_seg5_26" class="item-seg" text="{s:cm_seg5_26}" />
               </Panel>
               <Label id="cm_val5" class="item-value" text="{s:cm_val5}" />
             </Button>
@@ -176,6 +278,23 @@
                 <Label id="cm_seg6_7" class="item-seg" text="{s:cm_seg6_7}" />
                 <Label id="cm_seg6_8" class="item-seg" text="{s:cm_seg6_8}" />
                 <Label id="cm_seg6_9" class="item-seg" text="{s:cm_seg6_9}" />
+                <Label id="cm_seg6_10" class="item-seg" text="{s:cm_seg6_10}" />
+                <Label id="cm_seg6_11" class="item-seg" text="{s:cm_seg6_11}" />
+                <Label id="cm_seg6_12" class="item-seg" text="{s:cm_seg6_12}" />
+                <Label id="cm_seg6_13" class="item-seg" text="{s:cm_seg6_13}" />
+                <Label id="cm_seg6_14" class="item-seg" text="{s:cm_seg6_14}" />
+                <Label id="cm_seg6_15" class="item-seg" text="{s:cm_seg6_15}" />
+                <Label id="cm_seg6_16" class="item-seg" text="{s:cm_seg6_16}" />
+                <Label id="cm_seg6_17" class="item-seg" text="{s:cm_seg6_17}" />
+                <Label id="cm_seg6_18" class="item-seg" text="{s:cm_seg6_18}" />
+                <Label id="cm_seg6_19" class="item-seg" text="{s:cm_seg6_19}" />
+                <Label id="cm_seg6_20" class="item-seg" text="{s:cm_seg6_20}" />
+                <Label id="cm_seg6_21" class="item-seg" text="{s:cm_seg6_21}" />
+                <Label id="cm_seg6_22" class="item-seg" text="{s:cm_seg6_22}" />
+                <Label id="cm_seg6_23" class="item-seg" text="{s:cm_seg6_23}" />
+                <Label id="cm_seg6_24" class="item-seg" text="{s:cm_seg6_24}" />
+                <Label id="cm_seg6_25" class="item-seg" text="{s:cm_seg6_25}" />
+                <Label id="cm_seg6_26" class="item-seg" text="{s:cm_seg6_26}" />
               </Panel>
               <Label id="cm_val6" class="item-value" text="{s:cm_val6}" />
             </Button>
@@ -191,6 +310,23 @@
                 <Label id="cm_seg7_7" class="item-seg" text="{s:cm_seg7_7}" />
                 <Label id="cm_seg7_8" class="item-seg" text="{s:cm_seg7_8}" />
                 <Label id="cm_seg7_9" class="item-seg" text="{s:cm_seg7_9}" />
+                <Label id="cm_seg7_10" class="item-seg" text="{s:cm_seg7_10}" />
+                <Label id="cm_seg7_11" class="item-seg" text="{s:cm_seg7_11}" />
+                <Label id="cm_seg7_12" class="item-seg" text="{s:cm_seg7_12}" />
+                <Label id="cm_seg7_13" class="item-seg" text="{s:cm_seg7_13}" />
+                <Label id="cm_seg7_14" class="item-seg" text="{s:cm_seg7_14}" />
+                <Label id="cm_seg7_15" class="item-seg" text="{s:cm_seg7_15}" />
+                <Label id="cm_seg7_16" class="item-seg" text="{s:cm_seg7_16}" />
+                <Label id="cm_seg7_17" class="item-seg" text="{s:cm_seg7_17}" />
+                <Label id="cm_seg7_18" class="item-seg" text="{s:cm_seg7_18}" />
+                <Label id="cm_seg7_19" class="item-seg" text="{s:cm_seg7_19}" />
+                <Label id="cm_seg7_20" class="item-seg" text="{s:cm_seg7_20}" />
+                <Label id="cm_seg7_21" class="item-seg" text="{s:cm_seg7_21}" />
+                <Label id="cm_seg7_22" class="item-seg" text="{s:cm_seg7_22}" />
+                <Label id="cm_seg7_23" class="item-seg" text="{s:cm_seg7_23}" />
+                <Label id="cm_seg7_24" class="item-seg" text="{s:cm_seg7_24}" />
+                <Label id="cm_seg7_25" class="item-seg" text="{s:cm_seg7_25}" />
+                <Label id="cm_seg7_26" class="item-seg" text="{s:cm_seg7_26}" />
               </Panel>
               <Label id="cm_val7" class="item-value" text="{s:cm_val7}" />
             </Button>
@@ -206,6 +342,23 @@
                 <Label id="cm_seg8_7" class="item-seg" text="{s:cm_seg8_7}" />
                 <Label id="cm_seg8_8" class="item-seg" text="{s:cm_seg8_8}" />
                 <Label id="cm_seg8_9" class="item-seg" text="{s:cm_seg8_9}" />
+                <Label id="cm_seg8_10" class="item-seg" text="{s:cm_seg8_10}" />
+                <Label id="cm_seg8_11" class="item-seg" text="{s:cm_seg8_11}" />
+                <Label id="cm_seg8_12" class="item-seg" text="{s:cm_seg8_12}" />
+                <Label id="cm_seg8_13" class="item-seg" text="{s:cm_seg8_13}" />
+                <Label id="cm_seg8_14" class="item-seg" text="{s:cm_seg8_14}" />
+                <Label id="cm_seg8_15" class="item-seg" text="{s:cm_seg8_15}" />
+                <Label id="cm_seg8_16" class="item-seg" text="{s:cm_seg8_16}" />
+                <Label id="cm_seg8_17" class="item-seg" text="{s:cm_seg8_17}" />
+                <Label id="cm_seg8_18" class="item-seg" text="{s:cm_seg8_18}" />
+                <Label id="cm_seg8_19" class="item-seg" text="{s:cm_seg8_19}" />
+                <Label id="cm_seg8_20" class="item-seg" text="{s:cm_seg8_20}" />
+                <Label id="cm_seg8_21" class="item-seg" text="{s:cm_seg8_21}" />
+                <Label id="cm_seg8_22" class="item-seg" text="{s:cm_seg8_22}" />
+                <Label id="cm_seg8_23" class="item-seg" text="{s:cm_seg8_23}" />
+                <Label id="cm_seg8_24" class="item-seg" text="{s:cm_seg8_24}" />
+                <Label id="cm_seg8_25" class="item-seg" text="{s:cm_seg8_25}" />
+                <Label id="cm_seg8_26" class="item-seg" text="{s:cm_seg8_26}" />
               </Panel>
               <Label id="cm_val8" class="item-value" text="{s:cm_val8}" />
             </Button>
@@ -221,6 +374,23 @@
                 <Label id="cm_seg9_7" class="item-seg" text="{s:cm_seg9_7}" />
                 <Label id="cm_seg9_8" class="item-seg" text="{s:cm_seg9_8}" />
                 <Label id="cm_seg9_9" class="item-seg" text="{s:cm_seg9_9}" />
+                <Label id="cm_seg9_10" class="item-seg" text="{s:cm_seg9_10}" />
+                <Label id="cm_seg9_11" class="item-seg" text="{s:cm_seg9_11}" />
+                <Label id="cm_seg9_12" class="item-seg" text="{s:cm_seg9_12}" />
+                <Label id="cm_seg9_13" class="item-seg" text="{s:cm_seg9_13}" />
+                <Label id="cm_seg9_14" class="item-seg" text="{s:cm_seg9_14}" />
+                <Label id="cm_seg9_15" class="item-seg" text="{s:cm_seg9_15}" />
+                <Label id="cm_seg9_16" class="item-seg" text="{s:cm_seg9_16}" />
+                <Label id="cm_seg9_17" class="item-seg" text="{s:cm_seg9_17}" />
+                <Label id="cm_seg9_18" class="item-seg" text="{s:cm_seg9_18}" />
+                <Label id="cm_seg9_19" class="item-seg" text="{s:cm_seg9_19}" />
+                <Label id="cm_seg9_20" class="item-seg" text="{s:cm_seg9_20}" />
+                <Label id="cm_seg9_21" class="item-seg" text="{s:cm_seg9_21}" />
+                <Label id="cm_seg9_22" class="item-seg" text="{s:cm_seg9_22}" />
+                <Label id="cm_seg9_23" class="item-seg" text="{s:cm_seg9_23}" />
+                <Label id="cm_seg9_24" class="item-seg" text="{s:cm_seg9_24}" />
+                <Label id="cm_seg9_25" class="item-seg" text="{s:cm_seg9_25}" />
+                <Label id="cm_seg9_26" class="item-seg" text="{s:cm_seg9_26}" />
               </Panel>
               <Label id="cm_val9" class="item-value" text="{s:cm_val9}" />
             </Button>
@@ -236,6 +406,23 @@
                 <Label id="cm_seg10_7" class="item-seg" text="{s:cm_seg10_7}" />
                 <Label id="cm_seg10_8" class="item-seg" text="{s:cm_seg10_8}" />
                 <Label id="cm_seg10_9" class="item-seg" text="{s:cm_seg10_9}" />
+                <Label id="cm_seg10_10" class="item-seg" text="{s:cm_seg10_10}" />
+                <Label id="cm_seg10_11" class="item-seg" text="{s:cm_seg10_11}" />
+                <Label id="cm_seg10_12" class="item-seg" text="{s:cm_seg10_12}" />
+                <Label id="cm_seg10_13" class="item-seg" text="{s:cm_seg10_13}" />
+                <Label id="cm_seg10_14" class="item-seg" text="{s:cm_seg10_14}" />
+                <Label id="cm_seg10_15" class="item-seg" text="{s:cm_seg10_15}" />
+                <Label id="cm_seg10_16" class="item-seg" text="{s:cm_seg10_16}" />
+                <Label id="cm_seg10_17" class="item-seg" text="{s:cm_seg10_17}" />
+                <Label id="cm_seg10_18" class="item-seg" text="{s:cm_seg10_18}" />
+                <Label id="cm_seg10_19" class="item-seg" text="{s:cm_seg10_19}" />
+                <Label id="cm_seg10_20" class="item-seg" text="{s:cm_seg10_20}" />
+                <Label id="cm_seg10_21" class="item-seg" text="{s:cm_seg10_21}" />
+                <Label id="cm_seg10_22" class="item-seg" text="{s:cm_seg10_22}" />
+                <Label id="cm_seg10_23" class="item-seg" text="{s:cm_seg10_23}" />
+                <Label id="cm_seg10_24" class="item-seg" text="{s:cm_seg10_24}" />
+                <Label id="cm_seg10_25" class="item-seg" text="{s:cm_seg10_25}" />
+                <Label id="cm_seg10_26" class="item-seg" text="{s:cm_seg10_26}" />
               </Panel>
               <Label id="cm_val10" class="item-value" text="{s:cm_val10}" />
             </Button>
@@ -251,6 +438,23 @@
                 <Label id="cm_seg11_7" class="item-seg" text="{s:cm_seg11_7}" />
                 <Label id="cm_seg11_8" class="item-seg" text="{s:cm_seg11_8}" />
                 <Label id="cm_seg11_9" class="item-seg" text="{s:cm_seg11_9}" />
+                <Label id="cm_seg11_10" class="item-seg" text="{s:cm_seg11_10}" />
+                <Label id="cm_seg11_11" class="item-seg" text="{s:cm_seg11_11}" />
+                <Label id="cm_seg11_12" class="item-seg" text="{s:cm_seg11_12}" />
+                <Label id="cm_seg11_13" class="item-seg" text="{s:cm_seg11_13}" />
+                <Label id="cm_seg11_14" class="item-seg" text="{s:cm_seg11_14}" />
+                <Label id="cm_seg11_15" class="item-seg" text="{s:cm_seg11_15}" />
+                <Label id="cm_seg11_16" class="item-seg" text="{s:cm_seg11_16}" />
+                <Label id="cm_seg11_17" class="item-seg" text="{s:cm_seg11_17}" />
+                <Label id="cm_seg11_18" class="item-seg" text="{s:cm_seg11_18}" />
+                <Label id="cm_seg11_19" class="item-seg" text="{s:cm_seg11_19}" />
+                <Label id="cm_seg11_20" class="item-seg" text="{s:cm_seg11_20}" />
+                <Label id="cm_seg11_21" class="item-seg" text="{s:cm_seg11_21}" />
+                <Label id="cm_seg11_22" class="item-seg" text="{s:cm_seg11_22}" />
+                <Label id="cm_seg11_23" class="item-seg" text="{s:cm_seg11_23}" />
+                <Label id="cm_seg11_24" class="item-seg" text="{s:cm_seg11_24}" />
+                <Label id="cm_seg11_25" class="item-seg" text="{s:cm_seg11_25}" />
+                <Label id="cm_seg11_26" class="item-seg" text="{s:cm_seg11_26}" />
               </Panel>
               <Label id="cm_val11" class="item-value" text="{s:cm_val11}" />
             </Button>
@@ -266,6 +470,23 @@
                 <Label id="cm_seg12_7" class="item-seg" text="{s:cm_seg12_7}" />
                 <Label id="cm_seg12_8" class="item-seg" text="{s:cm_seg12_8}" />
                 <Label id="cm_seg12_9" class="item-seg" text="{s:cm_seg12_9}" />
+                <Label id="cm_seg12_10" class="item-seg" text="{s:cm_seg12_10}" />
+                <Label id="cm_seg12_11" class="item-seg" text="{s:cm_seg12_11}" />
+                <Label id="cm_seg12_12" class="item-seg" text="{s:cm_seg12_12}" />
+                <Label id="cm_seg12_13" class="item-seg" text="{s:cm_seg12_13}" />
+                <Label id="cm_seg12_14" class="item-seg" text="{s:cm_seg12_14}" />
+                <Label id="cm_seg12_15" class="item-seg" text="{s:cm_seg12_15}" />
+                <Label id="cm_seg12_16" class="item-seg" text="{s:cm_seg12_16}" />
+                <Label id="cm_seg12_17" class="item-seg" text="{s:cm_seg12_17}" />
+                <Label id="cm_seg12_18" class="item-seg" text="{s:cm_seg12_18}" />
+                <Label id="cm_seg12_19" class="item-seg" text="{s:cm_seg12_19}" />
+                <Label id="cm_seg12_20" class="item-seg" text="{s:cm_seg12_20}" />
+                <Label id="cm_seg12_21" class="item-seg" text="{s:cm_seg12_21}" />
+                <Label id="cm_seg12_22" class="item-seg" text="{s:cm_seg12_22}" />
+                <Label id="cm_seg12_23" class="item-seg" text="{s:cm_seg12_23}" />
+                <Label id="cm_seg12_24" class="item-seg" text="{s:cm_seg12_24}" />
+                <Label id="cm_seg12_25" class="item-seg" text="{s:cm_seg12_25}" />
+                <Label id="cm_seg12_26" class="item-seg" text="{s:cm_seg12_26}" />
               </Panel>
               <Label id="cm_val12" class="item-value" text="{s:cm_val12}" />
             </Button>
@@ -281,6 +502,23 @@
                 <Label id="cm_seg13_7" class="item-seg" text="{s:cm_seg13_7}" />
                 <Label id="cm_seg13_8" class="item-seg" text="{s:cm_seg13_8}" />
                 <Label id="cm_seg13_9" class="item-seg" text="{s:cm_seg13_9}" />
+                <Label id="cm_seg13_10" class="item-seg" text="{s:cm_seg13_10}" />
+                <Label id="cm_seg13_11" class="item-seg" text="{s:cm_seg13_11}" />
+                <Label id="cm_seg13_12" class="item-seg" text="{s:cm_seg13_12}" />
+                <Label id="cm_seg13_13" class="item-seg" text="{s:cm_seg13_13}" />
+                <Label id="cm_seg13_14" class="item-seg" text="{s:cm_seg13_14}" />
+                <Label id="cm_seg13_15" class="item-seg" text="{s:cm_seg13_15}" />
+                <Label id="cm_seg13_16" class="item-seg" text="{s:cm_seg13_16}" />
+                <Label id="cm_seg13_17" class="item-seg" text="{s:cm_seg13_17}" />
+                <Label id="cm_seg13_18" class="item-seg" text="{s:cm_seg13_18}" />
+                <Label id="cm_seg13_19" class="item-seg" text="{s:cm_seg13_19}" />
+                <Label id="cm_seg13_20" class="item-seg" text="{s:cm_seg13_20}" />
+                <Label id="cm_seg13_21" class="item-seg" text="{s:cm_seg13_21}" />
+                <Label id="cm_seg13_22" class="item-seg" text="{s:cm_seg13_22}" />
+                <Label id="cm_seg13_23" class="item-seg" text="{s:cm_seg13_23}" />
+                <Label id="cm_seg13_24" class="item-seg" text="{s:cm_seg13_24}" />
+                <Label id="cm_seg13_25" class="item-seg" text="{s:cm_seg13_25}" />
+                <Label id="cm_seg13_26" class="item-seg" text="{s:cm_seg13_26}" />
               </Panel>
               <Label id="cm_val13" class="item-value" text="{s:cm_val13}" />
             </Button>
@@ -296,6 +534,23 @@
                 <Label id="cm_seg14_7" class="item-seg" text="{s:cm_seg14_7}" />
                 <Label id="cm_seg14_8" class="item-seg" text="{s:cm_seg14_8}" />
                 <Label id="cm_seg14_9" class="item-seg" text="{s:cm_seg14_9}" />
+                <Label id="cm_seg14_10" class="item-seg" text="{s:cm_seg14_10}" />
+                <Label id="cm_seg14_11" class="item-seg" text="{s:cm_seg14_11}" />
+                <Label id="cm_seg14_12" class="item-seg" text="{s:cm_seg14_12}" />
+                <Label id="cm_seg14_13" class="item-seg" text="{s:cm_seg14_13}" />
+                <Label id="cm_seg14_14" class="item-seg" text="{s:cm_seg14_14}" />
+                <Label id="cm_seg14_15" class="item-seg" text="{s:cm_seg14_15}" />
+                <Label id="cm_seg14_16" class="item-seg" text="{s:cm_seg14_16}" />
+                <Label id="cm_seg14_17" class="item-seg" text="{s:cm_seg14_17}" />
+                <Label id="cm_seg14_18" class="item-seg" text="{s:cm_seg14_18}" />
+                <Label id="cm_seg14_19" class="item-seg" text="{s:cm_seg14_19}" />
+                <Label id="cm_seg14_20" class="item-seg" text="{s:cm_seg14_20}" />
+                <Label id="cm_seg14_21" class="item-seg" text="{s:cm_seg14_21}" />
+                <Label id="cm_seg14_22" class="item-seg" text="{s:cm_seg14_22}" />
+                <Label id="cm_seg14_23" class="item-seg" text="{s:cm_seg14_23}" />
+                <Label id="cm_seg14_24" class="item-seg" text="{s:cm_seg14_24}" />
+                <Label id="cm_seg14_25" class="item-seg" text="{s:cm_seg14_25}" />
+                <Label id="cm_seg14_26" class="item-seg" text="{s:cm_seg14_26}" />
               </Panel>
               <Label id="cm_val14" class="item-value" text="{s:cm_val14}" />
             </Button>
@@ -311,6 +566,23 @@
                 <Label id="cm_seg15_7" class="item-seg" text="{s:cm_seg15_7}" />
                 <Label id="cm_seg15_8" class="item-seg" text="{s:cm_seg15_8}" />
                 <Label id="cm_seg15_9" class="item-seg" text="{s:cm_seg15_9}" />
+                <Label id="cm_seg15_10" class="item-seg" text="{s:cm_seg15_10}" />
+                <Label id="cm_seg15_11" class="item-seg" text="{s:cm_seg15_11}" />
+                <Label id="cm_seg15_12" class="item-seg" text="{s:cm_seg15_12}" />
+                <Label id="cm_seg15_13" class="item-seg" text="{s:cm_seg15_13}" />
+                <Label id="cm_seg15_14" class="item-seg" text="{s:cm_seg15_14}" />
+                <Label id="cm_seg15_15" class="item-seg" text="{s:cm_seg15_15}" />
+                <Label id="cm_seg15_16" class="item-seg" text="{s:cm_seg15_16}" />
+                <Label id="cm_seg15_17" class="item-seg" text="{s:cm_seg15_17}" />
+                <Label id="cm_seg15_18" class="item-seg" text="{s:cm_seg15_18}" />
+                <Label id="cm_seg15_19" class="item-seg" text="{s:cm_seg15_19}" />
+                <Label id="cm_seg15_20" class="item-seg" text="{s:cm_seg15_20}" />
+                <Label id="cm_seg15_21" class="item-seg" text="{s:cm_seg15_21}" />
+                <Label id="cm_seg15_22" class="item-seg" text="{s:cm_seg15_22}" />
+                <Label id="cm_seg15_23" class="item-seg" text="{s:cm_seg15_23}" />
+                <Label id="cm_seg15_24" class="item-seg" text="{s:cm_seg15_24}" />
+                <Label id="cm_seg15_25" class="item-seg" text="{s:cm_seg15_25}" />
+                <Label id="cm_seg15_26" class="item-seg" text="{s:cm_seg15_26}" />
               </Panel>
               <Label id="cm_val15" class="item-value" text="{s:cm_val15}" />
             </Button>
@@ -326,6 +598,23 @@
                 <Label id="cm_seg16_7" class="item-seg" text="{s:cm_seg16_7}" />
                 <Label id="cm_seg16_8" class="item-seg" text="{s:cm_seg16_8}" />
                 <Label id="cm_seg16_9" class="item-seg" text="{s:cm_seg16_9}" />
+                <Label id="cm_seg16_10" class="item-seg" text="{s:cm_seg16_10}" />
+                <Label id="cm_seg16_11" class="item-seg" text="{s:cm_seg16_11}" />
+                <Label id="cm_seg16_12" class="item-seg" text="{s:cm_seg16_12}" />
+                <Label id="cm_seg16_13" class="item-seg" text="{s:cm_seg16_13}" />
+                <Label id="cm_seg16_14" class="item-seg" text="{s:cm_seg16_14}" />
+                <Label id="cm_seg16_15" class="item-seg" text="{s:cm_seg16_15}" />
+                <Label id="cm_seg16_16" class="item-seg" text="{s:cm_seg16_16}" />
+                <Label id="cm_seg16_17" class="item-seg" text="{s:cm_seg16_17}" />
+                <Label id="cm_seg16_18" class="item-seg" text="{s:cm_seg16_18}" />
+                <Label id="cm_seg16_19" class="item-seg" text="{s:cm_seg16_19}" />
+                <Label id="cm_seg16_20" class="item-seg" text="{s:cm_seg16_20}" />
+                <Label id="cm_seg16_21" class="item-seg" text="{s:cm_seg16_21}" />
+                <Label id="cm_seg16_22" class="item-seg" text="{s:cm_seg16_22}" />
+                <Label id="cm_seg16_23" class="item-seg" text="{s:cm_seg16_23}" />
+                <Label id="cm_seg16_24" class="item-seg" text="{s:cm_seg16_24}" />
+                <Label id="cm_seg16_25" class="item-seg" text="{s:cm_seg16_25}" />
+                <Label id="cm_seg16_26" class="item-seg" text="{s:cm_seg16_26}" />
               </Panel>
               <Label id="cm_val16" class="item-value" text="{s:cm_val16}" />
             </Button>
@@ -341,6 +630,23 @@
                 <Label id="cm_seg17_7" class="item-seg" text="{s:cm_seg17_7}" />
                 <Label id="cm_seg17_8" class="item-seg" text="{s:cm_seg17_8}" />
                 <Label id="cm_seg17_9" class="item-seg" text="{s:cm_seg17_9}" />
+                <Label id="cm_seg17_10" class="item-seg" text="{s:cm_seg17_10}" />
+                <Label id="cm_seg17_11" class="item-seg" text="{s:cm_seg17_11}" />
+                <Label id="cm_seg17_12" class="item-seg" text="{s:cm_seg17_12}" />
+                <Label id="cm_seg17_13" class="item-seg" text="{s:cm_seg17_13}" />
+                <Label id="cm_seg17_14" class="item-seg" text="{s:cm_seg17_14}" />
+                <Label id="cm_seg17_15" class="item-seg" text="{s:cm_seg17_15}" />
+                <Label id="cm_seg17_16" class="item-seg" text="{s:cm_seg17_16}" />
+                <Label id="cm_seg17_17" class="item-seg" text="{s:cm_seg17_17}" />
+                <Label id="cm_seg17_18" class="item-seg" text="{s:cm_seg17_18}" />
+                <Label id="cm_seg17_19" class="item-seg" text="{s:cm_seg17_19}" />
+                <Label id="cm_seg17_20" class="item-seg" text="{s:cm_seg17_20}" />
+                <Label id="cm_seg17_21" class="item-seg" text="{s:cm_seg17_21}" />
+                <Label id="cm_seg17_22" class="item-seg" text="{s:cm_seg17_22}" />
+                <Label id="cm_seg17_23" class="item-seg" text="{s:cm_seg17_23}" />
+                <Label id="cm_seg17_24" class="item-seg" text="{s:cm_seg17_24}" />
+                <Label id="cm_seg17_25" class="item-seg" text="{s:cm_seg17_25}" />
+                <Label id="cm_seg17_26" class="item-seg" text="{s:cm_seg17_26}" />
               </Panel>
               <Label id="cm_val17" class="item-value" text="{s:cm_val17}" />
             </Button>
@@ -356,6 +662,23 @@
                 <Label id="cm_seg18_7" class="item-seg" text="{s:cm_seg18_7}" />
                 <Label id="cm_seg18_8" class="item-seg" text="{s:cm_seg18_8}" />
                 <Label id="cm_seg18_9" class="item-seg" text="{s:cm_seg18_9}" />
+                <Label id="cm_seg18_10" class="item-seg" text="{s:cm_seg18_10}" />
+                <Label id="cm_seg18_11" class="item-seg" text="{s:cm_seg18_11}" />
+                <Label id="cm_seg18_12" class="item-seg" text="{s:cm_seg18_12}" />
+                <Label id="cm_seg18_13" class="item-seg" text="{s:cm_seg18_13}" />
+                <Label id="cm_seg18_14" class="item-seg" text="{s:cm_seg18_14}" />
+                <Label id="cm_seg18_15" class="item-seg" text="{s:cm_seg18_15}" />
+                <Label id="cm_seg18_16" class="item-seg" text="{s:cm_seg18_16}" />
+                <Label id="cm_seg18_17" class="item-seg" text="{s:cm_seg18_17}" />
+                <Label id="cm_seg18_18" class="item-seg" text="{s:cm_seg18_18}" />
+                <Label id="cm_seg18_19" class="item-seg" text="{s:cm_seg18_19}" />
+                <Label id="cm_seg18_20" class="item-seg" text="{s:cm_seg18_20}" />
+                <Label id="cm_seg18_21" class="item-seg" text="{s:cm_seg18_21}" />
+                <Label id="cm_seg18_22" class="item-seg" text="{s:cm_seg18_22}" />
+                <Label id="cm_seg18_23" class="item-seg" text="{s:cm_seg18_23}" />
+                <Label id="cm_seg18_24" class="item-seg" text="{s:cm_seg18_24}" />
+                <Label id="cm_seg18_25" class="item-seg" text="{s:cm_seg18_25}" />
+                <Label id="cm_seg18_26" class="item-seg" text="{s:cm_seg18_26}" />
               </Panel>
               <Label id="cm_val18" class="item-value" text="{s:cm_val18}" />
             </Button>
@@ -371,6 +694,23 @@
                 <Label id="cm_seg19_7" class="item-seg" text="{s:cm_seg19_7}" />
                 <Label id="cm_seg19_8" class="item-seg" text="{s:cm_seg19_8}" />
                 <Label id="cm_seg19_9" class="item-seg" text="{s:cm_seg19_9}" />
+                <Label id="cm_seg19_10" class="item-seg" text="{s:cm_seg19_10}" />
+                <Label id="cm_seg19_11" class="item-seg" text="{s:cm_seg19_11}" />
+                <Label id="cm_seg19_12" class="item-seg" text="{s:cm_seg19_12}" />
+                <Label id="cm_seg19_13" class="item-seg" text="{s:cm_seg19_13}" />
+                <Label id="cm_seg19_14" class="item-seg" text="{s:cm_seg19_14}" />
+                <Label id="cm_seg19_15" class="item-seg" text="{s:cm_seg19_15}" />
+                <Label id="cm_seg19_16" class="item-seg" text="{s:cm_seg19_16}" />
+                <Label id="cm_seg19_17" class="item-seg" text="{s:cm_seg19_17}" />
+                <Label id="cm_seg19_18" class="item-seg" text="{s:cm_seg19_18}" />
+                <Label id="cm_seg19_19" class="item-seg" text="{s:cm_seg19_19}" />
+                <Label id="cm_seg19_20" class="item-seg" text="{s:cm_seg19_20}" />
+                <Label id="cm_seg19_21" class="item-seg" text="{s:cm_seg19_21}" />
+                <Label id="cm_seg19_22" class="item-seg" text="{s:cm_seg19_22}" />
+                <Label id="cm_seg19_23" class="item-seg" text="{s:cm_seg19_23}" />
+                <Label id="cm_seg19_24" class="item-seg" text="{s:cm_seg19_24}" />
+                <Label id="cm_seg19_25" class="item-seg" text="{s:cm_seg19_25}" />
+                <Label id="cm_seg19_26" class="item-seg" text="{s:cm_seg19_26}" />
               </Panel>
               <Label id="cm_val19" class="item-value" text="{s:cm_val19}" />
             </Button>
@@ -386,6 +726,23 @@
                 <Label id="cm_seg20_7" class="item-seg" text="{s:cm_seg20_7}" />
                 <Label id="cm_seg20_8" class="item-seg" text="{s:cm_seg20_8}" />
                 <Label id="cm_seg20_9" class="item-seg" text="{s:cm_seg20_9}" />
+                <Label id="cm_seg20_10" class="item-seg" text="{s:cm_seg20_10}" />
+                <Label id="cm_seg20_11" class="item-seg" text="{s:cm_seg20_11}" />
+                <Label id="cm_seg20_12" class="item-seg" text="{s:cm_seg20_12}" />
+                <Label id="cm_seg20_13" class="item-seg" text="{s:cm_seg20_13}" />
+                <Label id="cm_seg20_14" class="item-seg" text="{s:cm_seg20_14}" />
+                <Label id="cm_seg20_15" class="item-seg" text="{s:cm_seg20_15}" />
+                <Label id="cm_seg20_16" class="item-seg" text="{s:cm_seg20_16}" />
+                <Label id="cm_seg20_17" class="item-seg" text="{s:cm_seg20_17}" />
+                <Label id="cm_seg20_18" class="item-seg" text="{s:cm_seg20_18}" />
+                <Label id="cm_seg20_19" class="item-seg" text="{s:cm_seg20_19}" />
+                <Label id="cm_seg20_20" class="item-seg" text="{s:cm_seg20_20}" />
+                <Label id="cm_seg20_21" class="item-seg" text="{s:cm_seg20_21}" />
+                <Label id="cm_seg20_22" class="item-seg" text="{s:cm_seg20_22}" />
+                <Label id="cm_seg20_23" class="item-seg" text="{s:cm_seg20_23}" />
+                <Label id="cm_seg20_24" class="item-seg" text="{s:cm_seg20_24}" />
+                <Label id="cm_seg20_25" class="item-seg" text="{s:cm_seg20_25}" />
+                <Label id="cm_seg20_26" class="item-seg" text="{s:cm_seg20_26}" />
               </Panel>
               <Label id="cm_val20" class="item-value" text="{s:cm_val20}" />
             </Button>
@@ -401,6 +758,23 @@
                 <Label id="cm_seg21_7" class="item-seg" text="{s:cm_seg21_7}" />
                 <Label id="cm_seg21_8" class="item-seg" text="{s:cm_seg21_8}" />
                 <Label id="cm_seg21_9" class="item-seg" text="{s:cm_seg21_9}" />
+                <Label id="cm_seg21_10" class="item-seg" text="{s:cm_seg21_10}" />
+                <Label id="cm_seg21_11" class="item-seg" text="{s:cm_seg21_11}" />
+                <Label id="cm_seg21_12" class="item-seg" text="{s:cm_seg21_12}" />
+                <Label id="cm_seg21_13" class="item-seg" text="{s:cm_seg21_13}" />
+                <Label id="cm_seg21_14" class="item-seg" text="{s:cm_seg21_14}" />
+                <Label id="cm_seg21_15" class="item-seg" text="{s:cm_seg21_15}" />
+                <Label id="cm_seg21_16" class="item-seg" text="{s:cm_seg21_16}" />
+                <Label id="cm_seg21_17" class="item-seg" text="{s:cm_seg21_17}" />
+                <Label id="cm_seg21_18" class="item-seg" text="{s:cm_seg21_18}" />
+                <Label id="cm_seg21_19" class="item-seg" text="{s:cm_seg21_19}" />
+                <Label id="cm_seg21_20" class="item-seg" text="{s:cm_seg21_20}" />
+                <Label id="cm_seg21_21" class="item-seg" text="{s:cm_seg21_21}" />
+                <Label id="cm_seg21_22" class="item-seg" text="{s:cm_seg21_22}" />
+                <Label id="cm_seg21_23" class="item-seg" text="{s:cm_seg21_23}" />
+                <Label id="cm_seg21_24" class="item-seg" text="{s:cm_seg21_24}" />
+                <Label id="cm_seg21_25" class="item-seg" text="{s:cm_seg21_25}" />
+                <Label id="cm_seg21_26" class="item-seg" text="{s:cm_seg21_26}" />
               </Panel>
               <Label id="cm_val21" class="item-value" text="{s:cm_val21}" />
             </Button>
@@ -416,6 +790,23 @@
                 <Label id="cm_seg22_7" class="item-seg" text="{s:cm_seg22_7}" />
                 <Label id="cm_seg22_8" class="item-seg" text="{s:cm_seg22_8}" />
                 <Label id="cm_seg22_9" class="item-seg" text="{s:cm_seg22_9}" />
+                <Label id="cm_seg22_10" class="item-seg" text="{s:cm_seg22_10}" />
+                <Label id="cm_seg22_11" class="item-seg" text="{s:cm_seg22_11}" />
+                <Label id="cm_seg22_12" class="item-seg" text="{s:cm_seg22_12}" />
+                <Label id="cm_seg22_13" class="item-seg" text="{s:cm_seg22_13}" />
+                <Label id="cm_seg22_14" class="item-seg" text="{s:cm_seg22_14}" />
+                <Label id="cm_seg22_15" class="item-seg" text="{s:cm_seg22_15}" />
+                <Label id="cm_seg22_16" class="item-seg" text="{s:cm_seg22_16}" />
+                <Label id="cm_seg22_17" class="item-seg" text="{s:cm_seg22_17}" />
+                <Label id="cm_seg22_18" class="item-seg" text="{s:cm_seg22_18}" />
+                <Label id="cm_seg22_19" class="item-seg" text="{s:cm_seg22_19}" />
+                <Label id="cm_seg22_20" class="item-seg" text="{s:cm_seg22_20}" />
+                <Label id="cm_seg22_21" class="item-seg" text="{s:cm_seg22_21}" />
+                <Label id="cm_seg22_22" class="item-seg" text="{s:cm_seg22_22}" />
+                <Label id="cm_seg22_23" class="item-seg" text="{s:cm_seg22_23}" />
+                <Label id="cm_seg22_24" class="item-seg" text="{s:cm_seg22_24}" />
+                <Label id="cm_seg22_25" class="item-seg" text="{s:cm_seg22_25}" />
+                <Label id="cm_seg22_26" class="item-seg" text="{s:cm_seg22_26}" />
               </Panel>
               <Label id="cm_val22" class="item-value" text="{s:cm_val22}" />
             </Button>
@@ -431,6 +822,23 @@
                 <Label id="cm_seg23_7" class="item-seg" text="{s:cm_seg23_7}" />
                 <Label id="cm_seg23_8" class="item-seg" text="{s:cm_seg23_8}" />
                 <Label id="cm_seg23_9" class="item-seg" text="{s:cm_seg23_9}" />
+                <Label id="cm_seg23_10" class="item-seg" text="{s:cm_seg23_10}" />
+                <Label id="cm_seg23_11" class="item-seg" text="{s:cm_seg23_11}" />
+                <Label id="cm_seg23_12" class="item-seg" text="{s:cm_seg23_12}" />
+                <Label id="cm_seg23_13" class="item-seg" text="{s:cm_seg23_13}" />
+                <Label id="cm_seg23_14" class="item-seg" text="{s:cm_seg23_14}" />
+                <Label id="cm_seg23_15" class="item-seg" text="{s:cm_seg23_15}" />
+                <Label id="cm_seg23_16" class="item-seg" text="{s:cm_seg23_16}" />
+                <Label id="cm_seg23_17" class="item-seg" text="{s:cm_seg23_17}" />
+                <Label id="cm_seg23_18" class="item-seg" text="{s:cm_seg23_18}" />
+                <Label id="cm_seg23_19" class="item-seg" text="{s:cm_seg23_19}" />
+                <Label id="cm_seg23_20" class="item-seg" text="{s:cm_seg23_20}" />
+                <Label id="cm_seg23_21" class="item-seg" text="{s:cm_seg23_21}" />
+                <Label id="cm_seg23_22" class="item-seg" text="{s:cm_seg23_22}" />
+                <Label id="cm_seg23_23" class="item-seg" text="{s:cm_seg23_23}" />
+                <Label id="cm_seg23_24" class="item-seg" text="{s:cm_seg23_24}" />
+                <Label id="cm_seg23_25" class="item-seg" text="{s:cm_seg23_25}" />
+                <Label id="cm_seg23_26" class="item-seg" text="{s:cm_seg23_26}" />
               </Panel>
               <Label id="cm_val23" class="item-value" text="{s:cm_val23}" />
             </Button>
@@ -446,6 +854,23 @@
                 <Label id="cm_seg24_7" class="item-seg" text="{s:cm_seg24_7}" />
                 <Label id="cm_seg24_8" class="item-seg" text="{s:cm_seg24_8}" />
                 <Label id="cm_seg24_9" class="item-seg" text="{s:cm_seg24_9}" />
+                <Label id="cm_seg24_10" class="item-seg" text="{s:cm_seg24_10}" />
+                <Label id="cm_seg24_11" class="item-seg" text="{s:cm_seg24_11}" />
+                <Label id="cm_seg24_12" class="item-seg" text="{s:cm_seg24_12}" />
+                <Label id="cm_seg24_13" class="item-seg" text="{s:cm_seg24_13}" />
+                <Label id="cm_seg24_14" class="item-seg" text="{s:cm_seg24_14}" />
+                <Label id="cm_seg24_15" class="item-seg" text="{s:cm_seg24_15}" />
+                <Label id="cm_seg24_16" class="item-seg" text="{s:cm_seg24_16}" />
+                <Label id="cm_seg24_17" class="item-seg" text="{s:cm_seg24_17}" />
+                <Label id="cm_seg24_18" class="item-seg" text="{s:cm_seg24_18}" />
+                <Label id="cm_seg24_19" class="item-seg" text="{s:cm_seg24_19}" />
+                <Label id="cm_seg24_20" class="item-seg" text="{s:cm_seg24_20}" />
+                <Label id="cm_seg24_21" class="item-seg" text="{s:cm_seg24_21}" />
+                <Label id="cm_seg24_22" class="item-seg" text="{s:cm_seg24_22}" />
+                <Label id="cm_seg24_23" class="item-seg" text="{s:cm_seg24_23}" />
+                <Label id="cm_seg24_24" class="item-seg" text="{s:cm_seg24_24}" />
+                <Label id="cm_seg24_25" class="item-seg" text="{s:cm_seg24_25}" />
+                <Label id="cm_seg24_26" class="item-seg" text="{s:cm_seg24_26}" />
               </Panel>
               <Label id="cm_val24" class="item-value" text="{s:cm_val24}" />
             </Button>
@@ -461,6 +886,23 @@
                 <Label id="cm_seg25_7" class="item-seg" text="{s:cm_seg25_7}" />
                 <Label id="cm_seg25_8" class="item-seg" text="{s:cm_seg25_8}" />
                 <Label id="cm_seg25_9" class="item-seg" text="{s:cm_seg25_9}" />
+                <Label id="cm_seg25_10" class="item-seg" text="{s:cm_seg25_10}" />
+                <Label id="cm_seg25_11" class="item-seg" text="{s:cm_seg25_11}" />
+                <Label id="cm_seg25_12" class="item-seg" text="{s:cm_seg25_12}" />
+                <Label id="cm_seg25_13" class="item-seg" text="{s:cm_seg25_13}" />
+                <Label id="cm_seg25_14" class="item-seg" text="{s:cm_seg25_14}" />
+                <Label id="cm_seg25_15" class="item-seg" text="{s:cm_seg25_15}" />
+                <Label id="cm_seg25_16" class="item-seg" text="{s:cm_seg25_16}" />
+                <Label id="cm_seg25_17" class="item-seg" text="{s:cm_seg25_17}" />
+                <Label id="cm_seg25_18" class="item-seg" text="{s:cm_seg25_18}" />
+                <Label id="cm_seg25_19" class="item-seg" text="{s:cm_seg25_19}" />
+                <Label id="cm_seg25_20" class="item-seg" text="{s:cm_seg25_20}" />
+                <Label id="cm_seg25_21" class="item-seg" text="{s:cm_seg25_21}" />
+                <Label id="cm_seg25_22" class="item-seg" text="{s:cm_seg25_22}" />
+                <Label id="cm_seg25_23" class="item-seg" text="{s:cm_seg25_23}" />
+                <Label id="cm_seg25_24" class="item-seg" text="{s:cm_seg25_24}" />
+                <Label id="cm_seg25_25" class="item-seg" text="{s:cm_seg25_25}" />
+                <Label id="cm_seg25_26" class="item-seg" text="{s:cm_seg25_26}" />
               </Panel>
               <Label id="cm_val25" class="item-value" text="{s:cm_val25}" />
             </Button>
@@ -476,6 +918,23 @@
                 <Label id="cm_seg26_7" class="item-seg" text="{s:cm_seg26_7}" />
                 <Label id="cm_seg26_8" class="item-seg" text="{s:cm_seg26_8}" />
                 <Label id="cm_seg26_9" class="item-seg" text="{s:cm_seg26_9}" />
+                <Label id="cm_seg26_10" class="item-seg" text="{s:cm_seg26_10}" />
+                <Label id="cm_seg26_11" class="item-seg" text="{s:cm_seg26_11}" />
+                <Label id="cm_seg26_12" class="item-seg" text="{s:cm_seg26_12}" />
+                <Label id="cm_seg26_13" class="item-seg" text="{s:cm_seg26_13}" />
+                <Label id="cm_seg26_14" class="item-seg" text="{s:cm_seg26_14}" />
+                <Label id="cm_seg26_15" class="item-seg" text="{s:cm_seg26_15}" />
+                <Label id="cm_seg26_16" class="item-seg" text="{s:cm_seg26_16}" />
+                <Label id="cm_seg26_17" class="item-seg" text="{s:cm_seg26_17}" />
+                <Label id="cm_seg26_18" class="item-seg" text="{s:cm_seg26_18}" />
+                <Label id="cm_seg26_19" class="item-seg" text="{s:cm_seg26_19}" />
+                <Label id="cm_seg26_20" class="item-seg" text="{s:cm_seg26_20}" />
+                <Label id="cm_seg26_21" class="item-seg" text="{s:cm_seg26_21}" />
+                <Label id="cm_seg26_22" class="item-seg" text="{s:cm_seg26_22}" />
+                <Label id="cm_seg26_23" class="item-seg" text="{s:cm_seg26_23}" />
+                <Label id="cm_seg26_24" class="item-seg" text="{s:cm_seg26_24}" />
+                <Label id="cm_seg26_25" class="item-seg" text="{s:cm_seg26_25}" />
+                <Label id="cm_seg26_26" class="item-seg" text="{s:cm_seg26_26}" />
               </Panel>
               <Label id="cm_val26" class="item-value" text="{s:cm_val26}" />
             </Button>
@@ -491,6 +950,23 @@
                 <Label id="cm_seg27_7" class="item-seg" text="{s:cm_seg27_7}" />
                 <Label id="cm_seg27_8" class="item-seg" text="{s:cm_seg27_8}" />
                 <Label id="cm_seg27_9" class="item-seg" text="{s:cm_seg27_9}" />
+                <Label id="cm_seg27_10" class="item-seg" text="{s:cm_seg27_10}" />
+                <Label id="cm_seg27_11" class="item-seg" text="{s:cm_seg27_11}" />
+                <Label id="cm_seg27_12" class="item-seg" text="{s:cm_seg27_12}" />
+                <Label id="cm_seg27_13" class="item-seg" text="{s:cm_seg27_13}" />
+                <Label id="cm_seg27_14" class="item-seg" text="{s:cm_seg27_14}" />
+                <Label id="cm_seg27_15" class="item-seg" text="{s:cm_seg27_15}" />
+                <Label id="cm_seg27_16" class="item-seg" text="{s:cm_seg27_16}" />
+                <Label id="cm_seg27_17" class="item-seg" text="{s:cm_seg27_17}" />
+                <Label id="cm_seg27_18" class="item-seg" text="{s:cm_seg27_18}" />
+                <Label id="cm_seg27_19" class="item-seg" text="{s:cm_seg27_19}" />
+                <Label id="cm_seg27_20" class="item-seg" text="{s:cm_seg27_20}" />
+                <Label id="cm_seg27_21" class="item-seg" text="{s:cm_seg27_21}" />
+                <Label id="cm_seg27_22" class="item-seg" text="{s:cm_seg27_22}" />
+                <Label id="cm_seg27_23" class="item-seg" text="{s:cm_seg27_23}" />
+                <Label id="cm_seg27_24" class="item-seg" text="{s:cm_seg27_24}" />
+                <Label id="cm_seg27_25" class="item-seg" text="{s:cm_seg27_25}" />
+                <Label id="cm_seg27_26" class="item-seg" text="{s:cm_seg27_26}" />
               </Panel>
               <Label id="cm_val27" class="item-value" text="{s:cm_val27}" />
             </Button>
@@ -506,6 +982,23 @@
                 <Label id="cm_seg28_7" class="item-seg" text="{s:cm_seg28_7}" />
                 <Label id="cm_seg28_8" class="item-seg" text="{s:cm_seg28_8}" />
                 <Label id="cm_seg28_9" class="item-seg" text="{s:cm_seg28_9}" />
+                <Label id="cm_seg28_10" class="item-seg" text="{s:cm_seg28_10}" />
+                <Label id="cm_seg28_11" class="item-seg" text="{s:cm_seg28_11}" />
+                <Label id="cm_seg28_12" class="item-seg" text="{s:cm_seg28_12}" />
+                <Label id="cm_seg28_13" class="item-seg" text="{s:cm_seg28_13}" />
+                <Label id="cm_seg28_14" class="item-seg" text="{s:cm_seg28_14}" />
+                <Label id="cm_seg28_15" class="item-seg" text="{s:cm_seg28_15}" />
+                <Label id="cm_seg28_16" class="item-seg" text="{s:cm_seg28_16}" />
+                <Label id="cm_seg28_17" class="item-seg" text="{s:cm_seg28_17}" />
+                <Label id="cm_seg28_18" class="item-seg" text="{s:cm_seg28_18}" />
+                <Label id="cm_seg28_19" class="item-seg" text="{s:cm_seg28_19}" />
+                <Label id="cm_seg28_20" class="item-seg" text="{s:cm_seg28_20}" />
+                <Label id="cm_seg28_21" class="item-seg" text="{s:cm_seg28_21}" />
+                <Label id="cm_seg28_22" class="item-seg" text="{s:cm_seg28_22}" />
+                <Label id="cm_seg28_23" class="item-seg" text="{s:cm_seg28_23}" />
+                <Label id="cm_seg28_24" class="item-seg" text="{s:cm_seg28_24}" />
+                <Label id="cm_seg28_25" class="item-seg" text="{s:cm_seg28_25}" />
+                <Label id="cm_seg28_26" class="item-seg" text="{s:cm_seg28_26}" />
               </Panel>
               <Label id="cm_val28" class="item-value" text="{s:cm_val28}" />
             </Button>
@@ -521,158 +1014,25 @@
                 <Label id="cm_seg29_7" class="item-seg" text="{s:cm_seg29_7}" />
                 <Label id="cm_seg29_8" class="item-seg" text="{s:cm_seg29_8}" />
                 <Label id="cm_seg29_9" class="item-seg" text="{s:cm_seg29_9}" />
+                <Label id="cm_seg29_10" class="item-seg" text="{s:cm_seg29_10}" />
+                <Label id="cm_seg29_11" class="item-seg" text="{s:cm_seg29_11}" />
+                <Label id="cm_seg29_12" class="item-seg" text="{s:cm_seg29_12}" />
+                <Label id="cm_seg29_13" class="item-seg" text="{s:cm_seg29_13}" />
+                <Label id="cm_seg29_14" class="item-seg" text="{s:cm_seg29_14}" />
+                <Label id="cm_seg29_15" class="item-seg" text="{s:cm_seg29_15}" />
+                <Label id="cm_seg29_16" class="item-seg" text="{s:cm_seg29_16}" />
+                <Label id="cm_seg29_17" class="item-seg" text="{s:cm_seg29_17}" />
+                <Label id="cm_seg29_18" class="item-seg" text="{s:cm_seg29_18}" />
+                <Label id="cm_seg29_19" class="item-seg" text="{s:cm_seg29_19}" />
+                <Label id="cm_seg29_20" class="item-seg" text="{s:cm_seg29_20}" />
+                <Label id="cm_seg29_21" class="item-seg" text="{s:cm_seg29_21}" />
+                <Label id="cm_seg29_22" class="item-seg" text="{s:cm_seg29_22}" />
+                <Label id="cm_seg29_23" class="item-seg" text="{s:cm_seg29_23}" />
+                <Label id="cm_seg29_24" class="item-seg" text="{s:cm_seg29_24}" />
+                <Label id="cm_seg29_25" class="item-seg" text="{s:cm_seg29_25}" />
+                <Label id="cm_seg29_26" class="item-seg" text="{s:cm_seg29_26}" />
               </Panel>
               <Label id="cm_val29" class="item-value" text="{s:cm_val29}" />
-            </Button>
-            <Button id="cm_item30" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg30_0" class="item-seg" text="{s:cm_seg30_0}" />
-                <Label id="cm_seg30_1" class="item-seg" text="{s:cm_seg30_1}" />
-                <Label id="cm_seg30_2" class="item-seg" text="{s:cm_seg30_2}" />
-                <Label id="cm_seg30_3" class="item-seg" text="{s:cm_seg30_3}" />
-                <Label id="cm_seg30_4" class="item-seg" text="{s:cm_seg30_4}" />
-                <Label id="cm_seg30_5" class="item-seg" text="{s:cm_seg30_5}" />
-                <Label id="cm_seg30_6" class="item-seg" text="{s:cm_seg30_6}" />
-                <Label id="cm_seg30_7" class="item-seg" text="{s:cm_seg30_7}" />
-                <Label id="cm_seg30_8" class="item-seg" text="{s:cm_seg30_8}" />
-                <Label id="cm_seg30_9" class="item-seg" text="{s:cm_seg30_9}" />
-              </Panel>
-              <Label id="cm_val30" class="item-value" text="{s:cm_val30}" />
-            </Button>
-            <Button id="cm_item31" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg31_0" class="item-seg" text="{s:cm_seg31_0}" />
-                <Label id="cm_seg31_1" class="item-seg" text="{s:cm_seg31_1}" />
-                <Label id="cm_seg31_2" class="item-seg" text="{s:cm_seg31_2}" />
-                <Label id="cm_seg31_3" class="item-seg" text="{s:cm_seg31_3}" />
-                <Label id="cm_seg31_4" class="item-seg" text="{s:cm_seg31_4}" />
-                <Label id="cm_seg31_5" class="item-seg" text="{s:cm_seg31_5}" />
-                <Label id="cm_seg31_6" class="item-seg" text="{s:cm_seg31_6}" />
-                <Label id="cm_seg31_7" class="item-seg" text="{s:cm_seg31_7}" />
-                <Label id="cm_seg31_8" class="item-seg" text="{s:cm_seg31_8}" />
-                <Label id="cm_seg31_9" class="item-seg" text="{s:cm_seg31_9}" />
-              </Panel>
-              <Label id="cm_val31" class="item-value" text="{s:cm_val31}" />
-            </Button>
-            <Button id="cm_item32" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg32_0" class="item-seg" text="{s:cm_seg32_0}" />
-                <Label id="cm_seg32_1" class="item-seg" text="{s:cm_seg32_1}" />
-                <Label id="cm_seg32_2" class="item-seg" text="{s:cm_seg32_2}" />
-                <Label id="cm_seg32_3" class="item-seg" text="{s:cm_seg32_3}" />
-                <Label id="cm_seg32_4" class="item-seg" text="{s:cm_seg32_4}" />
-                <Label id="cm_seg32_5" class="item-seg" text="{s:cm_seg32_5}" />
-                <Label id="cm_seg32_6" class="item-seg" text="{s:cm_seg32_6}" />
-                <Label id="cm_seg32_7" class="item-seg" text="{s:cm_seg32_7}" />
-                <Label id="cm_seg32_8" class="item-seg" text="{s:cm_seg32_8}" />
-                <Label id="cm_seg32_9" class="item-seg" text="{s:cm_seg32_9}" />
-              </Panel>
-              <Label id="cm_val32" class="item-value" text="{s:cm_val32}" />
-            </Button>
-            <Button id="cm_item33" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg33_0" class="item-seg" text="{s:cm_seg33_0}" />
-                <Label id="cm_seg33_1" class="item-seg" text="{s:cm_seg33_1}" />
-                <Label id="cm_seg33_2" class="item-seg" text="{s:cm_seg33_2}" />
-                <Label id="cm_seg33_3" class="item-seg" text="{s:cm_seg33_3}" />
-                <Label id="cm_seg33_4" class="item-seg" text="{s:cm_seg33_4}" />
-                <Label id="cm_seg33_5" class="item-seg" text="{s:cm_seg33_5}" />
-                <Label id="cm_seg33_6" class="item-seg" text="{s:cm_seg33_6}" />
-                <Label id="cm_seg33_7" class="item-seg" text="{s:cm_seg33_7}" />
-                <Label id="cm_seg33_8" class="item-seg" text="{s:cm_seg33_8}" />
-                <Label id="cm_seg33_9" class="item-seg" text="{s:cm_seg33_9}" />
-              </Panel>
-              <Label id="cm_val33" class="item-value" text="{s:cm_val33}" />
-            </Button>
-            <Button id="cm_item34" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg34_0" class="item-seg" text="{s:cm_seg34_0}" />
-                <Label id="cm_seg34_1" class="item-seg" text="{s:cm_seg34_1}" />
-                <Label id="cm_seg34_2" class="item-seg" text="{s:cm_seg34_2}" />
-                <Label id="cm_seg34_3" class="item-seg" text="{s:cm_seg34_3}" />
-                <Label id="cm_seg34_4" class="item-seg" text="{s:cm_seg34_4}" />
-                <Label id="cm_seg34_5" class="item-seg" text="{s:cm_seg34_5}" />
-                <Label id="cm_seg34_6" class="item-seg" text="{s:cm_seg34_6}" />
-                <Label id="cm_seg34_7" class="item-seg" text="{s:cm_seg34_7}" />
-                <Label id="cm_seg34_8" class="item-seg" text="{s:cm_seg34_8}" />
-                <Label id="cm_seg34_9" class="item-seg" text="{s:cm_seg34_9}" />
-              </Panel>
-              <Label id="cm_val34" class="item-value" text="{s:cm_val34}" />
-            </Button>
-            <Button id="cm_item35" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg35_0" class="item-seg" text="{s:cm_seg35_0}" />
-                <Label id="cm_seg35_1" class="item-seg" text="{s:cm_seg35_1}" />
-                <Label id="cm_seg35_2" class="item-seg" text="{s:cm_seg35_2}" />
-                <Label id="cm_seg35_3" class="item-seg" text="{s:cm_seg35_3}" />
-                <Label id="cm_seg35_4" class="item-seg" text="{s:cm_seg35_4}" />
-                <Label id="cm_seg35_5" class="item-seg" text="{s:cm_seg35_5}" />
-                <Label id="cm_seg35_6" class="item-seg" text="{s:cm_seg35_6}" />
-                <Label id="cm_seg35_7" class="item-seg" text="{s:cm_seg35_7}" />
-                <Label id="cm_seg35_8" class="item-seg" text="{s:cm_seg35_8}" />
-                <Label id="cm_seg35_9" class="item-seg" text="{s:cm_seg35_9}" />
-              </Panel>
-              <Label id="cm_val35" class="item-value" text="{s:cm_val35}" />
-            </Button>
-            <Button id="cm_item36" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg36_0" class="item-seg" text="{s:cm_seg36_0}" />
-                <Label id="cm_seg36_1" class="item-seg" text="{s:cm_seg36_1}" />
-                <Label id="cm_seg36_2" class="item-seg" text="{s:cm_seg36_2}" />
-                <Label id="cm_seg36_3" class="item-seg" text="{s:cm_seg36_3}" />
-                <Label id="cm_seg36_4" class="item-seg" text="{s:cm_seg36_4}" />
-                <Label id="cm_seg36_5" class="item-seg" text="{s:cm_seg36_5}" />
-                <Label id="cm_seg36_6" class="item-seg" text="{s:cm_seg36_6}" />
-                <Label id="cm_seg36_7" class="item-seg" text="{s:cm_seg36_7}" />
-                <Label id="cm_seg36_8" class="item-seg" text="{s:cm_seg36_8}" />
-                <Label id="cm_seg36_9" class="item-seg" text="{s:cm_seg36_9}" />
-              </Panel>
-              <Label id="cm_val36" class="item-value" text="{s:cm_val36}" />
-            </Button>
-            <Button id="cm_item37" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg37_0" class="item-seg" text="{s:cm_seg37_0}" />
-                <Label id="cm_seg37_1" class="item-seg" text="{s:cm_seg37_1}" />
-                <Label id="cm_seg37_2" class="item-seg" text="{s:cm_seg37_2}" />
-                <Label id="cm_seg37_3" class="item-seg" text="{s:cm_seg37_3}" />
-                <Label id="cm_seg37_4" class="item-seg" text="{s:cm_seg37_4}" />
-                <Label id="cm_seg37_5" class="item-seg" text="{s:cm_seg37_5}" />
-                <Label id="cm_seg37_6" class="item-seg" text="{s:cm_seg37_6}" />
-                <Label id="cm_seg37_7" class="item-seg" text="{s:cm_seg37_7}" />
-                <Label id="cm_seg37_8" class="item-seg" text="{s:cm_seg37_8}" />
-                <Label id="cm_seg37_9" class="item-seg" text="{s:cm_seg37_9}" />
-              </Panel>
-              <Label id="cm_val37" class="item-value" text="{s:cm_val37}" />
-            </Button>
-            <Button id="cm_item38" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg38_0" class="item-seg" text="{s:cm_seg38_0}" />
-                <Label id="cm_seg38_1" class="item-seg" text="{s:cm_seg38_1}" />
-                <Label id="cm_seg38_2" class="item-seg" text="{s:cm_seg38_2}" />
-                <Label id="cm_seg38_3" class="item-seg" text="{s:cm_seg38_3}" />
-                <Label id="cm_seg38_4" class="item-seg" text="{s:cm_seg38_4}" />
-                <Label id="cm_seg38_5" class="item-seg" text="{s:cm_seg38_5}" />
-                <Label id="cm_seg38_6" class="item-seg" text="{s:cm_seg38_6}" />
-                <Label id="cm_seg38_7" class="item-seg" text="{s:cm_seg38_7}" />
-                <Label id="cm_seg38_8" class="item-seg" text="{s:cm_seg38_8}" />
-                <Label id="cm_seg38_9" class="item-seg" text="{s:cm_seg38_9}" />
-              </Panel>
-              <Label id="cm_val38" class="item-value" text="{s:cm_val38}" />
-            </Button>
-            <Button id="cm_item39" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg39_0" class="item-seg" text="{s:cm_seg39_0}" />
-                <Label id="cm_seg39_1" class="item-seg" text="{s:cm_seg39_1}" />
-                <Label id="cm_seg39_2" class="item-seg" text="{s:cm_seg39_2}" />
-                <Label id="cm_seg39_3" class="item-seg" text="{s:cm_seg39_3}" />
-                <Label id="cm_seg39_4" class="item-seg" text="{s:cm_seg39_4}" />
-                <Label id="cm_seg39_5" class="item-seg" text="{s:cm_seg39_5}" />
-                <Label id="cm_seg39_6" class="item-seg" text="{s:cm_seg39_6}" />
-                <Label id="cm_seg39_7" class="item-seg" text="{s:cm_seg39_7}" />
-                <Label id="cm_seg39_8" class="item-seg" text="{s:cm_seg39_8}" />
-                <Label id="cm_seg39_9" class="item-seg" text="{s:cm_seg39_9}" />
-              </Panel>
-              <Label id="cm_val39" class="item-value" text="{s:cm_val39}" />
             </Button>
           </Panel>
         </Panel>

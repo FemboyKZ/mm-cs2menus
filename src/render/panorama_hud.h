@@ -13,11 +13,14 @@ class CCheckTransmitInfo;
 namespace panorama_hud
 {
 	// Fixed by the layout.
-	constexpr int kItemSlots = 40;
+	// The game interns at most 1024 panel ids and dialog variable names per layout, and every row run is one of each.
+	// 30 rows of 27 runs uses about 910.
+	constexpr int kItemSlots = 30;
 	constexpr int kNavSlots = 20;
 	// Differently colored runs per row.
 	// The layout only takes plain text, so each run is its own label with a palette class.
-	constexpr int kRowSegments = 10;
+	// rtv's longest label is the current map in !nominate with 5+ courses in both modes, 27 runs.
+	constexpr int kRowSegments = 27;
 
 	// CS_UM_CustomHudClicked
 	constexpr int kClickMessageId = 390;
