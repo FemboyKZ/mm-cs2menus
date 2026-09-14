@@ -30,7 +30,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "public/ics2menus.h" // resolved via the src include dir (see AMBuilder)
+#include "interfaces/cs2menus/ics2menus.h"
 
 #define CONSUMER_MAXPLAYERS 64
 
