@@ -30,6 +30,9 @@ public: // KHook hook handlers
 	KHook::Return<void> Hook_ClientDisconnect(IServerGameClients *, CPlayerSlot slot, ENetworkDisconnectionReason reason, const char *pszName,
 											  uint64 xuid, const char *pszNetworkID);
 	KHook::Return<void> Hook_DispatchConCommand(ICvar *, ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args);
+	KHook::Return<void> Hook_ClientSvcUserMessage(IServerGameClients *, CPlayerSlot slot, int type, uint32 size, const void *buf);
+	KHook::Return<void> Hook_CheckTransmit(ISource2GameEntities *, CCheckTransmitInfo **pInfo, int infoCount, CBitVec<16384> &, CBitVec<16384> &,
+										   const Entity2Networkable_t **pNetworkables, const uint16 *pEntityIndicies, int nEntities);
 
 public:
 	const char *GetAuthor()
@@ -77,6 +80,10 @@ private:
 	KHook::Virtual<IServerGameClients, void, CPlayerSlot, const char *, uint64, const char *, const char *, bool> m_OnClientConnected;
 	KHook::Virtual<IServerGameClients, void, CPlayerSlot, ENetworkDisconnectionReason, const char *, uint64, const char *> m_ClientDisconnect;
 	KHook::Virtual<ICvar, void, ConCommandRef, const CCommandContext &, const CCommand &> m_DispatchConCommand;
+	KHook::Virtual<IServerGameClients, void, CPlayerSlot, int, uint32, const void *> m_ClientSvcUserMessage;
+	KHook::Virtual<ISource2GameEntities, void, CCheckTransmitInfo **, int, CBitVec<16384> &, CBitVec<16384> &, const Entity2Networkable_t **,
+				   const uint16 *, int>
+		m_CheckTransmit;
 };
 
 extern CS2MenusPlugin g_ThisPlugin;

@@ -14,6 +14,10 @@
 	{
 		"en"	"Previous Page"
 	}
+	"Page {n}"
+	{
+		"en"	"Page {n}"
+	}
 	"Move"
 	{
 		"en"	"Move"

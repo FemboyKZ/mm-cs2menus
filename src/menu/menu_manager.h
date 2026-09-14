@@ -2,6 +2,7 @@
 #define _INCLUDE_MENU_MANAGER_H_
 
 #include "src/common.h"
+#include "src/render/panorama_hud.h"
 #include "interfaces/cs2menus/ics2menus.h"
 
 #include <cstdint>
@@ -196,6 +197,9 @@ public:
 	// HTML menus ignore the number and select the cursor row.
 	void CommandSelectNumber(int slot, int number, float curtime);
 
+	// From panorama_hud::ParseClick.
+	void OnPanoramaClick(int slot, panorama_hud::Click click, int index, float curtime);
+
 	// Expire timed-out menus and re-send HTML. Call every GameFrame.
 	void Tick(float curtime);
 
@@ -345,6 +349,8 @@ private:
 		// A host UI (SwiftlyS2 / CS# menu) owns this slot's screen.
 		// While set, we refuse to display so we never fight the host for input or the HTML channel.
 		bool externalBusy = false;
+		// Panorama: the page each left-column button opens.
+		std::vector<int> panoramaNav;
 	};
 
 	MenuDef *Find(MenuHandle menu);
@@ -370,9 +376,13 @@ private:
 	// Used for submenu navigation (into a child, or Back to a parent).
 	void SwitchMenu(int slot, MenuHandle handle);
 
-	void Render(int slot);     // dispatch to RenderPage/RenderHtml by the slot's menu type
-	void RenderPage(int slot); // chat
-	void RenderHtml(int slot); // html
+	void Render(int slot);         // dispatch by the slot's render type
+	void RenderPage(int slot);     // chat
+	void RenderHtml(int slot);     // html
+	void RenderPanorama(int slot); // panorama
+
+	// Chat and panorama page, HTML scrolls instead.
+	int PageSize(MenuType type) const;
 
 	// Re-render every player currently viewing `menu` (after a live mutation).
 	// Defers to the next GameFrame if called off the main thread.
@@ -393,8 +403,7 @@ private:
 	std::string EffectiveNavLabel(const MenuDef &def, int slot, MenuNavAction action) const;
 
 	// Resolve the render type for `def` as seen by `slot`: a forced menu keeps its base type,
-	// otherwise the player's type preference applies, then HTML availability is enforced
-	// (HTML result downgrades to chat when HTML is unavailable).
+	// otherwise the player's type preference applies, then availability is enforced (panorama falls back to HTML, HTML to chat).
 	MenuType ResolveType(const MenuDef &def, int slot) const;
 
 	// Built-in phrase key for a label (seeds MenuDef, restores on SetMenuLabel("")).

@@ -16,7 +16,7 @@ struct MenuGeneralCfg
 struct MenuDefaultsCfg
 {
 	// Default render style applied when a consumer creates a menu with
-	// MenuType::Default: "chat" or "html".
+	// MenuType::Default: "chat", "html" or "panorama".
 	std::string defaultType = "chat";
 
 	// Fallback language key for built-in label translations, used when a client's

@@ -13,6 +13,7 @@
 #include "menu/menu_manager.h"
 #include "interfaces/cs2menus/ics2menus.h"
 #include "render/center_html.h"
+#include "render/panorama_hud.h"
 #include "utils/html_style.h"
 #include "utils/print_utils.h"
 #include "mmu/cvarquery.h"
@@ -26,6 +27,7 @@
 #include <string>
 
 #include <engine/igameeventsystem.h>
+#include <filesystem.h>
 #include <interfaces/interfaces.h>
 #include <iserver.h>
 #include <networksystem/inetworkmessages.h>
@@ -430,6 +432,10 @@ static MenuType ParseMenuType(const std::string &name)
 	{
 		return MenuType::Html;
 	}
+	if (name == "panorama")
+	{
+		return MenuType::Panorama;
+	}
 	return MenuType::Chat; // "chat" and any unknown value
 }
 
@@ -692,7 +698,7 @@ namespace
 	struct SlotPrefs
 	{
 		uint64_t xuid = 0;
-		std::string type; // "", "chat", "html"
+		std::string type; // "", "chat", "html", "panorama"
 		std::string up;   // key names, "" / "default" / "none" / "w" / ...
 		std::string down;
 		std::string select;
@@ -756,6 +762,10 @@ namespace
 		{
 			return "HTML";
 		}
+		if (type == "panorama")
+		{
+			return "Panorama";
+		}
 		return "Server default";
 	}
 
@@ -796,6 +806,10 @@ namespace
 		{
 			type = MenuType::Html;
 		}
+		else if (p.type == "panorama")
+		{
+			type = MenuType::Panorama;
+		}
 		g_MenuManager.SetPlayerTypePref(slot, type);
 		ApplyOneNav(slot, MenuNavAction::Up, p.up);
 		ApplyOneNav(slot, MenuNavAction::Down, p.down);
@@ -819,18 +833,23 @@ namespace
 		g_MenuPrefsDB.SavePrefs(s_prefs[slot].xuid, row);
 	}
 
-	// Next value when cycling the type item: Default -> Chat -> (HTML) -> Default.
+	// Next value when cycling the type item:
+	// Default -> Chat -> HTML -> Panorama -> Default, skipping styles the server can't show right now.
 	std::string CycleType(const std::string &cur)
 	{
-		if (cur == "chat")
+		if (cur != "chat" && cur != "html" && cur != "panorama")
 		{
-			return g_MenuManager.HasHtml() ? "html" : "";
+			return "chat"; // "" / "default" / unknown
 		}
-		if (cur == "html")
+		if (cur == "chat" && g_MenuManager.HasHtml())
 		{
-			return "";
+			return "html";
 		}
-		return "chat"; // "" / "default" / unknown
+		if (cur != "panorama" && panorama_hud::Available())
+		{
+			return "panorama";
+		}
+		return "";
 	}
 
 	// Next value when cycling a key item: default -> each key (keys::kKeys order) -> none -> default.
@@ -1002,7 +1021,7 @@ CON_COMMAND_F(mm_menu_prefs, "Open your personal menu-preferences menu.", FCVAR_
 	OpenPrefsMenu(slot);
 }
 
-CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | default.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | panorama | default.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
 	if (!ValidSlot(slot) || args.ArgC() < 2)
@@ -1020,7 +1039,7 @@ CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | defaul
 	}
 	std::string v = args.Arg(1);
 	str::ToLowerInPlace(v);
-	if (v == "chat" || v == "html")
+	if (v == "chat" || v == "html" || v == "panorama")
 	{
 		s_prefs[slot].type = v;
 	}
@@ -1030,7 +1049,7 @@ CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | defaul
 	}
 	else
 	{
-		MENU_PrintToChat(slot, "Usage: mm_pref_type chat | html | default");
+		MENU_PrintToChat(slot, "Usage: mm_pref_type chat | html | panorama | default");
 		return;
 	}
 	ApplyPrefsToManager(slot);
@@ -1123,7 +1142,9 @@ CS2MenusPlugin::CS2MenusPlugin()
 	: m_GameFrame(&IServerGameDLL::GameFrame, this, nullptr, &CS2MenusPlugin::Hook_GameFrame),
 	  m_OnClientConnected(&IServerGameClients::OnClientConnected, this, &CS2MenusPlugin::Hook_OnClientConnected, nullptr),
 	  m_ClientDisconnect(&IServerGameClients::ClientDisconnect, this, nullptr, &CS2MenusPlugin::Hook_ClientDisconnect),
-	  m_DispatchConCommand(&ICvar::DispatchConCommand, this, &CS2MenusPlugin::Hook_DispatchConCommand, nullptr)
+	  m_DispatchConCommand(&ICvar::DispatchConCommand, this, &CS2MenusPlugin::Hook_DispatchConCommand, nullptr),
+	  m_ClientSvcUserMessage(&IServerGameClients::ClientSvcUserMessage, this, &CS2MenusPlugin::Hook_ClientSvcUserMessage, nullptr),
+	  m_CheckTransmit(&ISource2GameEntities::CheckTransmit, this, nullptr, &CS2MenusPlugin::Hook_CheckTransmit)
 {
 }
 
@@ -1141,6 +1162,8 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	GET_V_IFACE_ANY(GetEngineFactory, g_pNetworkServerService, INetworkServerService, NETWORKSERVERSERVICE_INTERFACE_VERSION);
 	GET_V_IFACE_ANY(GetEngineFactory, g_pSchemaSystem, ISchemaSystem, SCHEMASYSTEM_INTERFACE_VERSION);
 	GET_V_IFACE_ANY(GetEngineFactory, g_pGameResourceServiceServer, IGameResourceService, GAMERESOURCESERVICESERVER_INTERFACE_VERSION);
+	GET_V_IFACE_ANY(GetServerFactory, g_pSource2GameEntities, ISource2GameEntities, SOURCE2GAMEENTITIES_INTERFACE_VERSION);
+	GET_V_IFACE_CURRENT(GetFileSystemFactory, g_pFullFileSystem, IFileSystem, FILESYSTEM_INTERFACE_VERSION);
 
 	g_SMAPI->AddListener(this, this);
 
@@ -1151,17 +1174,22 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	m_OnClientConnected.Add(g_pGameClients);
 	m_ClientDisconnect.Add(g_pGameClients);
 	m_DispatchConCommand.Add(g_pICvar);
+	m_ClientSvcUserMessage.Add(g_pGameClients);
+	m_CheckTransmit.Add(g_pSource2GameEntities);
 
 	g_pCVar = g_pICvar;
 	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL);
 
 	// Resolve the game event manager for HTML menus. Chat menus work if this fails.
 	center_html::Init();
+	panorama_hud::Init();
 
 	// On a late load the map is already running, so grab the entity system now.
 	if (late)
 	{
 		g_pEntitySystem = GameEntitySystem();
+		// A reload leaves the previous load's panorama windows behind.
+		panorama_hud::RemoveOrphans();
 	}
 
 	EvaluateHtmlAvailability();
@@ -1177,9 +1205,10 @@ void CS2MenusPlugin::OnLevelInit(char const * /*pMapName*/, char const * /*pMapE
 	g_pEntitySystem = GameEntitySystem();
 	s_pGameRules = nullptr; // gamerules proxy is recreated each map, re-find lazily
 
-	// Retry the event-manager sig scan in case it missed at load
+	// Retry the sig scans in case they missed at load
 	// (server module not yet mapped), then re-probe. Init is a no-op once resolved.
 	center_html::Init();
+	panorama_hud::Init();
 
 	// Schema is reliably ready by now.
 	// Re-check in case the load-time probe was early.
@@ -1195,6 +1224,7 @@ void CS2MenusPlugin::OnLevelShutdown()
 	// so GameFrame can't touch freed memory before OnLevelInit re-acquires them.
 	g_pEntitySystem = nullptr;
 	s_pGameRules = nullptr;
+	panorama_hud::OnLevelShutdown();
 }
 
 void CS2MenusPlugin::AllPluginsLoaded()
@@ -1249,10 +1279,13 @@ bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 	m_OnClientConnected.Remove(g_pGameClients);
 	m_ClientDisconnect.Remove(g_pGameClients);
 	m_DispatchConCommand.Remove(g_pICvar);
+	m_ClientSvcUserMessage.Remove(g_pGameClients);
+	m_CheckTransmit.Remove(g_pSource2GameEntities);
 
 	// Drops pending callbacks pointing into this binary.
 	mmu::cvarquery::Shutdown();
 
+	panorama_hud::Shutdown();
 	// Drop all menus + displays without firing callbacks into consumer plugins.
 	g_MenuManager.Shutdown();
 	g_MenuPrefsDB.Shutdown();
@@ -1320,12 +1353,39 @@ KHook::Return<void> CS2MenusPlugin::Hook_ClientDisconnect(IServerGameClients *, 
 	int s = slot.Get();
 	mmu::cvarquery::OnClientDisconnect(s);
 	g_MenuManager.OnPlayerDisconnect(s);
+	panorama_hud::OnClientDisconnect(s);
 	if (ValidSlot(s))
 	{
 		g_MenuManager.ClearPlayerPrefs(s);
 		s_prefs[s] = SlotPrefs {};
 		s_prefsMenu[s] = kInvalidMenuHandle;
 	}
+	return {KHook::Action::Ignore};
+}
+
+KHook::Return<void> CS2MenusPlugin::Hook_ClientSvcUserMessage(IServerGameClients *, CPlayerSlot slot, int type, uint32 size, const void *buf)
+{
+	uint32_t layout = 0;
+	std::string buttonId;
+	if (type != panorama_hud::kClickMessageId || !panorama_hud::DecodeClick(buf, size, layout, buttonId))
+	{
+		return {KHook::Action::Ignore};
+	}
+	int index = -1;
+	panorama_hud::Click click = panorama_hud::ParseClick(slot.Get(), layout, buttonId.c_str(), index);
+	if (click != panorama_hud::Click::None)
+	{
+		CGlobalVars *globals = GetGameGlobals();
+		g_MenuManager.OnPanoramaClick(slot.Get(), click, index, globals ? globals->curtime : 0.0f);
+	}
+	// cs2kz's own menu reads the same message.
+	return {KHook::Action::Ignore};
+}
+
+KHook::Return<void> CS2MenusPlugin::Hook_CheckTransmit(ISource2GameEntities *, CCheckTransmitInfo **pInfo, int infoCount, CBitVec<16384> &,
+													   CBitVec<16384> &, const Entity2Networkable_t **, const uint16 *, int)
+{
+	panorama_hud::OnCheckTransmit(pInfo, infoCount);
 	return {KHook::Action::Ignore};
 }
 

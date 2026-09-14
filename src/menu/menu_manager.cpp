@@ -901,10 +901,14 @@ MenuType MenuManager::ResolveType(const MenuDef &def, int slot) const
 	{
 		result = m_prefs[slot].type;
 	}
-	// HTML must be available to render + receive input, else fall back to chat.
-	if (result != MenuType::Chat && !m_htmlAvailable)
+	// A style that can't render or take input falls back: panorama to HTML, HTML to chat.
+	if (result == MenuType::Panorama && !panorama_hud::Available())
 	{
-		result = MenuType::Chat;
+		result = MenuType::Html;
+	}
+	if (result != MenuType::Chat && result != MenuType::Panorama)
+	{
+		result = m_htmlAvailable ? MenuType::Html : MenuType::Chat;
 	}
 	return result;
 }
@@ -997,9 +1001,8 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	// Fixed for the life of this display.
 	pm.type = ResolveType(*def, slot);
 	// Open on the configured start item (clamped at render time).
-	// m_itemsPerPage is clamped >= 1 in Configure, so the divide is safe.
 	pm.cursor = def->startItem;
-	pm.page = def->startItem / m_itemsPerPage;
+	pm.page = def->startItem / PageSize(pm.type);
 	pm.expireTime = (duration > 0.0f) ? (m_curtime + duration) : 0.0f;
 	pm.prevButtons = 0;
 	pm.buttonsPrimed = false;
@@ -1069,7 +1072,7 @@ int MenuManager::GetSelectedItem(int slot) const
 	const PlayerMenu &pm = m_players[slot];
 	const MenuDef *def = Find(pm.handle);
 	// HTML only, and only when the cursor sits on a real item (not the Exit row).
-	if (!def || pm.type == MenuType::Chat || pm.cursor < 0 || pm.cursor >= static_cast<int>(def->items.size()))
+	if (!def || pm.type != MenuType::Html || pm.cursor < 0 || pm.cursor >= static_cast<int>(def->items.size()))
 	{
 		return -1;
 	}
@@ -1101,7 +1104,7 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 		}
 		// Use the per-viewer resolved type, not the menu's base type:
 		// a Default/HTML menu can render as chat for some viewers, and only an HTML display needs the panel cleared.
-		bool slotHtml = (pm.type != MenuType::Chat);
+		bool slotHtml = (pm.type == MenuType::Html);
 		pm.active = false;
 		pm.handle = kInvalidMenuHandle;
 
@@ -1162,7 +1165,7 @@ void MenuManager::EndDisplay(int slot, MenuEndReason reason)
 	pm.handle = kInvalidMenuHandle;
 
 	// Clear any HTML panel so it doesn't linger for its remaining duration.
-	if (Find(handle) && pm.type != MenuType::Chat)
+	if (Find(handle) && pm.type == MenuType::Html)
 	{
 		center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
 	}
@@ -1209,7 +1212,7 @@ void MenuManager::Select(int slot, int itemIndex)
 	MenuHandle handle = pm.handle;
 	MenuItemSelectFn onSelect = def->onSelect;
 	bool closeOnSelect = def->closeOnSelect;
-	bool wasHtml = (pm.type != MenuType::Chat);
+	bool wasHtml = (pm.type == MenuType::Html);
 
 	if (closeOnSelect)
 	{
@@ -1265,11 +1268,11 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle)
 	}
 
 	// Re-resolve the render type for the menu we're switching to (a submenu may be forced to a different type than the parent).
-	// Clear the HTML panel only when leaving HTML for chat,
+	// Clear the HTML panel only when leaving HTML,
 	// otherwise the re-render overwrites it.
-	bool oldHtml = pm.type != MenuType::Chat;
+	bool oldHtml = pm.type == MenuType::Html;
 	pm.type = ResolveType(*newDef, slot);
-	bool newHtml = pm.type != MenuType::Chat;
+	bool newHtml = pm.type == MenuType::Html;
 	if (oldHtml && !newHtml)
 	{
 		center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
@@ -1277,7 +1280,7 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle)
 
 	pm.handle = handle;
 	pm.cursor = newDef->startItem;
-	pm.page = newDef->startItem / m_itemsPerPage; // m_itemsPerPage clamped >= 1 in Configure
+	pm.page = newDef->startItem / PageSize(pm.type);
 	// Re-baseline buttons so the key that triggered the switch doesn't act again in the new menu.
 	pm.prevButtons = 0;
 	pm.buttonsPrimed = false;
@@ -1398,7 +1401,7 @@ bool MenuManager::WantsButtonInput(int slot) const
 		return false;
 	}
 	// Use the resolved per-viewer type, not the menu's base type.
-	return m_players[slot].type != MenuType::Chat;
+	return m_players[slot].type == MenuType::Html;
 }
 
 bool MenuManager::AnyHtmlMenuActive() const
@@ -1406,7 +1409,7 @@ bool MenuManager::AnyHtmlMenuActive() const
 	ScopedLock lock(m_mutex);
 	for (int i = 0; i <= MAXPLAYERS; i++)
 	{
-		if (m_players[i].active && m_players[i].type != MenuType::Chat)
+		if (m_players[i].active && m_players[i].type == MenuType::Html)
 		{
 			return true;
 		}
@@ -1427,7 +1430,7 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, uint64_t pressedBu
 		return;
 	}
 	MenuDef *def = Find(pm.handle);
-	if (!def || pm.type == MenuType::Chat)
+	if (!def || pm.type != MenuType::Html)
 	{
 		return;
 	}
@@ -1527,9 +1530,9 @@ void MenuManager::CommandNav(int slot, MenuNavAction action, float curtime)
 	}
 	m_curtime = curtime;
 
-	// Up/Down/Select drive the HTML cursor (chat menus use typed numbers).
-	// Back/close works for both render types.
-	bool html = (pm.type != MenuType::Chat);
+	// Up/Down/Select drive the HTML cursor (chat menus use typed numbers, panorama menus are clicked).
+	// Back/close works for every render type.
+	bool html = (pm.type == MenuType::Html);
 	switch (action)
 	{
 		case MenuNavAction::Up:
@@ -1581,7 +1584,7 @@ void MenuManager::CommandSelectNumber(int slot, int number, float curtime)
 	{
 		ApplyChatNumber(slot, number);
 	}
-	else
+	else if (pm.type == MenuType::Html)
 	{
 		HtmlNavSelect(slot);
 	}
@@ -1642,9 +1645,24 @@ void MenuManager::Tick(float curtime)
 		}
 		// HTML messages decay, refresh periodically.
 		const MenuDef *def = Find(pm.handle);
-		if (def && pm.type != MenuType::Chat && curtime >= pm.nextHtmlRender)
+		if (def && pm.type == MenuType::Html && curtime >= pm.nextHtmlRender)
 		{
 			RenderHtml(i);
+		}
+	}
+
+	// Panorama windows don't decay, they only need hiding once their display ends.
+	// Hiding here, not in EndDisplay, keeps the cursor up when one menu replaces another.
+	for (int i = 0; i < MAXPLAYERS; i++)
+	{
+		const PlayerMenu &pm = m_players[i];
+		if (!pm.active || pm.type != MenuType::Panorama)
+		{
+			panorama_hud::Hide(i);
+		}
+		else if (!panorama_hud::IsShown(i))
+		{
+			Render(i); // the window went away, e.g. with the map
 		}
 	}
 }
@@ -1849,13 +1867,17 @@ void MenuManager::Render(int slot)
 	{
 		return;
 	}
-	if (m_players[slot].type == MenuType::Chat)
+	switch (m_players[slot].type)
 	{
-		RenderPage(slot);
-	}
-	else
-	{
-		RenderHtml(slot);
+		case MenuType::Chat:
+			RenderPage(slot);
+			break;
+		case MenuType::Panorama:
+			RenderPanorama(slot);
+			break;
+		default:
+			RenderHtml(slot);
+			break;
 	}
 }
 
@@ -2188,4 +2210,135 @@ void MenuManager::RenderHtml(int slot)
 		pm.lastHtml = html;
 		pm.lastHtmlSend = m_curtime;
 	}
+}
+
+void MenuManager::RenderPanorama(int slot)
+{
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active)
+	{
+		return;
+	}
+
+	MenuDef *def = Find(pm.handle);
+	if (!def)
+	{
+		pm.active = false;
+		pm.handle = kInvalidMenuHandle;
+		return;
+	}
+
+	const int itemCount = static_cast<int>(def->items.size());
+	const int pageCount = (std::max)(1, (itemCount + panorama_hud::kItemSlots - 1) / panorama_hud::kItemSlots);
+	// A live item removal can leave the page past the end.
+	pm.page = (std::max)(0, (std::min)(pm.page, pageCount - 1));
+
+	panorama_hud::View view;
+	view.title = def->title;
+	// In a submenu it steps back to the parent, see NavClose.
+	view.closeButton = def->exitButton || (def->parent != kInvalidMenuHandle && Find(def->parent));
+
+	const int first = pm.page * panorama_hud::kItemSlots;
+	const int last = (std::min)(first + panorama_hud::kItemSlots, itemCount);
+	for (int i = first; i < last; i++)
+	{
+		const MenuItem &item = def->items[i];
+		view.rows.push_back({item.text, item.disabled, item.submenu != kInvalidMenuHandle});
+	}
+
+	// Left column: every page, or a window around the current one when they don't fit.
+	pm.panoramaNav.clear();
+	auto addNav = [&view, &pm](int page, std::string label)
+	{
+		view.nav.push_back({std::move(label), page == pm.page});
+		pm.panoramaNav.push_back(page);
+	};
+	if (pageCount > 1)
+	{
+		std::string lang = m_langResolver ? m_langResolver(slot) : std::string();
+		const std::string pageFormat = g_Translations.Translate(lang, "Page {n}");
+		auto pageLabel = [&pageFormat](int page) { return FillTemplate(pageFormat, {{"n", std::to_string(page + 1)}}); };
+
+		if (pageCount <= panorama_hud::kNavSlots)
+		{
+			for (int page = 0; page < pageCount; page++)
+			{
+				addNav(page, pageLabel(page));
+			}
+		}
+		else
+		{
+			const bool hasPrev = pm.page > 0;
+			const bool hasNext = pm.page + 1 < pageCount;
+			const int window = panorama_hud::kNavSlots - (hasPrev ? 1 : 0) - (hasNext ? 1 : 0);
+			const int start = (std::max)(0, (std::min)(pm.page - window / 2, pageCount - window));
+			if (hasPrev)
+			{
+				addNav(pm.page - 1, ResolveLabel(slot, *def, MenuLabel::PrevPage));
+			}
+			for (int page = start; page < start + window; page++)
+			{
+				addNav(page, pageLabel(page));
+			}
+			if (hasNext)
+			{
+				addNav(pm.page + 1, ResolveLabel(slot, *def, MenuLabel::NextPage));
+			}
+		}
+	}
+
+	if (!panorama_hud::Show(slot, view))
+	{
+		// No window for this player: fall back so the menu stays usable.
+		pm.type = m_htmlAvailable ? MenuType::Html : MenuType::Chat;
+		pm.page = 0;
+		Render(slot);
+	}
+}
+
+void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index, float curtime)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot))
+	{
+		return;
+	}
+	// Selection callbacks are main-thread only.
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, slot, click, index, curtime] { OnPanoramaClick(slot, click, index, curtime); });
+		return;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active || pm.type != MenuType::Panorama || !Find(pm.handle))
+	{
+		return;
+	}
+	m_curtime = curtime;
+
+	switch (click)
+	{
+		case panorama_hud::Click::Close:
+			NavClose(slot);
+			break;
+		case panorama_hud::Click::Nav:
+			if (index >= 0 && index < static_cast<int>(pm.panoramaNav.size()))
+			{
+				pm.page = pm.panoramaNav[index];
+				RenderPanorama(slot);
+			}
+			break;
+		case panorama_hud::Click::Item:
+			// Select bounds-checks the index and re-renders on a disabled row.
+			Select(slot, pm.page * panorama_hud::kItemSlots + index);
+			break;
+		case panorama_hud::Click::None:
+			break;
+	}
+}
+
+int MenuManager::PageSize(MenuType type) const
+{
+	// m_itemsPerPage is clamped >= 1 in Configure, so dividing by this is safe.
+	return type == MenuType::Panorama ? panorama_hud::kItemSlots : m_itemsPerPage;
 }

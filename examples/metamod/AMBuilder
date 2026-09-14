@@ -10,9 +10,6 @@ for sdk_target in MMSPlugin.sdk_targets:
 
     binary = MMSPlugin.HL2Library(builder, cxx, f'cs2menus_consumer.{sdk["name"]}', sdk)
 
-    # So consumer.cpp can #include "public/ics2menus.h".
-    binary.compiler.cxxincludes += [os.path.join(builder.sourcePath, "src")]
-
     # Generate the protobuf headers the SDK pulls in (eiface.h -> network_connection.pb.h).
     # Same set the main plugin builds.
     binary.custom = [

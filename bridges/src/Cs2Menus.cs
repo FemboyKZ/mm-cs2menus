@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace Cs2Menus;
 
-public enum MenuType { Default = -1, Chat = 0, Html = 1 }
+public enum MenuType { Default = -1, Chat = 0, Html = 1, Panorama = 2 }
 
 public enum MenuEndReason { Selected = 0, Exit = 1, Timeout = 2, Disconnect = 3, Cancelled = 4, Destroyed = 5 }
 
