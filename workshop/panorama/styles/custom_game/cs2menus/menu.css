@@ -129,19 +129,22 @@
 
 /* --- right: items --- */
 
+/* Leaves room for the scroll bar so rows never run under it. */
 .items {
 	flow-children: down;
 	width: fill-parent-flow(1);
 	height: 100%;
+	padding-right: 23px;
 	overflow: squish scroll;
 }
 
+/* margin-right centres the 6px bar under the 20px close button. */
 VerticalScrollBar {
 	width: 6px;
 	height: 100%;
 	horizontal-align: right;
 	layout-position: fixed;
-	margin: 2px 0px;
+	margin: 2px 7px;
 	border-radius: 3px;
 	background-color: #ffffff14;
 }
@@ -160,7 +163,7 @@ VerticalScrollBar:hover .ScrollThumb {
 .item {
 	width: 100%;
 	flow-children: right;
-	padding: 6px 20px 6px 12px;
+	padding: 6px 8px 6px 12px;
 	border-radius: 3px;
 	border-bottom: 1px solid #ffffff1f;
 	background-color: #00000000;
@@ -188,9 +191,14 @@ VerticalScrollBar:hover .ScrollThumb {
 	overflow: clip;
 }
 
+/* One run of the item text. Spacing is zeroed so runs join up like one line of text. */
 .item-seg {
 	font-size: 17px;
 	white-space: nowrap;
+	text-overflow: clip;
+	letter-spacing: 0px;
+	margin: 0px;
+	padding: 0px;
 }
 
 .item-value {
