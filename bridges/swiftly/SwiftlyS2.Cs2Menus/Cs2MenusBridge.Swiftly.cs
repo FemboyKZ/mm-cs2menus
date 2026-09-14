@@ -13,13 +13,13 @@ public sealed partial class Cs2MenusBridge
 
 	/// <summary>
 	/// Resolve and load the cs2menus binary from its standard addons location,
-	/// using <see cref="ISwiftlyCore.CSGODirectory"/>. Call once in plugin load.
+	/// using <see cref="ISwiftlyCore.GameFilesDirectory"/>. Call once in plugin load.
 	/// Returns false if cs2menus isn't installed or the ABI mismatches.
 	/// </summary>
 	public static bool LoadDefault(ISwiftlyCore core)
 	{
 		ArgumentNullException.ThrowIfNull(core);
-		return Load(ResolveBinaryPath(core.CSGODirectory));
+		return Load(ResolveBinaryPath(core.GameFilesDirectory));
 	}
 
 	/// <summary>The absolute path LoadDefault would use, for logging / diagnostics.</summary>
