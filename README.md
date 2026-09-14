@@ -8,10 +8,11 @@ It owns player input and rendering so other Metamod plugins can create interacti
 
 ## Menu types
 
-| Type     | Render                        | Navigation                                                           |
-| -------- | ----------------------------- | -------------------------------------------------------------------- |
-| **Chat** | Numbered list printed to chat | Type an item number, `0` exits, page keys follow items               |
-| **HTML** | Center-screen panel           | Movement keys - W/S move, D select, A exit by default (configurable) |
+| Type         | Render                                                      | Navigation                                                           |
+| ------------ | ----------------------------------------------------------- | -------------------------------------------------------------------- |
+| **Chat**     | Numbered list printed to chat                               | Type an item number, `0` exits, page keys follow items               |
+| **HTML**     | Center-screen panel                                         | Movement keys - W/S move, D select, A exit by default (configurable) |
+| **Panorama** | Menu window from the [workshop addon](./workshop/README.md) | Mouse clicks                                                         |
 
 Pass `MenuType::Default` to use the server's configured default style.
 
@@ -30,6 +31,7 @@ For commands see: [COMMANDS.md](./COMMANDS.md).
 - [Metamod:Source 2.0](https://www.metamodsource.net/downloads.php?branch=dev)
 - (Optional) [sql_mm](https://github.com/zer0k-z/sql_mm) - For per-player menu preferences (see below)
 - (Optional) [MM-CS2Admin](https://github.com/FemboyKZ/mm-cs2admin) - For command overrides (gate commands to admins only).
+- (Optional) [MultiAddonManager](https://github.com/Source2ZE/MultiAddonManager) - Mounts the workshop addon for panorama menus.
 
 ### Installation
 
@@ -113,6 +115,6 @@ ambuild
 ## Credits
 
 - [zer0.k's MetaMod Sample plugin fork](https://github.com/zer0k-z/mm_misc_plugins)
-- [cs2kz-metamod](https://github.com/KZGlobalTeam/cs2kz-metamod) - gamedata signatures, button-state schema
+- [cs2kz-metamod](https://github.com/KZGlobalTeam/cs2kz-metamod) - gamedata signatures, button-state schema, the menu layout the workshop addon is based on
 - [CS2Fixes](https://github.com/Source2ZE/CS2Fixes) - center-HTML (`show_survival_respawn_status`) technique, gamedata
 - [SwiftlyS2](https://github.com/swiftly-solution/swiftlys2) - HTML menu design reference

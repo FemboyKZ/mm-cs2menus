@@ -1,0 +1,222 @@
+/* Based on cs2kz's menu.css (AGPL-3.0, zer0.k). Slot counts match panorama_hud.h. */
+
+/* High enough to draw above the crosshair. */
+.root {
+	width: 100%;
+	height: 100%;
+	z-index: 99999;
+}
+
+#cm_root {
+	width: 100%;
+	height: 100%;
+	color: #ffffff;
+}
+
+#cm_root.hidden {
+	visibility: collapse;
+}
+
+/* Sized so all 20 nav buttons fit without scrolling. */
+.menu-box {
+	horizontal-align: center;
+	vertical-align: middle;
+	flow-children: down;
+	width: 900px;
+	height: 700px;
+	padding: 16px;
+	border: 1px solid #5f494926;
+	border-radius: 5px;
+	background-image: url("s2r://panorama/images/backgrounds/bluedots_large_png.vtex");
+	background-size: 360px 360px;
+	background-img-opacity: 0.01;
+	background-color: rgba(1, 1, 1, 0.95);
+}
+
+.window-header {
+	width: 100%;
+	flow-children: right;
+	margin-bottom: 12px;
+}
+
+.menu-title {
+	width: fill-parent-flow(1);
+	vertical-align: center;
+	font-size: 20px;
+	text-transform: uppercase;
+	font-weight: bold;
+	letter-spacing: 2px;
+	text-overflow: ellipsis;
+}
+
+.close-btn {
+	width: 20px;
+	height: 20px;
+	margin-left: 10px;
+	horizontal-align: right;
+	vertical-align: center;
+	wash-color: #888888;
+	background-image: url("s2r://panorama/images/control_icons/x_close_png.vtex");
+	background-size: 20px 20px;
+	background-repeat: no-repeat;
+	background-position: 50% 50%;
+	transition-property: wash-color;
+	transition-duration: 0.1s;
+}
+
+.close-btn:hover {
+	wash-color: #ffffff;
+}
+
+.close-btn:active {
+	wash-color: #ffffff;
+	background-size: 17px 17px;
+}
+
+.close-btn.hidden {
+	visibility: collapse;
+}
+
+.panes {
+	flow-children: right;
+	width: 100%;
+	height: fill-parent-flow(1);
+}
+
+/* --- left: pages --- */
+
+.nav {
+	flow-children: down;
+	width: 220px;
+	height: 100%;
+	padding-right: 10px;
+	margin-right: 12px;
+	border-right: 1px solid #ffffff1a;
+}
+
+.nav.hidden {
+	visibility: collapse;
+}
+
+.nav-btn {
+	width: 100%;
+	padding: 5px 10px;
+	margin-bottom: 1px;
+	border-radius: 3px;
+	background-color: #00000000;
+	transition-property: background-color;
+	transition-duration: 0.05s;
+}
+
+.nav-btn:hover {
+	background-color: #ffffff1a;
+}
+
+.nav-btn.selected {
+	background-color: #ffffff26;
+}
+
+.nav-btn.hidden {
+	visibility: collapse;
+}
+
+.nav-label {
+	width: 100%;
+	font-size: 15px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* --- right: items --- */
+
+.items {
+	flow-children: down;
+	width: fill-parent-flow(1);
+	height: 100%;
+	overflow: squish scroll;
+}
+
+VerticalScrollBar {
+	width: 6px;
+	height: 100%;
+	horizontal-align: right;
+	layout-position: fixed;
+	margin: 2px 0px;
+	border-radius: 3px;
+	background-color: #ffffff14;
+}
+
+VerticalScrollBar .ScrollThumb {
+	width: 100%;
+	min-height: 32px;
+	border-radius: 3px;
+	background-color: #ffffff59;
+}
+
+VerticalScrollBar:hover .ScrollThumb {
+	background-color: #ffffff99;
+}
+
+.item {
+	width: 100%;
+	flow-children: right;
+	padding: 6px 20px 6px 12px;
+	border-radius: 3px;
+	border-bottom: 1px solid #ffffff1f;
+	background-color: #00000000;
+	transition-property: background-color;
+	transition-duration: 0.05s;
+}
+
+.item:hover {
+	background-color: #ffffff14;
+}
+
+.item.disabled:hover {
+	background-color: #00000000;
+}
+
+.item.hidden {
+	visibility: collapse;
+}
+
+.item-label {
+	width: fill-parent-flow(1);
+	vertical-align: middle;
+	font-size: 17px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.item-value {
+	vertical-align: middle;
+	margin-left: 12px;
+	font-size: 16px;
+	white-space: nowrap;
+}
+
+/* --- sounds, on when the server adds "snd" to cm_root --- */
+
+.snd .close-btn:hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .close-btn:active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+.snd .nav-btn:hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .nav-btn:active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+.snd .item:not(.disabled):hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .item:not(.disabled):active {
+	sound: "UIPanorama.generic_button_press";
+}

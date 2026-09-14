@@ -230,6 +230,37 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 			cfg->menu.navBack = ToLower(value);
 		}
 	}
+	else if (sec == "panorama")
+	{
+		if (k == "workshopid")
+		{
+			cfg->panorama.workshopId = value;
+		}
+		else if (k == "mountaddon")
+		{
+			cfg->panorama.mountAddon = (value != "0");
+		}
+		else if (k == "font")
+		{
+			cfg->panorama.font = ToLower(value);
+		}
+		else if (k == "titlecolor")
+		{
+			cfg->panorama.titleColor = value;
+		}
+		else if (k == "itemcolor")
+		{
+			cfg->panorama.itemColor = value;
+		}
+		else if (k == "disabledcolor")
+		{
+			cfg->panorama.disabledColor = value;
+		}
+		else if (k == "sounds")
+		{
+			cfg->panorama.sounds = (value != "0");
+		}
+	}
 	else if (sec == "database")
 	{
 		if (k == "enabled")

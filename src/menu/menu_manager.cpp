@@ -2212,6 +2212,26 @@ void MenuManager::RenderHtml(int slot)
 	}
 }
 
+// Shortest prefix of text past skip that tells it apart from neighbor, like a dictionary's guide words.
+static std::string GuidePrefix(const std::string &text, const std::string &neighbor, size_t skip)
+{
+	if (skip >= text.size())
+	{
+		return text;
+	}
+	size_t n = skip;
+	while (n < text.size() && n < neighbor.size() && text[n] == neighbor[n])
+	{
+		n++;
+	}
+	n = (std::min)(text.size(), (std::max)(n + 1, skip + 3));
+	while (n < text.size() && (static_cast<unsigned char>(text[n]) & 0xC0) == 0x80)
+	{
+		n++;
+	}
+	return text.substr(skip, n - skip);
+}
+
 void MenuManager::RenderPanorama(int slot)
 {
 	PlayerMenu &pm = m_players[slot];
@@ -2233,8 +2253,18 @@ void MenuManager::RenderPanorama(int slot)
 	// A live item removal can leave the page past the end.
 	pm.page = (std::max)(0, (std::min)(pm.page, pageCount - 1));
 
+	// Per-menu color overrides still apply, the rest of MenuStyle is HTML layout.
+	const StyleOverride &st = def->style;
+	auto pick = [](const std::string &override_, const std::string &dflt) -> const std::string & { return override_.empty() ? dflt : override_; };
+	const std::string &titleColor = pick(st.titleColor, m_settings.panoramaTitleColor);
+	const std::string &itemColor = pick(st.itemColor, m_settings.panoramaItemColor);
+	const std::string &disabledColor = pick(st.disabledColor, m_settings.panoramaDisabledColor);
+	auto font = [](const std::string &color, const std::string &markup) { return "<font color='" + color + "'>" + markup + "</font>"; };
+
 	panorama_hud::View view;
-	view.title = def->title;
+	view.fontClass = m_settings.panoramaFontClass;
+	view.sounds = m_settings.panoramaSounds;
+	view.title = st.rawTitle == 1 ? font(titleColor, def->title) : center_html::ColorizeChat(def->title, titleColor.c_str(), "");
 	// In a submenu it steps back to the parent, see NavClose.
 	view.closeButton = def->exitButton || (def->parent != kInvalidMenuHandle && Find(def->parent));
 
@@ -2243,47 +2273,77 @@ void MenuManager::RenderPanorama(int slot)
 	for (int i = first; i < last; i++)
 	{
 		const MenuItem &item = def->items[i];
-		view.rows.push_back({item.text, item.disabled, item.submenu != kInvalidMenuHandle});
+		const std::string &color = item.disabled ? disabledColor : itemColor;
+		panorama_hud::View::Row row;
+		row.text = item.raw ? font(color, item.text) : center_html::ColorizeChat(item.text, color.c_str(), "");
+		if (item.submenu != kInvalidMenuHandle)
+		{
+			row.value = font(color, "\xE2\x80\xBA"); // ›
+		}
+		row.disabled = item.disabled;
+		view.rows.push_back(std::move(row));
 	}
 
 	// Left column: every page, or a window around the current one when they don't fit.
 	pm.panoramaNav.clear();
-	auto addNav = [&view, &pm](int page, std::string label)
+	auto addNav = [&](int page, const std::string &label)
 	{
-		view.nav.push_back({std::move(label), page == pm.page});
+		view.nav.push_back({font(itemColor, center_html::Escape(label)), page == pm.page});
 		pm.panoramaNav.push_back(page);
 	};
 	if (pageCount > 1)
 	{
+		std::vector<std::string> texts;
+		texts.reserve(def->items.size());
+		for (const MenuItem &item : def->items)
+		{
+			texts.push_back(panorama_hud::StripColors(item.text));
+		}
+		// Skip a prefix every item shares, like "kz_" on a map list.
+		size_t skip = texts[0].size();
+		for (const std::string &text : texts)
+		{
+			size_t n = 0;
+			while (n < skip && n < text.size() && text[n] == texts[0][n])
+			{
+				n++;
+			}
+			skip = n;
+		}
+		while (skip > 0 && (static_cast<unsigned char>(texts[0][skip]) & 0xC0) == 0x80)
+		{
+			skip--;
+		}
+
 		std::string lang = m_langResolver ? m_langResolver(slot) : std::string();
 		const std::string pageFormat = g_Translations.Translate(lang, "Page {n}");
-		auto pageLabel = [&pageFormat](int page) { return FillTemplate(pageFormat, {{"n", std::to_string(page + 1)}}); };
+		auto pageLabel = [&](int page)
+		{
+			const int firstItem = page * panorama_hud::kItemSlots;
+			const int lastItem = (std::min)(firstItem + panorama_hud::kItemSlots, itemCount) - 1;
+			static const std::string kNone;
+			std::string label = GuidePrefix(texts[firstItem], firstItem > 0 ? texts[firstItem - 1] : kNone, skip);
+			if (lastItem > firstItem)
+			{
+				label += " - " + GuidePrefix(texts[lastItem], lastItem + 1 < itemCount ? texts[lastItem + 1] : kNone, skip);
+			}
+			return texts[firstItem].size() > skip ? label : FillTemplate(pageFormat, {{"n", std::to_string(page + 1)}});
+		};
 
-		if (pageCount <= panorama_hud::kNavSlots)
+		// The arrows jump a whole window.
+		const int window = pageCount <= panorama_hud::kNavSlots ? pageCount : panorama_hud::kNavSlots - 2;
+		const int start = (std::max)(0, (std::min)(pm.page - window / 2, pageCount - window));
+		if (start > 0)
 		{
-			for (int page = 0; page < pageCount; page++)
-			{
-				addNav(page, pageLabel(page));
-			}
+			addNav((std::max)(0, pm.page - window), ResolveLabel(slot, *def, MenuLabel::PrevPage));
 		}
-		else
+		for (int page = start; page < start + window; page++)
 		{
-			const bool hasPrev = pm.page > 0;
-			const bool hasNext = pm.page + 1 < pageCount;
-			const int window = panorama_hud::kNavSlots - (hasPrev ? 1 : 0) - (hasNext ? 1 : 0);
-			const int start = (std::max)(0, (std::min)(pm.page - window / 2, pageCount - window));
-			if (hasPrev)
-			{
-				addNav(pm.page - 1, ResolveLabel(slot, *def, MenuLabel::PrevPage));
-			}
-			for (int page = start; page < start + window; page++)
-			{
-				addNav(page, pageLabel(page));
-			}
-			if (hasNext)
-			{
-				addNav(pm.page + 1, ResolveLabel(slot, *def, MenuLabel::NextPage));
-			}
+			addNav(page, pageLabel(page));
+		}
+		if (start + window < pageCount)
+		{
+			addNav((std::min)(pageCount - 1, pm.page + window), ResolveLabel(slot, *def, MenuLabel::NextPage));
 		}
 	}
 

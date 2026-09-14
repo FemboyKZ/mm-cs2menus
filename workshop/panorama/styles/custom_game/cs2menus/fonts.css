@@ -1,0 +1,41 @@
+/* Faces for the Panorama "Font" setting in core.cfg. Keep in step with kPanoramaFonts in cs2menus.cpp. */
+
+.font-stratum2 {
+	font-family: Stratum2, "Arial Unicode MS";
+}
+
+.font-stratum2-light {
+	font-family: "Stratum2 Light", "Arial Unicode MS";
+}
+
+.font-stratum2-medium {
+	font-family: "Stratum2 Medium", "Arial Unicode MS";
+}
+
+.font-stratum2-bold {
+	font-family: "Stratum2 Bold", "Arial Unicode MS";
+}
+
+.font-stratum2-black {
+	font-family: "Stratum2 Black", "Arial Unicode MS";
+}
+
+.font-stratum2-condensed {
+	font-family: "Stratum2 Condensed", "Arial Unicode MS";
+}
+
+.font-stratum2-mono {
+	font-family: "Stratum2 Mono", "Arial Unicode MS";
+}
+
+.font-noto-sans {
+	font-family: "Noto Sans", "Arial Unicode MS";
+}
+
+.font-noto-sans-bold {
+	font-family: "Noto Sans Bold", "Arial Unicode MS";
+}
+
+.font-arial {
+	font-family: Arial, "Arial Unicode MS";
+}

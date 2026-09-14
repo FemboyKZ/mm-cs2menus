@@ -7,25 +7,26 @@
 
 class CCheckTransmitInfo;
 
-// Menus in cs2kz's options window (panorama/layout/custom_game/cs2kz/menu.xml from its workshop addon),
+// Menus in our workshop addon's window (workshop/panorama/layout/custom_game/cs2menus/menu.xml),
 // one custom_hud_layout per player, hidden from everyone but its owner.
 // Menus go in the global state since the per-player states follow whoever a client watches.
 namespace panorama_hud
 {
 	// Fixed by the layout.
-	constexpr int kItemSlots = 20;
+	constexpr int kItemSlots = 40;
 	constexpr int kNavSlots = 20;
 
 	// CS_UM_CustomHudClicked
 	constexpr int kClickMessageId = 390;
 
+	// Every text field is Panorama markup.
 	struct View
 	{
 		struct Row
 		{
 			std::string text;
+			std::string value; // right-aligned
 			bool disabled = false;
-			bool submenu = false;
 		};
 
 		struct Nav
@@ -37,7 +38,9 @@ namespace panorama_hud
 		std::string title;
 		bool closeButton = true;
 		std::vector<Row> rows; // at most kItemSlots
-		std::vector<Nav> nav;  // at most kNavSlots, empty collapses the left column
+		std::vector<Nav> nav;  // at most kNavSlots, empty hides the left column
+		std::string fontClass; // from fonts.css, empty for the layout default
+		bool sounds = true;
 	};
 
 	enum class Click
@@ -47,6 +50,9 @@ namespace panorama_hud
 		Nav,  // index = left-column slot
 		Item, // index = row on the page
 	};
+
+	// Drops chat color codes from text that isn't turned into markup.
+	std::string StripColors(const std::string &text);
 
 	// No-op once the signatures resolve.
 	bool Init();
@@ -64,6 +70,9 @@ namespace panorama_hud
 	Click ParseClick(int slot, uint32_t layoutHandle, const char *buttonId, int &index);
 
 	void OnCheckTransmit(CCheckTransmitInfo **infos, int count);
+
+	// Multi-line status for the diagnostic command: signatures, layout, clicks and every live window.
+	std::string Describe();
 
 	void OnClientDisconnect(int slot);
 	// The entities die with the map, only their handles are dropped.

@@ -12,12 +12,14 @@
 #include "menu/key_table.h"
 #include "menu/menu_manager.h"
 #include "interfaces/cs2menus/ics2menus.h"
+#include "interfaces/multiaddonmanager/imultiaddonmanager.h"
 #include "render/center_html.h"
 #include "render/panorama_hud.h"
 #include "utils/html_style.h"
 #include "utils/print_utils.h"
 #include "mmu/cvarquery.h"
 #include "mmu/log.h"
+#include "mmu/print.h"
 #include "mmu/str_utils.h"
 
 #include <cctype>
@@ -38,6 +40,7 @@ IServerGameClients *g_pGameClients = nullptr;
 IVEngineServer *g_pEngine = nullptr;
 ICvar *g_pICvar = nullptr;
 IGameEventSystem *g_pGameEventSystem = nullptr;
+static IMultiAddonManager *s_pMultiAddonManager = nullptr;
 
 // Language key for the player in `slot`, mapped from their cl_language.
 // Empty string when unavailable, which makes Translate use the default language.
@@ -527,6 +530,51 @@ static std::string ChatColorByte(const std::string &name, const char *fallback)
 	return fallback;
 }
 
+// Keep in step with workshop/panorama/styles/custom_game/cs2menus/fonts.css.
+static bool IsPanoramaFont(const std::string &name)
+{
+	static const char *const kPanoramaFonts[] = {
+		"stratum2",           "stratum2-light", "stratum2-medium", "stratum2-bold",  "stratum2-black",
+		"stratum2-condensed", "stratum2-mono",  "noto-sans",       "noto-sans-bold", "arial",
+	};
+	for (const char *font : kPanoramaFonts)
+	{
+		if (name == font)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+// Mounts our workshop addon like cs2kz mounts its own, once per ID.
+static void MountPanoramaAddon()
+{
+	static std::string s_mounted;
+	const MenuPanoramaCfg &p = g_MenusConfig.panorama;
+	if (!s_pMultiAddonManager || !p.mountAddon || p.workshopId.empty() || s_mounted == p.workshopId)
+	{
+		return;
+	}
+	if (!s_pMultiAddonManager->AddAddon(p.workshopId.c_str(), true))
+	{
+		return;
+	}
+	s_mounted = p.workshopId;
+	// The same client cache cs2kz turns on, so addon reconnects stay rare.
+	ConVarRefAbstract cacheClients("mm_cache_clients_with_addons");
+	ConVarRefAbstract cacheDuration("mm_cache_clients_duration");
+	if (cacheClients.IsValidRef())
+	{
+		cacheClients.SetBool(true);
+	}
+	if (cacheDuration.IsValidRef())
+	{
+		cacheDuration.SetFloat(30.0f);
+	}
+	MMU_LOG_INFO("Mounting panorama addon %s through MultiAddonManager.\n", s_mounted.c_str());
+}
+
 // Reload cfg/cs2menus/core.cfg and push the settings into the menu manager.
 static void LoadAndApplyConfig()
 {
@@ -653,6 +701,25 @@ static void LoadAndApplyConfig()
 	applyNav(g_MenusConfig.menu.navSelect, settings.keySelect, settings.keySelectLabel);
 	applyNav(g_MenusConfig.menu.navBack, settings.keyBack, settings.keyBackLabel);
 
+	const MenuPanoramaCfg &p = g_MenusConfig.panorama;
+	if (IsPanoramaFont(p.font))
+	{
+		settings.panoramaFontClass = "font-" + p.font;
+	}
+	if (IsValidHexColor(p.titleColor))
+	{
+		settings.panoramaTitleColor = p.titleColor;
+	}
+	if (IsValidHexColor(p.itemColor))
+	{
+		settings.panoramaItemColor = p.itemColor;
+	}
+	if (IsValidHexColor(p.disabledColor))
+	{
+		settings.panoramaDisabledColor = p.disabledColor;
+	}
+	settings.panoramaSounds = p.sounds;
+
 	g_MenuManager.Configure(settings);
 
 	g_Translations.SetResolveColorTags(false);
@@ -684,6 +751,39 @@ CON_COMMAND_F(cs2menus_version, "Print the cs2menus plugin and menu-API interfac
 		return;
 	}
 	MMU_LOG_INFO("Plugin version %s, interface %s.\n", PLUGIN_FULL_VERSION, CS2MENUS_INTERFACE);
+}
+
+CON_COMMAND_F(cs2menus_panorama_diag, "Print panorama menu status: signatures, addon, clicks and every player's window.",
+			  FCVAR_RELEASE | FCVAR_GAMEDLL)
+{
+	int slot = context.GetPlayerSlot().Get();
+	if (!MENU_AdminBridge_CanUseCommand(slot, "cs2menus_panorama_diag", CS2ADMIN_FLAG_ROOT))
+	{
+		MENU_PrintToChat(slot, "You don't have permission to use this command.");
+		return;
+	}
+	const MenuPanoramaCfg &p = g_MenusConfig.panorama;
+	char header[256];
+	snprintf(header, sizeof(header), "MultiAddonManager: %s, WorkshopId \"%s\", MountAddon %d\n", s_pMultiAddonManager ? "loaded" : "not loaded",
+			 p.workshopId.c_str(), p.mountAddon ? 1 : 0);
+	const std::string text = header + panorama_hud::Describe();
+	// Line by line, a whole server's worth of windows can outgrow one console message.
+	size_t start = 0;
+	while (start < text.size())
+	{
+		size_t end = text.find('\n', start);
+		end = end == std::string::npos ? text.size() : end + 1;
+		const std::string line = text.substr(start, end - start);
+		if (ValidSlot(slot))
+		{
+			mmu::SendConsoleToSlot(slot, line.c_str());
+		}
+		else
+		{
+			META_CONPRINT(line.c_str());
+		}
+		start = end;
+	}
 }
 
 // Per-player menu preferences (optional, sql_mm)
@@ -1144,7 +1244,8 @@ CS2MenusPlugin::CS2MenusPlugin()
 	  m_ClientDisconnect(&IServerGameClients::ClientDisconnect, this, nullptr, &CS2MenusPlugin::Hook_ClientDisconnect),
 	  m_DispatchConCommand(&ICvar::DispatchConCommand, this, &CS2MenusPlugin::Hook_DispatchConCommand, nullptr),
 	  m_ClientSvcUserMessage(&IServerGameClients::ClientSvcUserMessage, this, &CS2MenusPlugin::Hook_ClientSvcUserMessage, nullptr),
-	  m_CheckTransmit(&ISource2GameEntities::CheckTransmit, this, nullptr, &CS2MenusPlugin::Hook_CheckTransmit)
+	  m_CheckTransmit(&ISource2GameEntities::CheckTransmit, this, nullptr, &CS2MenusPlugin::Hook_CheckTransmit),
+	  m_StartupServer(&INetworkServerService::StartupServer, this, nullptr, &CS2MenusPlugin::Hook_StartupServer)
 {
 }
 
@@ -1176,6 +1277,7 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	m_DispatchConCommand.Add(g_pICvar);
 	m_ClientSvcUserMessage.Add(g_pGameClients);
 	m_CheckTransmit.Add(g_pSource2GameEntities);
+	m_StartupServer.Add(g_pNetworkServerService);
 
 	g_pCVar = g_pICvar;
 	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL);
@@ -1231,6 +1333,7 @@ void CS2MenusPlugin::AllPluginsLoaded()
 {
 	// Resolve mm-cs2admin so admin_overrides.cfg can gate our commands.
 	MENU_AdminBridge_Init();
+	s_pMultiAddonManager = static_cast<IMultiAddonManager *>(g_SMAPI->MetaFactory(MULTIADDONMANAGER_INTERFACE, nullptr, nullptr));
 
 	// Per-player preferences are opt-in and need sql_mm, which must be fully loaded by now.
 	if (!g_MenusConfig.databaseEnabled)
@@ -1264,11 +1367,13 @@ void CS2MenusPlugin::AllPluginsLoaded()
 void CS2MenusPlugin::OnPluginLoad(PluginId /*id*/)
 {
 	MENU_AdminBridge_Refresh();
+	s_pMultiAddonManager = static_cast<IMultiAddonManager *>(g_SMAPI->MetaFactory(MULTIADDONMANAGER_INTERFACE, nullptr, nullptr));
 }
 
 void CS2MenusPlugin::OnPluginUnload(PluginId /*id*/)
 {
 	MENU_AdminBridge_Refresh();
+	s_pMultiAddonManager = static_cast<IMultiAddonManager *>(g_SMAPI->MetaFactory(MULTIADDONMANAGER_INTERFACE, nullptr, nullptr));
 }
 
 bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
@@ -1281,6 +1386,7 @@ bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 	m_DispatchConCommand.Remove(g_pICvar);
 	m_ClientSvcUserMessage.Remove(g_pGameClients);
 	m_CheckTransmit.Remove(g_pSource2GameEntities);
+	m_StartupServer.Remove(g_pNetworkServerService);
 
 	// Drops pending callbacks pointing into this binary.
 	mmu::cvarquery::Shutdown();
@@ -1378,7 +1484,14 @@ KHook::Return<void> CS2MenusPlugin::Hook_ClientSvcUserMessage(IServerGameClients
 		CGlobalVars *globals = GetGameGlobals();
 		g_MenuManager.OnPanoramaClick(slot.Get(), click, index, globals ? globals->curtime : 0.0f);
 	}
-	// cs2kz's own menu reads the same message.
+	// Other layouts, like cs2kz's menu, read the same message.
+	return {KHook::Action::Ignore};
+}
+
+KHook::Return<void> CS2MenusPlugin::Hook_StartupServer(INetworkServerService *, const GameSessionConfiguration_t &, ISource2WorldSession *,
+													   const char *)
+{
+	MountPanoramaAddon();
 	return {KHook::Action::Ignore};
 }
 

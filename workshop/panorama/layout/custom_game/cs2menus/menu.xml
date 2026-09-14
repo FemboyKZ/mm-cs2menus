@@ -1,0 +1,242 @@
+<root>
+  <styles>
+    <include src="file://{resources}/styles/custom_game/cs2menus/fonts.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/menu.css" />
+  </styles>
+  <Panel class="root" hittest="false">
+    <Panel id="cm_root" class="menu hidden">
+      <Panel class="menu-box">
+        <Panel class="window-header">
+          <Label id="cm_title" class="menu-title" html="true" hittest="false" text="{s:cm_title}" />
+          <Button id="cm_close" class="close-btn" />
+        </Panel>
+        <Panel class="panes">
+          <Panel id="cm_pages" class="nav">
+            <Button id="cm_nav0" class="nav-btn hidden">
+              <Label id="cm_nav_lbl0" class="nav-label" html="true" hittest="false" text="{s:cm_nl0}" />
+            </Button>
+            <Button id="cm_nav1" class="nav-btn hidden">
+              <Label id="cm_nav_lbl1" class="nav-label" html="true" hittest="false" text="{s:cm_nl1}" />
+            </Button>
+            <Button id="cm_nav2" class="nav-btn hidden">
+              <Label id="cm_nav_lbl2" class="nav-label" html="true" hittest="false" text="{s:cm_nl2}" />
+            </Button>
+            <Button id="cm_nav3" class="nav-btn hidden">
+              <Label id="cm_nav_lbl3" class="nav-label" html="true" hittest="false" text="{s:cm_nl3}" />
+            </Button>
+            <Button id="cm_nav4" class="nav-btn hidden">
+              <Label id="cm_nav_lbl4" class="nav-label" html="true" hittest="false" text="{s:cm_nl4}" />
+            </Button>
+            <Button id="cm_nav5" class="nav-btn hidden">
+              <Label id="cm_nav_lbl5" class="nav-label" html="true" hittest="false" text="{s:cm_nl5}" />
+            </Button>
+            <Button id="cm_nav6" class="nav-btn hidden">
+              <Label id="cm_nav_lbl6" class="nav-label" html="true" hittest="false" text="{s:cm_nl6}" />
+            </Button>
+            <Button id="cm_nav7" class="nav-btn hidden">
+              <Label id="cm_nav_lbl7" class="nav-label" html="true" hittest="false" text="{s:cm_nl7}" />
+            </Button>
+            <Button id="cm_nav8" class="nav-btn hidden">
+              <Label id="cm_nav_lbl8" class="nav-label" html="true" hittest="false" text="{s:cm_nl8}" />
+            </Button>
+            <Button id="cm_nav9" class="nav-btn hidden">
+              <Label id="cm_nav_lbl9" class="nav-label" html="true" hittest="false" text="{s:cm_nl9}" />
+            </Button>
+            <Button id="cm_nav10" class="nav-btn hidden">
+              <Label id="cm_nav_lbl10" class="nav-label" html="true" hittest="false" text="{s:cm_nl10}" />
+            </Button>
+            <Button id="cm_nav11" class="nav-btn hidden">
+              <Label id="cm_nav_lbl11" class="nav-label" html="true" hittest="false" text="{s:cm_nl11}" />
+            </Button>
+            <Button id="cm_nav12" class="nav-btn hidden">
+              <Label id="cm_nav_lbl12" class="nav-label" html="true" hittest="false" text="{s:cm_nl12}" />
+            </Button>
+            <Button id="cm_nav13" class="nav-btn hidden">
+              <Label id="cm_nav_lbl13" class="nav-label" html="true" hittest="false" text="{s:cm_nl13}" />
+            </Button>
+            <Button id="cm_nav14" class="nav-btn hidden">
+              <Label id="cm_nav_lbl14" class="nav-label" html="true" hittest="false" text="{s:cm_nl14}" />
+            </Button>
+            <Button id="cm_nav15" class="nav-btn hidden">
+              <Label id="cm_nav_lbl15" class="nav-label" html="true" hittest="false" text="{s:cm_nl15}" />
+            </Button>
+            <Button id="cm_nav16" class="nav-btn hidden">
+              <Label id="cm_nav_lbl16" class="nav-label" html="true" hittest="false" text="{s:cm_nl16}" />
+            </Button>
+            <Button id="cm_nav17" class="nav-btn hidden">
+              <Label id="cm_nav_lbl17" class="nav-label" html="true" hittest="false" text="{s:cm_nl17}" />
+            </Button>
+            <Button id="cm_nav18" class="nav-btn hidden">
+              <Label id="cm_nav_lbl18" class="nav-label" html="true" hittest="false" text="{s:cm_nl18}" />
+            </Button>
+            <Button id="cm_nav19" class="nav-btn hidden">
+              <Label id="cm_nav_lbl19" class="nav-label" html="true" hittest="false" text="{s:cm_nl19}" />
+            </Button>
+          </Panel>
+          <Panel id="cm_items" class="items">
+            <Button id="cm_item0" class="item hidden">
+              <Label id="cm_item_lbl0" class="item-label" html="true" hittest="false" text="{s:cm_il0}" />
+              <Label id="cm_item_val0" class="item-value" html="true" hittest="false" text="{s:cm_iv0}" />
+            </Button>
+            <Button id="cm_item1" class="item hidden">
+              <Label id="cm_item_lbl1" class="item-label" html="true" hittest="false" text="{s:cm_il1}" />
+              <Label id="cm_item_val1" class="item-value" html="true" hittest="false" text="{s:cm_iv1}" />
+            </Button>
+            <Button id="cm_item2" class="item hidden">
+              <Label id="cm_item_lbl2" class="item-label" html="true" hittest="false" text="{s:cm_il2}" />
+              <Label id="cm_item_val2" class="item-value" html="true" hittest="false" text="{s:cm_iv2}" />
+            </Button>
+            <Button id="cm_item3" class="item hidden">
+              <Label id="cm_item_lbl3" class="item-label" html="true" hittest="false" text="{s:cm_il3}" />
+              <Label id="cm_item_val3" class="item-value" html="true" hittest="false" text="{s:cm_iv3}" />
+            </Button>
+            <Button id="cm_item4" class="item hidden">
+              <Label id="cm_item_lbl4" class="item-label" html="true" hittest="false" text="{s:cm_il4}" />
+              <Label id="cm_item_val4" class="item-value" html="true" hittest="false" text="{s:cm_iv4}" />
+            </Button>
+            <Button id="cm_item5" class="item hidden">
+              <Label id="cm_item_lbl5" class="item-label" html="true" hittest="false" text="{s:cm_il5}" />
+              <Label id="cm_item_val5" class="item-value" html="true" hittest="false" text="{s:cm_iv5}" />
+            </Button>
+            <Button id="cm_item6" class="item hidden">
+              <Label id="cm_item_lbl6" class="item-label" html="true" hittest="false" text="{s:cm_il6}" />
+              <Label id="cm_item_val6" class="item-value" html="true" hittest="false" text="{s:cm_iv6}" />
+            </Button>
+            <Button id="cm_item7" class="item hidden">
+              <Label id="cm_item_lbl7" class="item-label" html="true" hittest="false" text="{s:cm_il7}" />
+              <Label id="cm_item_val7" class="item-value" html="true" hittest="false" text="{s:cm_iv7}" />
+            </Button>
+            <Button id="cm_item8" class="item hidden">
+              <Label id="cm_item_lbl8" class="item-label" html="true" hittest="false" text="{s:cm_il8}" />
+              <Label id="cm_item_val8" class="item-value" html="true" hittest="false" text="{s:cm_iv8}" />
+            </Button>
+            <Button id="cm_item9" class="item hidden">
+              <Label id="cm_item_lbl9" class="item-label" html="true" hittest="false" text="{s:cm_il9}" />
+              <Label id="cm_item_val9" class="item-value" html="true" hittest="false" text="{s:cm_iv9}" />
+            </Button>
+            <Button id="cm_item10" class="item hidden">
+              <Label id="cm_item_lbl10" class="item-label" html="true" hittest="false" text="{s:cm_il10}" />
+              <Label id="cm_item_val10" class="item-value" html="true" hittest="false" text="{s:cm_iv10}" />
+            </Button>
+            <Button id="cm_item11" class="item hidden">
+              <Label id="cm_item_lbl11" class="item-label" html="true" hittest="false" text="{s:cm_il11}" />
+              <Label id="cm_item_val11" class="item-value" html="true" hittest="false" text="{s:cm_iv11}" />
+            </Button>
+            <Button id="cm_item12" class="item hidden">
+              <Label id="cm_item_lbl12" class="item-label" html="true" hittest="false" text="{s:cm_il12}" />
+              <Label id="cm_item_val12" class="item-value" html="true" hittest="false" text="{s:cm_iv12}" />
+            </Button>
+            <Button id="cm_item13" class="item hidden">
+              <Label id="cm_item_lbl13" class="item-label" html="true" hittest="false" text="{s:cm_il13}" />
+              <Label id="cm_item_val13" class="item-value" html="true" hittest="false" text="{s:cm_iv13}" />
+            </Button>
+            <Button id="cm_item14" class="item hidden">
+              <Label id="cm_item_lbl14" class="item-label" html="true" hittest="false" text="{s:cm_il14}" />
+              <Label id="cm_item_val14" class="item-value" html="true" hittest="false" text="{s:cm_iv14}" />
+            </Button>
+            <Button id="cm_item15" class="item hidden">
+              <Label id="cm_item_lbl15" class="item-label" html="true" hittest="false" text="{s:cm_il15}" />
+              <Label id="cm_item_val15" class="item-value" html="true" hittest="false" text="{s:cm_iv15}" />
+            </Button>
+            <Button id="cm_item16" class="item hidden">
+              <Label id="cm_item_lbl16" class="item-label" html="true" hittest="false" text="{s:cm_il16}" />
+              <Label id="cm_item_val16" class="item-value" html="true" hittest="false" text="{s:cm_iv16}" />
+            </Button>
+            <Button id="cm_item17" class="item hidden">
+              <Label id="cm_item_lbl17" class="item-label" html="true" hittest="false" text="{s:cm_il17}" />
+              <Label id="cm_item_val17" class="item-value" html="true" hittest="false" text="{s:cm_iv17}" />
+            </Button>
+            <Button id="cm_item18" class="item hidden">
+              <Label id="cm_item_lbl18" class="item-label" html="true" hittest="false" text="{s:cm_il18}" />
+              <Label id="cm_item_val18" class="item-value" html="true" hittest="false" text="{s:cm_iv18}" />
+            </Button>
+            <Button id="cm_item19" class="item hidden">
+              <Label id="cm_item_lbl19" class="item-label" html="true" hittest="false" text="{s:cm_il19}" />
+              <Label id="cm_item_val19" class="item-value" html="true" hittest="false" text="{s:cm_iv19}" />
+            </Button>
+            <Button id="cm_item20" class="item hidden">
+              <Label id="cm_item_lbl20" class="item-label" html="true" hittest="false" text="{s:cm_il20}" />
+              <Label id="cm_item_val20" class="item-value" html="true" hittest="false" text="{s:cm_iv20}" />
+            </Button>
+            <Button id="cm_item21" class="item hidden">
+              <Label id="cm_item_lbl21" class="item-label" html="true" hittest="false" text="{s:cm_il21}" />
+              <Label id="cm_item_val21" class="item-value" html="true" hittest="false" text="{s:cm_iv21}" />
+            </Button>
+            <Button id="cm_item22" class="item hidden">
+              <Label id="cm_item_lbl22" class="item-label" html="true" hittest="false" text="{s:cm_il22}" />
+              <Label id="cm_item_val22" class="item-value" html="true" hittest="false" text="{s:cm_iv22}" />
+            </Button>
+            <Button id="cm_item23" class="item hidden">
+              <Label id="cm_item_lbl23" class="item-label" html="true" hittest="false" text="{s:cm_il23}" />
+              <Label id="cm_item_val23" class="item-value" html="true" hittest="false" text="{s:cm_iv23}" />
+            </Button>
+            <Button id="cm_item24" class="item hidden">
+              <Label id="cm_item_lbl24" class="item-label" html="true" hittest="false" text="{s:cm_il24}" />
+              <Label id="cm_item_val24" class="item-value" html="true" hittest="false" text="{s:cm_iv24}" />
+            </Button>
+            <Button id="cm_item25" class="item hidden">
+              <Label id="cm_item_lbl25" class="item-label" html="true" hittest="false" text="{s:cm_il25}" />
+              <Label id="cm_item_val25" class="item-value" html="true" hittest="false" text="{s:cm_iv25}" />
+            </Button>
+            <Button id="cm_item26" class="item hidden">
+              <Label id="cm_item_lbl26" class="item-label" html="true" hittest="false" text="{s:cm_il26}" />
+              <Label id="cm_item_val26" class="item-value" html="true" hittest="false" text="{s:cm_iv26}" />
+            </Button>
+            <Button id="cm_item27" class="item hidden">
+              <Label id="cm_item_lbl27" class="item-label" html="true" hittest="false" text="{s:cm_il27}" />
+              <Label id="cm_item_val27" class="item-value" html="true" hittest="false" text="{s:cm_iv27}" />
+            </Button>
+            <Button id="cm_item28" class="item hidden">
+              <Label id="cm_item_lbl28" class="item-label" html="true" hittest="false" text="{s:cm_il28}" />
+              <Label id="cm_item_val28" class="item-value" html="true" hittest="false" text="{s:cm_iv28}" />
+            </Button>
+            <Button id="cm_item29" class="item hidden">
+              <Label id="cm_item_lbl29" class="item-label" html="true" hittest="false" text="{s:cm_il29}" />
+              <Label id="cm_item_val29" class="item-value" html="true" hittest="false" text="{s:cm_iv29}" />
+            </Button>
+            <Button id="cm_item30" class="item hidden">
+              <Label id="cm_item_lbl30" class="item-label" html="true" hittest="false" text="{s:cm_il30}" />
+              <Label id="cm_item_val30" class="item-value" html="true" hittest="false" text="{s:cm_iv30}" />
+            </Button>
+            <Button id="cm_item31" class="item hidden">
+              <Label id="cm_item_lbl31" class="item-label" html="true" hittest="false" text="{s:cm_il31}" />
+              <Label id="cm_item_val31" class="item-value" html="true" hittest="false" text="{s:cm_iv31}" />
+            </Button>
+            <Button id="cm_item32" class="item hidden">
+              <Label id="cm_item_lbl32" class="item-label" html="true" hittest="false" text="{s:cm_il32}" />
+              <Label id="cm_item_val32" class="item-value" html="true" hittest="false" text="{s:cm_iv32}" />
+            </Button>
+            <Button id="cm_item33" class="item hidden">
+              <Label id="cm_item_lbl33" class="item-label" html="true" hittest="false" text="{s:cm_il33}" />
+              <Label id="cm_item_val33" class="item-value" html="true" hittest="false" text="{s:cm_iv33}" />
+            </Button>
+            <Button id="cm_item34" class="item hidden">
+              <Label id="cm_item_lbl34" class="item-label" html="true" hittest="false" text="{s:cm_il34}" />
+              <Label id="cm_item_val34" class="item-value" html="true" hittest="false" text="{s:cm_iv34}" />
+            </Button>
+            <Button id="cm_item35" class="item hidden">
+              <Label id="cm_item_lbl35" class="item-label" html="true" hittest="false" text="{s:cm_il35}" />
+              <Label id="cm_item_val35" class="item-value" html="true" hittest="false" text="{s:cm_iv35}" />
+            </Button>
+            <Button id="cm_item36" class="item hidden">
+              <Label id="cm_item_lbl36" class="item-label" html="true" hittest="false" text="{s:cm_il36}" />
+              <Label id="cm_item_val36" class="item-value" html="true" hittest="false" text="{s:cm_iv36}" />
+            </Button>
+            <Button id="cm_item37" class="item hidden">
+              <Label id="cm_item_lbl37" class="item-label" html="true" hittest="false" text="{s:cm_il37}" />
+              <Label id="cm_item_val37" class="item-value" html="true" hittest="false" text="{s:cm_iv37}" />
+            </Button>
+            <Button id="cm_item38" class="item hidden">
+              <Label id="cm_item_lbl38" class="item-label" html="true" hittest="false" text="{s:cm_il38}" />
+              <Label id="cm_item_val38" class="item-value" html="true" hittest="false" text="{s:cm_iv38}" />
+            </Button>
+            <Button id="cm_item39" class="item hidden">
+              <Label id="cm_item_lbl39" class="item-label" html="true" hittest="false" text="{s:cm_il39}" />
+              <Label id="cm_item_val39" class="item-value" html="true" hittest="false" text="{s:cm_iv39}" />
+            </Button>
+          </Panel>
+        </Panel>
+      </Panel>
+    </Panel>
+  </Panel>
+</root>

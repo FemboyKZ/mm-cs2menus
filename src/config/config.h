@@ -112,12 +112,26 @@ struct MenuDefaultsCfg
 	std::string navBack = "a";
 };
 
+struct MenuPanoramaCfg
+{
+	// Our workshop addon, mounted through MultiAddonManager when set.
+	std::string workshopId = "3801628903";
+	bool mountAddon = true;
+	// A face from the addon's fonts.css, without the "font-" prefix.
+	std::string font = "stratum2-medium";
+	std::string titleColor = "#FFFFFF";
+	std::string itemColor = "#FFFFFF";
+	std::string disabledColor = "#707070";
+	bool sounds = true;
+};
+
 // Optional sql_mm-backed store for per-player menu preferences (type + HTML nav keys).
 // Off by default. When disabled, cs2menus uses only the server config (no per-player overrides).
 struct MenusConfig
 {
 	MenuGeneralCfg general;
 	MenuDefaultsCfg menu;
+	MenuPanoramaCfg panorama;
 
 	mmu::config::LogBlock log;
 

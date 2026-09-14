@@ -21,18 +21,19 @@ cs2menus is a menu-rendering library.
 
 ## Commands
 
-| Console            | Chat alias                      | Default flag | Description                                    |
-| ------------------ | ------------------------------- | ------------ | ---------------------------------------------- |
-| `cs2menus_reload`  | -                               | `z` root     | Reload core.cfg and re-probe HTML availability |
-| `cs2menus_version` | -                               | `z` root     | Print plugin and interface versions            |
-| `mm_menu_prefs`    | `!menu`, `!prefs`, `!menuprefs` | open         | Open your personal menu-preferences menu       |
-| `mm_pref_type`     | -                               | open         | Set menu style: chat/html/panorama/default     |
-| `mm_pref_key`      | -                               | open         | Set a navigation key                           |
-| `mm_pref_show`     | -                               | open         | Show your current preferences                  |
-| `mm_menu_up`       | `!menu_up`                      | open         | Move the open menu's cursor up                 |
-| `mm_menu_down`     | `!menu_down`                    | open         | Move the open menu's cursor down               |
-| `mm_menu_select`   | `!menu_select`, bare number     | open         | Select the highlighted / numbered item         |
-| `mm_menu_close`    | `!menu_close`                   | open         | Close the open menu                            |
+| Console                  | Chat alias                      | Default flag | Description                                                |
+| ------------------------ | ------------------------------- | ------------ | ---------------------------------------------------------- |
+| `cs2menus_reload`        | -                               | `z` root     | Reload core.cfg and re-probe HTML availability             |
+| `cs2menus_version`       | -                               | `z` root     | Print plugin and interface versions                        |
+| `cs2menus_panorama_diag` | -                               | `z` root     | Print panorama signatures, addon mount, clicks and windows |
+| `mm_menu_prefs`          | `!menu`, `!prefs`, `!menuprefs` | open         | Open your personal menu-preferences menu                   |
+| `mm_pref_type`           | -                               | open         | Set menu style: chat/html/panorama/default                 |
+| `mm_pref_key`            | -                               | open         | Set a navigation key                                       |
+| `mm_pref_show`           | -                               | open         | Show your current preferences                              |
+| `mm_menu_up`             | `!menu_up`                      | open         | Move the open menu's cursor up                             |
+| `mm_menu_down`           | `!menu_down`                    | open         | Move the open menu's cursor down                           |
+| `mm_menu_select`         | `!menu_select`, bare number     | open         | Select the highlighted / numbered item                     |
+| `mm_menu_close`          | `!menu_close`                   | open         | Close the open menu                                        |
 
 Navigation commands (`menu_up/down/select/close`) deny **silently** so gating them can't spam chat on every keypress.
 

@@ -94,6 +94,13 @@ struct MenuManagerSettings
 	int htmlDurationSecs = 3;
 	float htmlRefreshInterval = 1.0f;
 	float htmlKeepAlive = 2.0f;
+
+	// Panorama: a font class from the addon's fonts.css, markup colors, and click sounds.
+	std::string panoramaFontClass = "font-stratum2-medium";
+	std::string panoramaTitleColor = "#FFFFFF";
+	std::string panoramaItemColor = "#FFFFFF";
+	std::string panoramaDisabledColor = "#707070";
+	bool panoramaSounds = true;
 };
 
 // Backing store for the public ICS2Menus API. Holds menus by handle plus
