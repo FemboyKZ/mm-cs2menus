@@ -324,8 +324,6 @@ private:
 		bool closeOnSelect = true;
 		bool exitItem = false; // HTML: show a selectable "Exit" row in the list
 		int startItem = 0;     // item the menu opens on
-		// Set when this menu is reached as a submenu, so Back returns to the parent.
-		MenuHandle parent = kInvalidMenuHandle;
 		NavOverride navOverride[4];
 		// Built-in labels, seeded from settings at CreateMenu, indexed by MenuLabel.
 		std::string labels[static_cast<int>(MenuLabel::Count)];
@@ -359,6 +357,9 @@ private:
 		bool externalBusy = false;
 		// Panorama: the page each left-column button opens.
 		std::vector<int> panoramaNav;
+		// Menus this display came through to reach the current submenu, so Back retraces the player's own path.
+		// Per display rather than per menu, since one menu can be reached from several parents or shown directly.
+		std::vector<MenuHandle> parents;
 	};
 
 	MenuDef *Find(MenuHandle menu);
@@ -383,6 +384,10 @@ private:
 	// Swap the slot's displayed menu to `handle` without firing end callbacks.
 	// Used for submenu navigation (into a child, or Back to a parent).
 	void SwitchMenu(int slot, MenuHandle handle);
+
+	// Switch back to the menu this submenu display was opened from. False when there is none left to return to.
+	bool StepBack(int slot);
+	bool HasParent(int slot) const;
 
 	void Render(int slot);         // dispatch by the slot's render type
 	void RenderPage(int slot);     // chat

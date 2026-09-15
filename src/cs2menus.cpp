@@ -1057,7 +1057,12 @@ namespace
 										 });
 		s_prefsMenu[slot] = menu;
 		RefreshPrefsItems(slot);
-		g_MenuManager.DisplayMenu(menu, slot, 0.0f, MenuNow());
+		if (!g_MenuManager.DisplayMenu(menu, slot, 0.0f, MenuNow()))
+		{
+			// Refused (a host menu owns the slot), so the end callback that frees it never runs.
+			s_prefsMenu[slot] = kInvalidMenuHandle;
+			g_MenuManager.DestroyMenu(menu);
+		}
 	}
 
 	// Reset a slot and load its stored preferences from the database (async).
@@ -1444,6 +1449,8 @@ KHook::Return<void> CS2MenusPlugin::Hook_OnClientConnected(IServerGameClients *,
 	if (ValidSlot(s))
 	{
 		s_inGame[s] = false;
+		// A display queued for this slot after its last player left would otherwise take this player's input.
+		g_MenuManager.OnPlayerDisconnect(s);
 	}
 	if (!bFakePlayer && ValidSlot(s))
 	{

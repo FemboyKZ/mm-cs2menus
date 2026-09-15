@@ -271,7 +271,6 @@ int MenuManager::AddSubMenu(MenuHandle parent, const char *text, MenuHandle chil
 		return -1;
 	}
 
-	childDef->parent = parent; // so Back in the child returns here
 	MenuItem item;
 	item.text = text ? text : "";
 	item.info = info ? info : "";
@@ -759,12 +758,10 @@ void MenuManager::SetItemSubmenu(MenuHandle menu, int item, MenuHandle child)
 	}
 	if (child != kInvalidMenuHandle)
 	{
-		MenuDef *childDef = Find(child);
-		if (!childDef)
+		if (!Find(child))
 		{
 			return; // unknown child handle: leave the item untouched
 		}
-		childDef->parent = menu; // so Back in the child returns here
 	}
 	it->submenu = child;
 	RefreshMenu(menu);
@@ -1004,6 +1001,14 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	if (m_players[slot].active)
 	{
 		EndDisplay(slot, MenuEndReason::Cancelled);
+
+		// That callback may have destroyed this menu (redisplaying a one-shot menu), marked the slot busy,
+		// or opened a menu of its own, which is left alone rather than silently replaced.
+		def = Find(menu);
+		if (!def || m_players[slot].externalBusy || m_players[slot].active)
+		{
+			return false;
+		}
 	}
 
 	PlayerMenu &pm = m_players[slot];
@@ -1021,6 +1026,7 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	pm.nextHtmlRender = 0.0f;
 	pm.lastHtml.clear();
 	pm.lastHtmlSend = 0.0f;
+	pm.parents.clear();
 
 	Render(slot);
 	return true;
@@ -1037,7 +1043,16 @@ void MenuManager::CancelMenu(int slot)
 	// Off-thread defers to GameFrame.
 	if (!OnMainThread())
 	{
-		m_pending.push_back([this, slot] { EndDisplay(slot, MenuEndReason::Cancelled); });
+		// Only the menu open now, not one displayed between queueing and the drain.
+		MenuHandle handle = m_players[slot].active ? m_players[slot].handle : kInvalidMenuHandle;
+		m_pending.push_back(
+			[this, slot, handle]
+			{
+				if (m_players[slot].active && m_players[slot].handle == handle)
+				{
+					EndDisplay(slot, MenuEndReason::Cancelled);
+				}
+			});
 		return;
 	}
 	EndDisplay(slot, MenuEndReason::Cancelled);
@@ -1175,6 +1190,7 @@ void MenuManager::EndDisplay(int slot, MenuEndReason reason)
 	MenuHandle handle = pm.handle;
 	pm.active = false;
 	pm.handle = kInvalidMenuHandle;
+	pm.parents.clear();
 
 	// Clear any HTML panel so it doesn't linger for its remaining duration.
 	if (Find(handle) && pm.type == MenuType::Html)
@@ -1217,6 +1233,7 @@ void MenuManager::Select(int slot, int itemIndex)
 	MenuHandle sub = def->items[itemIndex].submenu;
 	if (sub != kInvalidMenuHandle && Find(sub))
 	{
+		pm.parents.push_back(pm.handle);
 		SwitchMenu(slot, sub);
 		return;
 	}
@@ -1243,7 +1260,10 @@ void MenuManager::Select(int slot, int itemIndex)
 			}
 		}
 
-		if (MenuDef *ended = Find(handle))
+		// Skipped when onSelect showed this same menu again, or the End would land on the display it just opened.
+		bool reopened = pm.active && pm.handle == handle;
+		MenuDef *ended = reopened ? nullptr : Find(handle);
+		if (ended)
 		{
 			MenuEndFn onEnd = ended->onEnd;
 			DepthGuard guard(m_callbackDepth);
@@ -1301,6 +1321,34 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle)
 	// expireTime is kept so the whole submenu stack shares one timeout.
 
 	Render(slot);
+}
+
+bool MenuManager::StepBack(int slot)
+{
+	PlayerMenu &pm = m_players[slot];
+	while (!pm.parents.empty())
+	{
+		MenuHandle parent = pm.parents.back();
+		pm.parents.pop_back();
+		if (Find(parent))
+		{
+			SwitchMenu(slot, parent);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool MenuManager::HasParent(int slot) const
+{
+	for (MenuHandle parent : m_players[slot].parents)
+	{
+		if (Find(parent))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
@@ -1369,9 +1417,8 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 	if (num == 0)
 	{
 		// In a submenu, 0 steps back to the parent. Otherwise it exits.
-		if (def->parent != kInvalidMenuHandle && Find(def->parent))
+		if (StepBack(slot))
 		{
-			SwitchMenu(slot, def->parent);
 			return true;
 		}
 		if (def->exitButton)
@@ -1513,11 +1560,7 @@ void MenuManager::NavClose(int slot)
 		return;
 	}
 	// Step up to the parent in a submenu, else exit (if exitable).
-	if (def->parent != kInvalidMenuHandle && Find(def->parent))
-	{
-		SwitchMenu(slot, def->parent);
-	}
-	else if (def->exitButton)
+	if (!StepBack(slot) && def->exitButton)
 	{
 		EndDisplay(slot, MenuEndReason::Exit);
 	}
@@ -1707,7 +1750,15 @@ void MenuManager::SetExternalBusy(int slot, bool busy)
 	// EndDisplay (HTML clear + callback) is main-thread only, so defer if we're off-thread.
 	if (!OnMainThread())
 	{
-		m_pending.push_back([this, slot] { EndDisplay(slot, MenuEndReason::Cancelled); });
+		MenuHandle handle = m_players[slot].handle;
+		m_pending.push_back(
+			[this, slot, handle]
+			{
+				if (m_players[slot].active && m_players[slot].handle == handle)
+				{
+					EndDisplay(slot, MenuEndReason::Cancelled);
+				}
+			});
 		return;
 	}
 	EndDisplay(slot, MenuEndReason::Cancelled);
@@ -2293,7 +2344,7 @@ void MenuManager::RenderPanorama(int slot)
 	view.titleColor = titleColor;
 	view.navColor = itemColor;
 	// In a submenu it steps back to the parent, see NavClose.
-	view.closeButton = def->exitButton || (def->parent != kInvalidMenuHandle && Find(def->parent));
+	view.closeButton = def->exitButton || HasParent(slot);
 
 	const int first = pm.page * panorama_hud::kItemSlots;
 	const int last = (std::min)(first + panorama_hud::kItemSlots, itemCount);
