@@ -36,3 +36,8 @@ bool MENU_AdminBridge_CanUseCommand(int slot, const char *commandName, uint32_t 
 {
 	return s_admin.CanUseCommand(slot, commandName, defaultFlag);
 }
+
+bool MENU_AdminBridge_CanTarget(int callerSlot, int targetSlot)
+{
+	return s_admin.CanTarget(callerSlot, targetSlot);
+}

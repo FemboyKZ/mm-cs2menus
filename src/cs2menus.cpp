@@ -1027,6 +1027,16 @@ namespace
 		return false;
 	}
 
+	void ResetSlotPrefs(int slot)
+	{
+		uint64_t xuid = s_prefs[slot].xuid;
+		s_prefs[slot] = SlotPrefs {};
+		s_prefs[slot].xuid = xuid;
+		ApplyPrefsToManager(slot);
+		SaveSlotPrefs(slot);
+		RefreshPrefsItems(slot);
+	}
+
 	void OpenPrefsMenu(int slot)
 	{
 		if (!RequirePrefsDB(slot))
@@ -1228,6 +1238,148 @@ CON_COMMAND_F(mm_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_
 	const SlotPrefs &p = s_prefs[slot];
 	MENU_PrintToChat(slot, "Style: %s | Up: %s | Down: %s | Select: %s | Back: %s", TypeDisplay(p.type).c_str(), KeyDisplay(p.up).c_str(),
 					 KeyDisplay(p.down).c_str(), KeyDisplay(p.select).c_str(), KeyDisplay(p.back).c_str());
+}
+
+// Console has no chat, so it gets the server log.
+static void ReplyToCaller(int slot, const char *msg)
+{
+	if (ValidSlot(slot))
+	{
+		MENU_PrintToChat(slot, "%s", msg);
+	}
+	else
+	{
+		MMU_LOG_INFO("%s\n", msg);
+	}
+}
+
+// "#<slot>", "$<steamid64>" or a unique partial name. Returns the online slot or -1.
+// A "$" SteamID64 with nobody online still sets xuid, so an offline player's row can be reset.
+static int FindPrefsTarget(const char *pattern, uint64_t &xuid, std::string &error)
+{
+	xuid = 0;
+	if (pattern[0] == '#')
+	{
+		char *end = nullptr;
+		long s = strtol(pattern + 1, &end, 10);
+		if (end == pattern + 1 || *end || !ValidSlot(static_cast<int>(s)) || s_prefs[s].xuid == 0)
+		{
+			error = "No player in that slot.";
+			return -1;
+		}
+		xuid = s_prefs[s].xuid;
+		return static_cast<int>(s);
+	}
+	if (pattern[0] == '$')
+	{
+		char *end = nullptr;
+		xuid = strtoull(pattern + 1, &end, 10);
+		if (end == pattern + 1 || *end || xuid == 0)
+		{
+			xuid = 0;
+			error = "Invalid SteamID64.";
+			return -1;
+		}
+		for (int s = 0; s < MAXPLAYERS; s++)
+		{
+			if (s_prefs[s].xuid == xuid)
+			{
+				return s;
+			}
+		}
+		return -1;
+	}
+
+	std::string needle = str::ToLower(pattern);
+	int found = -1;
+	for (int s = 0; s < MAXPLAYERS; s++)
+	{
+		CCSPlayerController *controller = s_prefs[s].xuid ? CCSPlayerController::FromSlot(s) : nullptr;
+		if (!controller || str::ToLower(controller->GetPlayerName()).find(needle) == std::string::npos)
+		{
+			continue;
+		}
+		if (found != -1)
+		{
+			error = "More than one player matches, use #slot or $steamid64.";
+			return -1;
+		}
+		found = s;
+	}
+	if (found == -1)
+	{
+		error = "No player matches.";
+		return -1;
+	}
+	xuid = s_prefs[found].xuid;
+	return found;
+}
+
+// Self and target resets use separate override keys so each can be gated.
+CON_COMMAND_F(mm_pref_reset, "Reset menu style and keys to server defaults: mm_pref_reset [#slot|$steamid64|name].",
+			  FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+{
+	int slot = context.GetPlayerSlot().Get();
+	bool self = args.ArgC() < 2;
+	if (self && !ValidSlot(slot))
+	{
+		MMU_LOG_INFO("Usage: mm_pref_reset <#slot|$steamid64|name>\n");
+		return;
+	}
+	if (!MENU_AdminBridge_CanUseCommand(slot, self ? "pref_reset" : "pref_reset_other", self ? 0 : CS2ADMIN_FLAG_GENERIC))
+	{
+		ReplyToCaller(slot, "You don't have permission to use this command.");
+		return;
+	}
+	if (!g_MenuPrefsDB.IsConnected())
+	{
+		ReplyToCaller(slot, "Menu preferences are not available on this server.");
+		return;
+	}
+
+	if (self)
+	{
+		ResetSlotPrefs(slot);
+		MENU_PrintToChat(slot, "Your menu preferences were reset to server defaults.");
+		return;
+	}
+
+	uint64_t xuid;
+	std::string error;
+	int target = FindPrefsTarget(args.Arg(1), xuid, error);
+	char msg[256];
+	if (target != -1)
+	{
+		if (!MENU_AdminBridge_CanTarget(slot, target))
+		{
+			ReplyToCaller(slot, "Cannot target this player (higher immunity).");
+			return;
+		}
+		ResetSlotPrefs(target);
+		if (target != slot)
+		{
+			MENU_PrintToChat(target, "An admin reset your menu preferences to server defaults.");
+		}
+		CCSPlayerController *controller = CCSPlayerController::FromSlot(target);
+		snprintf(msg, sizeof(msg), "Reset menu preferences for %s.", controller ? controller->GetPlayerName() : "player");
+	}
+	else if (xuid != 0)
+	{
+		// ICS2Admin only exposes immunity for online slots.
+		if (!MENU_AdminBridge_CanUseCommand(slot, "pref_reset_offline", CS2ADMIN_FLAG_ROOT))
+		{
+			ReplyToCaller(slot, "That player is offline. Resetting offline players needs root.");
+			return;
+		}
+		g_MenuPrefsDB.SavePrefs(xuid, MenuPrefsRow {});
+		snprintf(msg, sizeof(msg), "Reset menu preferences for offline SteamID64 %llu.", static_cast<unsigned long long>(xuid));
+	}
+	else
+	{
+		ReplyToCaller(slot, error.c_str());
+		return;
+	}
+	ReplyToCaller(slot, msg);
 }
 
 CS2MenusPlugin::CS2MenusPlugin()

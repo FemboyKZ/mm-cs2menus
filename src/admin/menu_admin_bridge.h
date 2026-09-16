@@ -26,4 +26,7 @@ void MENU_AdminBridge_Shutdown();
 // If the admin plugin is not loaded, open commands (defaultFlag 0) pass and gated ones are denied.
 bool MENU_AdminBridge_CanUseCommand(int slot, const char *commandName, uint32_t defaultFlag);
 
+// Immunity check for acting on another online player.
+bool MENU_AdminBridge_CanTarget(int callerSlot, int targetSlot);
+
 #endif // _INCLUDE_MENU_ADMIN_BRIDGE_H_

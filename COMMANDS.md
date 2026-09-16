@@ -17,7 +17,7 @@ cs2menus is a menu-rendering library.
 **If mm-cs2admin is not loaded:**
 
 - open commands stay open.
-- `cs2menus_reload` and `cs2menus_version` fall back to server console only.
+- any command with a non-open default flag falls back to server console only.
 
 ## Commands
 
@@ -30,10 +30,15 @@ cs2menus is a menu-rendering library.
 | `mm_pref_type`           | -                               | open         | Set menu style: chat/html/panorama/default                 |
 | `mm_pref_key`            | -                               | open         | Set a navigation key                                       |
 | `mm_pref_show`           | -                               | open         | Show your current preferences                              |
+| `mm_pref_reset`          | -                               | open         | Reset your menu style and keys to server defaults          |
+| `mm_pref_reset <target>` | -                               | `b` generic  | Reset another player's prefs (`#slot`, `$steamid64`, name) |
 | `mm_menu_up`             | `!menu_up`                      | open         | Move the open menu's cursor up                             |
 | `mm_menu_down`           | `!menu_down`                    | open         | Move the open menu's cursor down                           |
 | `mm_menu_select`         | `!menu_select`, bare number     | open         | Select the highlighted / numbered item                     |
 | `mm_menu_close`          | `!menu_close`                   | open         | Close the open menu                                        |
+
+`mm_pref_reset <target>` needs strictly higher immunity than the target. Root and console bypass it.
+Offline immunity can't be checked, so offline targets also need `pref_reset_offline` (default `z` root).
 
 Navigation commands (`menu_up/down/select/close`) deny **silently** so gating them can't spam chat on every keypress.
 
@@ -48,6 +53,7 @@ Navigation commands (`menu_up/down/select/close`) deny **silently** so gating th
 {
     "cs2menus_reload"  "i"  // let config-flag admins reload instead of root only
     "menu_prefs"       "b"  // gate the preferences menu to generic admins
+    "pref_reset_other" "d"  // only ban admins can reset other players' prefs
 }
 ```
 
