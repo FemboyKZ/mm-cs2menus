@@ -5,6 +5,7 @@
 #include "src/render/panorama_hud.h"
 #include "interfaces/cs2menus/ics2menus.h"
 
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <mutex>
@@ -41,6 +42,9 @@ struct MenuManagerSettings
 	std::string chatPageFormat = "(page {cur}/{total})"; // {cur}/{total} = current/total page
 	bool chatShowPage = true;
 	std::string chatHeader;
+	// Toggle/Stepper/Choice value after the item text. {value} = the value.
+	std::string chatValueColor = CHAT_COLOR_ORCHID;
+	std::string chatValueFormat = ": {value}";
 	// Resolves MenuType::Default at CreateMenu time.
 	MenuType defaultType = MenuType::Chat;
 	// Exit-button default for new menus.
@@ -85,9 +89,11 @@ struct MenuManagerSettings
 	std::string submenuSuffix = " >"; // »
 	std::string footerSeparator = " | ";
 	// HTML templates (see FillTemplate).
-	std::string counterFormat = "[{cur}/{total}]";    // {cur}/{total} = position counter numbers
-	std::string footerHintFormat = "{label}: {keys}"; // {label} = hint label, {keys} = key or key range
-	std::string footerRangeFormat = "{up}/{down}";    // {up}/{down} = the two keys in the Move hint
+	std::string counterFormat = "[{cur}/{total}]";                // {cur}/{total} = position counter numbers
+	std::string footerHintFormat = "{label}: {keys}";             // {label} = hint label, {keys} = key or key range
+	std::string footerRangeFormat = "{up}/{down}";                // {up}/{down} = the two keys in the Move hint
+	std::string valueFormat = ": {value}";                        // after a value item's text
+	std::string editFormat = "\xE2\x80\xB9 {value} \xE2\x80\xBA"; // ‹ {value} ›, the value being edited
 	bool highlightText = true;
 	// HTML: center-panel resend cadence (the message decays, so it's re-sent while open).
 	// keepAlive must stay below durationSecs or the panel can blink.
@@ -152,6 +158,14 @@ public:
 	MenuHandle GetItemSubmenu(MenuHandle menu, int item) const;
 	// Attach `child` as an item's submenu (kInvalidMenuHandle detaches). Re-renders viewers.
 	void SetItemSubmenu(MenuHandle menu, int item, MenuHandle child);
+
+	int AddToggle(MenuHandle menu, const char *text, bool on, const char *info);
+	int AddStepper(MenuHandle menu, const char *text, int value, int min, int max, int step, const char *info);
+	int AddChoice(MenuHandle menu, const char *text, const char *const *options, int optionCount, int selected, const char *info);
+	MenuItemType GetItemType(MenuHandle menu, int item) const;
+	void SetItemValue(MenuHandle menu, int item, int value);
+	int GetItemValue(MenuHandle menu, int item) const;
+	void SetMenuChangeCallback(MenuHandle menu, MenuItemChangeFn onChange);
 
 	// Read back per-menu state (create-time default for an unset flag, MenuType::Default / false / etc. for invalid).
 	MenuType GetMenuType(MenuHandle menu) const;
@@ -269,6 +283,14 @@ private:
 		std::string iconUrl;
 		// Selecting this item navigates into another menu instead of firing onSelect.
 		MenuHandle submenu = kInvalidMenuHandle;
+		MenuItemType type = MenuItemType::Normal;
+		int value = 0;
+		// Stepper
+		int min = 0;
+		int max = 0;
+		int step = 1;
+		// Choice
+		std::vector<std::string> options;
 	};
 
 	// Per-menu HTML nav-key overrides, indexed by MenuNavAction (Up/Down/Select/Back).
@@ -307,6 +329,8 @@ private:
 		std::string counterFormat;     // position counter, placeholders {cur} {total}
 		std::string footerHintFormat;  // one footer hint, placeholders {label} {keys}
 		std::string footerRangeFormat; // the two keys in the Move hint, placeholders {up} {down}
+		std::string valueFormat;       // after a value item's text, placeholder {value}
+		std::string editFormat;        // the edited item's value, placeholder {value}
 	};
 
 	struct MenuDef
@@ -320,6 +344,7 @@ private:
 		std::vector<MenuItem> items;
 		MenuItemSelectFn onSelect;
 		MenuEndFn onEnd;
+		MenuItemChangeFn onChange;
 		bool exitButton = true;
 		bool closeOnSelect = true;
 		bool exitItem = false; // HTML: show a selectable "Exit" row in the list
@@ -357,6 +382,11 @@ private:
 		bool externalBusy = false;
 		// Panorama: the page each left-column button opens.
 		std::vector<int> panoramaNav;
+		// The Stepper or Choice being edited, -1 for none.
+		// Chat lists its steps or options, HTML adjusts it in place, panorama opens a popup.
+		int editItem = -1;
+		// Chat and panorama page through a Choice's options.
+		int editPage = 0;
 		// Menus this display came through to reach the current submenu, so Back retraces the player's own path.
 		// Per display rather than per menu, since one menu can be reached from several parents or shown directly.
 		std::vector<MenuHandle> parents;
@@ -380,6 +410,35 @@ private:
 	// Run a selection: invoke onSelect, then close + fire End(Selected)
 	// if closeOnSelect, else re-render. Shared by chat and html.
 	void Select(int slot, int itemIndex);
+
+	int AddValueItem(MenuHandle menu, MenuItem item);
+	static int ClampValue(const MenuItem &item, int value);
+	std::string ValueText(int slot, const MenuDef &def, const MenuItem &item) const;
+	// Store a player's change and fire onChange. Re-renders the slot even when the value didn't move.
+	void ChangeValue(int slot, int itemIndex, int value);
+	// A Stepper moves by steps * step (clamped), a Choice by steps options (wrapping), a Toggle flips.
+	void StepValue(int slot, int itemIndex, int steps);
+	// The steps a Stepper's buttons move by, 0 for no button. The outer big steps only when its range is wide enough.
+	static std::array<int, panorama_hud::kStepButtons> StepCounts(const MenuItem &item);
+	// Selecting a value item: flips a Toggle, starts editing a Stepper or Choice.
+	void ActivateValueItem(int slot, int itemIndex);
+	// The item behind pm.editItem, or nullptr once it's gone, disabled or no longer a Stepper/Choice.
+	const MenuItem *EditedItem(int slot) const;
+	void StopEdit(int slot);
+
+	struct ChatRow
+	{
+		std::string text;
+		bool disabled = false;
+		bool current = false; // drawn in the accent color, like a Choice's selected option
+	};
+
+	// Header, title with the page indicator, numbered rows, then the Next/Prev/Exit keys.
+	void PrintChatPage(int slot, const MenuDef &def, const std::string &title, const std::vector<ChatRow> &rows, int page, int pageCount,
+					   bool exitRow);
+	// Chat edit view: a Stepper's steps or a page of a Choice's options.
+	void RenderEditPage(int slot, const MenuDef &def, const MenuItem &item);
+	void ApplyEditNumber(int slot, const MenuItem &item, int num);
 
 	// Swap the slot's displayed menu to `handle` without firing end callbacks.
 	// Used for submenu navigation (into a child, or Back to a parent).

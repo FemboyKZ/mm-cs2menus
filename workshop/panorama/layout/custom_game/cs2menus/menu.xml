@@ -1037,6 +1037,82 @@
           </Panel>
         </Panel>
       </Panel>
+
+      <Panel id="cm_step" class="popup step-popup hidden">
+        <Panel class="window-header">
+          <Label id="cm_step_title" class="popup-title" text="{s:cm_step_title}" />
+          <Button id="cm_step_close" class="close-btn" />
+        </Panel>
+        <Panel class="step-row">
+          <Button id="cm_step_b0" class="step-btn"><Label id="cm_step_l0" class="step-btn-label" text="{s:cm_step_l0}" /></Button>
+          <Button id="cm_step_b1" class="step-btn"><Label id="cm_step_l1" class="step-btn-label" text="{s:cm_step_l1}" /></Button>
+          <Label id="cm_step_val" class="step-readout" text="{s:cm_step_val}" />
+          <Button id="cm_step_b2" class="step-btn"><Label id="cm_step_l2" class="step-btn-label" text="{s:cm_step_l2}" /></Button>
+          <Button id="cm_step_b3" class="step-btn"><Label id="cm_step_l3" class="step-btn-label" text="{s:cm_step_l3}" /></Button>
+        </Panel>
+      </Panel>
+
+      <Panel id="cm_list" class="popup list-popup hidden">
+        <Panel class="window-header">
+          <Label id="cm_list_title" class="popup-title" text="{s:cm_list_title}" />
+          <Button id="cm_list_close" class="close-btn" />
+        </Panel>
+        <Panel class="list-rows">
+          <Button id="cm_li0" class="li hidden">
+            <Label id="cm_li_lbl0" class="li-label" text="{s:cm_li_lbl0}" />
+          </Button>
+          <Button id="cm_li1" class="li hidden">
+            <Label id="cm_li_lbl1" class="li-label" text="{s:cm_li_lbl1}" />
+          </Button>
+          <Button id="cm_li2" class="li hidden">
+            <Label id="cm_li_lbl2" class="li-label" text="{s:cm_li_lbl2}" />
+          </Button>
+          <Button id="cm_li3" class="li hidden">
+            <Label id="cm_li_lbl3" class="li-label" text="{s:cm_li_lbl3}" />
+          </Button>
+          <Button id="cm_li4" class="li hidden">
+            <Label id="cm_li_lbl4" class="li-label" text="{s:cm_li_lbl4}" />
+          </Button>
+          <Button id="cm_li5" class="li hidden">
+            <Label id="cm_li_lbl5" class="li-label" text="{s:cm_li_lbl5}" />
+          </Button>
+          <Button id="cm_li6" class="li hidden">
+            <Label id="cm_li_lbl6" class="li-label" text="{s:cm_li_lbl6}" />
+          </Button>
+          <Button id="cm_li7" class="li hidden">
+            <Label id="cm_li_lbl7" class="li-label" text="{s:cm_li_lbl7}" />
+          </Button>
+          <Button id="cm_li8" class="li hidden">
+            <Label id="cm_li_lbl8" class="li-label" text="{s:cm_li_lbl8}" />
+          </Button>
+          <Button id="cm_li9" class="li hidden">
+            <Label id="cm_li_lbl9" class="li-label" text="{s:cm_li_lbl9}" />
+          </Button>
+          <Button id="cm_li10" class="li hidden">
+            <Label id="cm_li_lbl10" class="li-label" text="{s:cm_li_lbl10}" />
+          </Button>
+          <Button id="cm_li11" class="li hidden">
+            <Label id="cm_li_lbl11" class="li-label" text="{s:cm_li_lbl11}" />
+          </Button>
+          <Button id="cm_li12" class="li hidden">
+            <Label id="cm_li_lbl12" class="li-label" text="{s:cm_li_lbl12}" />
+          </Button>
+          <Button id="cm_li13" class="li hidden">
+            <Label id="cm_li_lbl13" class="li-label" text="{s:cm_li_lbl13}" />
+          </Button>
+          <Button id="cm_li14" class="li hidden">
+            <Label id="cm_li_lbl14" class="li-label" text="{s:cm_li_lbl14}" />
+          </Button>
+          <Button id="cm_li15" class="li hidden">
+            <Label id="cm_li_lbl15" class="li-label" text="{s:cm_li_lbl15}" />
+          </Button>
+        </Panel>
+        <Panel class="popup-nav">
+          <Button id="cm_list_prev" class="popup-btn"><Label class="popup-btn-label" text="&lt;" /></Button>
+          <Label id="cm_list_page" class="popup-page" text="{s:cm_list_page}" />
+          <Button id="cm_list_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
+        </Panel>
+      </Panel>
     </Panel>
   </Panel>
 </root>

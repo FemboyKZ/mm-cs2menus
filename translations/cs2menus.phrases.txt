@@ -30,4 +30,20 @@
 	{
 		"en"	"Select"
 	}
+	"On"
+	{
+		"en"	"On"
+	}
+	"Off"
+	{
+		"en"	"Off"
+	}
+	"Adjust"
+	{
+		"en"	"Adjust"
+	}
+	"Done"
+	{
+		"en"	"Done"
+	}
 }

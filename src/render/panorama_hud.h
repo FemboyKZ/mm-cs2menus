@@ -14,13 +14,16 @@ namespace panorama_hud
 {
 	// Fixed by the layout.
 	// The game interns at most 1024 panel ids and dialog variable names per layout, and every row run is one of each.
-	// 30 rows of 27 runs uses about 910.
+	// 30 rows of 27 runs uses about 915, the popups about 50 more.
 	constexpr int kItemSlots = 30;
 	constexpr int kNavSlots = 20;
 	// Differently colored runs per row.
 	// The layout only takes plain text, so each run is its own label with a palette class.
 	// rtv's longest label is the current map in !nominate with 5+ courses in both modes, 27 runs.
 	constexpr int kRowSegments = 27;
+	// The popups are shared by every row, so they cost the same ids whatever the row count.
+	constexpr int kListSlots = 16;
+	constexpr int kStepButtons = 4;
 
 	// CS_UM_CustomHudClicked
 	constexpr int kClickMessageId = 390;
@@ -34,17 +37,52 @@ namespace panorama_hud
 			std::string color;
 		};
 
+		enum class Control
+		{
+			None,
+			Toggle,
+			Stepper,
+			Choice,
+		};
+
 		struct Row
 		{
 			std::vector<Segment> segments; // at most kRowSegments
 			std::string value;             // right-aligned, in the first segment's color
 			bool disabled = false;
+			Control control = Control::None;
+			bool on = false; // Toggle
 		};
 
 		struct Nav
 		{
 			std::string label;
 			bool selected = false;
+		};
+
+		struct StepButton
+		{
+			std::string label; // like "-5", empty hides the button
+			bool enabled = false;
+		};
+
+		// Beside the menu, at most one open.
+		struct StepPopup
+		{
+			bool open = false;
+			std::string title;
+			std::string readout;
+			StepButton buttons[kStepButtons];
+		};
+
+		struct ListPopup
+		{
+			bool open = false;
+			std::string title;
+			std::vector<Nav> rows; // at most kListSlots, selected marks the current option
+			std::string page;      // like "2/3", empty hides the page arrows
+			bool prev = false;
+			bool next = false;
 		};
 
 		std::string title;
@@ -55,14 +93,21 @@ namespace panorama_hud
 		std::vector<Nav> nav;  // at most kNavSlots, empty hides the left column
 		std::string fontClass; // from fonts.css, empty for the layout default
 		bool sounds = true;
+		StepPopup step;
+		ListPopup list;
 	};
 
 	enum class Click
 	{
 		None,
 		Close,
-		Nav,  // index = left-column slot
-		Item, // index = row on the page
+		Nav,        // index = left-column slot
+		Item,       // index = row on the page
+		PopupClose, // either popup's close button
+		Step,       // index = step button
+		ListRow,    // index = list popup row
+		ListPrev,
+		ListNext,
 	};
 
 	// Drops chat color codes.

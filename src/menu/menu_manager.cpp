@@ -499,6 +499,13 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 		case MenuStyle::PagePrefixDelimiter:
 			s.pagePrefixDelimiter = v.size() == 1 ? v[0] : 0;
 			break;
+		// Value items
+		case MenuStyle::ValueFormat:
+			s.valueFormat = v;
+			break;
+		case MenuStyle::EditFormat:
+			s.editFormat = v;
+			break;
 	}
 	RefreshMenu(menu);
 }
@@ -579,6 +586,11 @@ const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 			buf = s.pagePrefixDelimiter ? std::string(1, s.pagePrefixDelimiter) : std::string();
 			return buf.c_str();
 		}
+		// Value items
+		case MenuStyle::ValueFormat:
+			return s.valueFormat.empty() ? m_settings.valueFormat.c_str() : s.valueFormat.c_str();
+		case MenuStyle::EditFormat:
+			return s.editFormat.empty() ? m_settings.editFormat.c_str() : s.editFormat.c_str();
 	}
 	return "";
 }
@@ -767,6 +779,238 @@ void MenuManager::SetItemSubmenu(MenuHandle menu, int item, MenuHandle child)
 	RefreshMenu(menu);
 }
 
+int MenuManager::AddValueItem(MenuHandle menu, MenuItem item)
+{
+	MenuDef *def = Find(menu);
+	if (!def)
+	{
+		return -1;
+	}
+	item.value = ClampValue(item, item.value);
+	def->items.push_back(std::move(item));
+	return static_cast<int>(def->items.size()) - 1;
+}
+
+int MenuManager::AddToggle(MenuHandle menu, const char *text, bool on, const char *info)
+{
+	ScopedLock lock(m_mutex);
+	MenuItem item;
+	item.text = text ? text : "";
+	item.info = info ? info : "";
+	item.type = MenuItemType::Toggle;
+	item.value = on ? 1 : 0;
+	return AddValueItem(menu, std::move(item));
+}
+
+int MenuManager::AddStepper(MenuHandle menu, const char *text, int value, int min, int max, int step, const char *info)
+{
+	ScopedLock lock(m_mutex);
+	MenuItem item;
+	item.text = text ? text : "";
+	item.info = info ? info : "";
+	item.type = MenuItemType::Stepper;
+	item.value = value;
+	item.min = (std::min)(min, max);
+	item.max = (std::max)(min, max);
+	item.step = (std::max)(1, step);
+	return AddValueItem(menu, std::move(item));
+}
+
+int MenuManager::AddChoice(MenuHandle menu, const char *text, const char *const *options, int optionCount, int selected, const char *info)
+{
+	ScopedLock lock(m_mutex);
+	MenuItem item;
+	item.text = text ? text : "";
+	item.info = info ? info : "";
+	item.type = MenuItemType::Choice;
+	item.value = selected;
+	for (int i = 0; options && i < optionCount; i++)
+	{
+		item.options.emplace_back(options[i] ? options[i] : "");
+	}
+	return AddValueItem(menu, std::move(item));
+}
+
+MenuItemType MenuManager::GetItemType(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->type : MenuItemType::Normal;
+}
+
+void MenuManager::SetItemValue(MenuHandle menu, int item, int value)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuItem *it = FindItem(menu, item))
+	{
+		it->value = ClampValue(*it, value);
+		RefreshMenu(menu);
+	}
+}
+
+int MenuManager::GetItemValue(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->value : 0;
+}
+
+void MenuManager::SetMenuChangeCallback(MenuHandle menu, MenuItemChangeFn onChange)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->onChange = std::move(onChange);
+	}
+}
+
+int MenuManager::ClampValue(const MenuItem &item, int value)
+{
+	switch (item.type)
+	{
+		case MenuItemType::Toggle:
+			return value != 0 ? 1 : 0;
+		case MenuItemType::Stepper:
+			return (std::max)(item.min, (std::min)(value, item.max));
+		case MenuItemType::Choice:
+			return item.options.empty() ? 0 : (std::max)(0, (std::min)(value, static_cast<int>(item.options.size()) - 1));
+		default:
+			return value;
+	}
+}
+
+std::string MenuManager::ValueText(int slot, const MenuDef &def, const MenuItem &item) const
+{
+	switch (item.type)
+	{
+		case MenuItemType::Toggle:
+			return ResolveLabel(slot, def, item.value ? MenuLabel::On : MenuLabel::Off);
+		case MenuItemType::Stepper:
+			return std::to_string(item.value);
+		case MenuItemType::Choice:
+			return item.value < static_cast<int>(item.options.size()) ? item.options[item.value] : std::string();
+		default:
+			return std::string();
+	}
+}
+
+void MenuManager::ChangeValue(int slot, int itemIndex, int value)
+{
+	const MenuHandle handle = m_players[slot].handle;
+	MenuItem *item = FindItem(handle, itemIndex);
+	if (!item)
+	{
+		return;
+	}
+	value = ClampValue(*item, value);
+	if (value == item->value)
+	{
+		Render(slot); // chat reprints, like picking a disabled item
+		return;
+	}
+	item->value = value;
+	MenuItemChangeFn onChange = Find(handle)->onChange;
+	{
+		DepthGuard guard(m_callbackDepth);
+		if (onChange && guard.enter())
+		{
+			onChange(handle, slot, itemIndex, value);
+		}
+	}
+	RefreshMenu(handle);
+}
+
+void MenuManager::StepValue(int slot, int itemIndex, int steps)
+{
+	const MenuItem *item = FindItem(m_players[slot].handle, itemIndex);
+	if (!item || item->disabled)
+	{
+		return;
+	}
+	int value = item->value;
+	switch (item->type)
+	{
+		case MenuItemType::Toggle:
+			value = value ? 0 : 1;
+			break;
+		case MenuItemType::Stepper:
+		{
+			// Widened so a big step near INT_MAX clamps instead of wrapping.
+			const long long moved = static_cast<long long>(value) + static_cast<long long>(steps) * item->step;
+			value = static_cast<int>((std::max)(static_cast<long long>(item->min), (std::min)(moved, static_cast<long long>(item->max))));
+			break;
+		}
+		case MenuItemType::Choice:
+		{
+			const int count = static_cast<int>(item->options.size());
+			if (count == 0)
+			{
+				return;
+			}
+			value = ((value + steps) % count + count) % count;
+			break;
+		}
+		default:
+			return;
+	}
+	ChangeValue(slot, itemIndex, value);
+}
+
+std::array<int, panorama_hud::kStepButtons> MenuManager::StepCounts(const MenuItem &item)
+{
+	const long long range = static_cast<long long>(item.max) - item.min;
+	if (range >= 10LL * item.step)
+	{
+		return {-5, -1, 1, 5};
+	}
+	return {0, -1, 1, 0};
+}
+
+void MenuManager::ActivateValueItem(int slot, int itemIndex)
+{
+	PlayerMenu &pm = m_players[slot];
+	const MenuItem *item = FindItem(pm.handle, itemIndex);
+	if (!item)
+	{
+		return;
+	}
+	if (item->type == MenuItemType::Toggle)
+	{
+		StepValue(slot, itemIndex, 1);
+		return;
+	}
+	pm.editItem = itemIndex;
+	pm.editPage = 0;
+	if (item->type == MenuItemType::Choice)
+	{
+		// Open on the page holding the current option.
+		pm.editPage = item->value / (pm.type == MenuType::Panorama ? panorama_hud::kListSlots : m_itemsPerPage);
+	}
+	Render(slot);
+}
+
+const MenuManager::MenuItem *MenuManager::EditedItem(int slot) const
+{
+	const PlayerMenu &pm = m_players[slot];
+	if (pm.editItem < 0)
+	{
+		return nullptr;
+	}
+	const MenuItem *item = FindItem(pm.handle, pm.editItem);
+	if (!item || item->disabled || (item->type != MenuItemType::Stepper && item->type != MenuItemType::Choice))
+	{
+		return nullptr;
+	}
+	return item;
+}
+
+void MenuManager::StopEdit(int slot)
+{
+	m_players[slot].editItem = -1;
+	m_players[slot].editPage = 0;
+	Render(slot);
+}
+
 MenuType MenuManager::GetMenuType(MenuHandle menu) const
 {
 	ScopedLock lock(m_mutex);
@@ -937,6 +1181,14 @@ const char *MenuManager::DefaultLabelKey(MenuLabel label)
 			return "Scroll";
 		case MenuLabel::Select:
 			return "Select";
+		case MenuLabel::On:
+			return "On";
+		case MenuLabel::Off:
+			return "Off";
+		case MenuLabel::Adjust:
+			return "Adjust";
+		case MenuLabel::Done:
+			return "Done";
 		case MenuLabel::Exit:
 		default:
 			return "Exit";
@@ -1027,6 +1279,8 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	pm.lastHtml.clear();
 	pm.lastHtmlSend = 0.0f;
 	pm.parents.clear();
+	pm.editItem = -1;
+	pm.editPage = 0;
 
 	Render(slot);
 	return true;
@@ -1229,6 +1483,14 @@ void MenuManager::Select(int slot, int itemIndex)
 		return;
 	}
 
+	// Picking any row closes an open panorama popup, unless it opens its own.
+	pm.editItem = -1;
+	if (def->items[itemIndex].type != MenuItemType::Normal)
+	{
+		ActivateValueItem(slot, itemIndex);
+		return;
+	}
+
 	// A submenu item navigates into its child instead of firing onSelect.
 	MenuHandle sub = def->items[itemIndex].submenu;
 	if (sub != kInvalidMenuHandle && Find(sub))
@@ -1318,6 +1580,8 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle)
 	pm.buttonsPrimed = false;
 	pm.nextHtmlRender = 0.0f;
 	pm.lastHtml.clear();
+	pm.editItem = -1;
+	pm.editPage = 0;
 	// expireTime is kept so the whole submenu stack shares one timeout.
 
 	Render(slot);
@@ -1402,6 +1666,11 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 	if (!def || pm.type != MenuType::Chat)
 	{
 		return false;
+	}
+	if (const MenuItem *edited = EditedItem(slot))
+	{
+		ApplyEditNumber(slot, *edited, num);
+		return true;
 	}
 
 	const auto &items = def->items;
@@ -1540,6 +1809,11 @@ void MenuManager::HtmlNavSelect(int slot)
 	{
 		return;
 	}
+	if (EditedItem(slot))
+	{
+		StopEdit(slot);
+		return;
+	}
 	// Selecting the inline Exit row closes the menu, otherwise pick the cursor item.
 	if (HtmlShowsExitRow(*def, slot) && pm.cursor == static_cast<int>(def->items.size()))
 	{
@@ -1557,6 +1831,11 @@ void MenuManager::NavClose(int slot)
 	MenuDef *def = Find(pm.handle);
 	if (!def)
 	{
+		return;
+	}
+	if (EditedItem(slot))
+	{
+		StopEdit(slot);
 		return;
 	}
 	// Step up to the parent in a submenu, else exit (if exitable).
@@ -1651,6 +1930,12 @@ void MenuManager::HtmlMoveCursor(int slot, int delta)
 	const MenuDef *def = Find(pm.handle);
 	if (!def)
 	{
+		return;
+	}
+	// Up raises the edited value.
+	if (EditedItem(slot))
+	{
+		StepValue(slot, pm.editItem, -delta);
 		return;
 	}
 
@@ -1960,6 +2245,12 @@ void MenuManager::RenderPage(int slot)
 		return;
 	}
 
+	if (const MenuItem *edited = EditedItem(slot))
+	{
+		RenderEditPage(slot, *def, *edited);
+		return;
+	}
+
 	const auto &items = def->items;
 
 	int pageCount = (static_cast<int>(items.size()) + m_itemsPerPage - 1) / m_itemsPerPage;
@@ -1973,13 +2264,30 @@ void MenuManager::RenderPage(int slot)
 		pm.page = pageCount - 1;
 	}
 
-	bool hasMore = (pm.page + 1 < pageCount);
-	bool hasPrev = (pm.page > 0);
-
 	int pageStart = pm.page * m_itemsPerPage;
 	int pageEnd = (std::min)(pageStart + m_itemsPerPage, static_cast<int>(items.size()));
-	int pageItems = pageEnd - pageStart;
 
+	std::vector<ChatRow> rows;
+	for (int i = pageStart; i < pageEnd; i++)
+	{
+		const MenuItem &item = items[i];
+		ChatRow row;
+		row.text = item.text;
+		row.disabled = item.disabled;
+		if (item.type != MenuItemType::Normal)
+		{
+			// Disabled keeps the whole row grey.
+			row.text += (item.disabled ? std::string() : m_settings.chatValueColor)
+						+ FillTemplate(m_settings.chatValueFormat, {{"value", ValueText(slot, *def, item)}});
+		}
+		rows.push_back(std::move(row));
+	}
+	PrintChatPage(slot, *def, def->title, rows, pm.page, pageCount, def->exitButton);
+}
+
+void MenuManager::PrintChatPage(int slot, const MenuDef &def, const std::string &titleText, const std::vector<ChatRow> &rows, int page, int pageCount,
+								bool exitRow)
+{
 	const MenuManagerSettings &s = m_settings;
 
 	// Optional branded header line above the title.
@@ -1992,23 +2300,27 @@ void MenuManager::RenderPage(int slot)
 	// Built as std::string so long titles/items aren't truncated by a fixed buffer.
 	// {title} holds the title text plus the optional page indicator
 	// (in its own color, then the title color restored so the format's trailing decoration keeps the title color).
-	std::string inner = def->title;
+	std::string inner = titleText;
 	if (pageCount > 1 && s.chatShowPage)
 	{
-		std::string page = FillTemplate(s.chatPageFormat, {{"cur", std::to_string(pm.page + 1)}, {"total", std::to_string(pageCount)}});
-		inner += " " + s.chatPageColor + page + s.chatTitleColor;
+		std::string indicator = FillTemplate(s.chatPageFormat, {{"cur", std::to_string(page + 1)}, {"total", std::to_string(pageCount)}});
+		inner += " " + s.chatPageColor + indicator + s.chatTitleColor;
 	}
 	std::string title = s.chatTitleColor + FillTemplate(s.chatTitleFormat, {{"title", inner}});
 	MENU_PrintToChat(slot, "%s", title.c_str());
 
 	// Item rows: color + numbered template + text. The number is the on-screen 1..N selection key.
-	for (int i = 0; i < pageItems; i++)
+	for (size_t i = 0; i < rows.size(); i++)
 	{
-		const MenuItem &item = items[pageStart + i];
+		const ChatRow &row = rows[i];
 		std::string num = std::to_string(i + 1);
-		std::string line = item.disabled ? (s.chatDisabledColor + FillTemplate(s.chatDisabledFormat, {{"n", num}}))
-										 : (s.chatItemColor + FillTemplate(s.chatNumberFormat, {{"n", num}}));
-		line += item.text;
+		std::string line = row.disabled ? (s.chatDisabledColor + FillTemplate(s.chatDisabledFormat, {{"n", num}}))
+										: (s.chatItemColor + FillTemplate(s.chatNumberFormat, {{"n", num}}));
+		if (row.current && !row.disabled)
+		{
+			line += s.chatArrowColor;
+		}
+		line += row.text;
 		MENU_PrintToChat(slot, "%s", line.c_str());
 	}
 
@@ -2016,20 +2328,105 @@ void MenuManager::RenderPage(int slot)
 	auto navRow = [&](int key, MenuLabel label)
 	{
 		std::string line = s.chatItemColor + FillTemplate(s.chatNumberFormat, {{"n", std::to_string(key)}});
-		line += s.chatArrowColor + s.chatArrow + ResolveLabel(slot, *def, label);
+		line += s.chatArrowColor + s.chatArrow + ResolveLabel(slot, def, label);
 		MENU_PrintToChat(slot, "%s", line.c_str());
 	};
-	if (hasMore)
+	if (page + 1 < pageCount)
 	{
 		navRow(m_itemsPerPage + 1, MenuLabel::NextPage);
 	}
-	if (hasPrev)
+	if (page > 0)
 	{
 		navRow(m_itemsPerPage + 2, MenuLabel::PrevPage);
 	}
-	if (def->exitButton)
+	if (exitRow)
 	{
 		navRow(0, MenuLabel::Exit);
+	}
+}
+
+void MenuManager::RenderEditPage(int slot, const MenuDef &def, const MenuItem &item)
+{
+	PlayerMenu &pm = m_players[slot];
+	const std::string title = item.text + FillTemplate(m_settings.chatValueFormat, {{"value", ValueText(slot, def, item)}});
+	std::vector<ChatRow> rows;
+	if (item.type == MenuItemType::Stepper)
+	{
+		for (int count : StepCounts(item))
+		{
+			if (count == 0)
+			{
+				continue;
+			}
+			ChatRow row;
+			row.text = (count > 0 ? "+" : "") + std::to_string(static_cast<long long>(count) * item.step);
+			row.disabled = count < 0 ? item.value <= item.min : item.value >= item.max;
+			rows.push_back(std::move(row));
+		}
+		PrintChatPage(slot, def, title, rows, 0, 1, true);
+		return;
+	}
+
+	const int optionCount = static_cast<int>(item.options.size());
+	const int pageCount = (std::max)(1, (optionCount + m_itemsPerPage - 1) / m_itemsPerPage);
+	pm.editPage = (std::max)(0, (std::min)(pm.editPage, pageCount - 1));
+	const int first = pm.editPage * m_itemsPerPage;
+	const int last = (std::min)(first + m_itemsPerPage, optionCount);
+	for (int i = first; i < last; i++)
+	{
+		ChatRow row;
+		row.text = item.options[i];
+		row.current = i == item.value;
+		rows.push_back(std::move(row));
+	}
+	PrintChatPage(slot, def, title, rows, pm.editPage, pageCount, true);
+}
+
+void MenuManager::ApplyEditNumber(int slot, const MenuItem &item, int num)
+{
+	PlayerMenu &pm = m_players[slot];
+	const int itemIndex = pm.editItem;
+	// 0 leaves the edit even when the menu itself can't be exited.
+	if (num == 0)
+	{
+		StopEdit(slot);
+		return;
+	}
+	if (item.type == MenuItemType::Stepper)
+	{
+		int row = 0;
+		for (int count : StepCounts(item))
+		{
+			if (count != 0 && ++row == num)
+			{
+				StepValue(slot, itemIndex, count);
+				return;
+			}
+		}
+		return;
+	}
+
+	const int optionCount = static_cast<int>(item.options.size());
+	const int pageCount = (std::max)(1, (optionCount + m_itemsPerPage - 1) / m_itemsPerPage);
+	if (num == m_itemsPerPage + 1 && pm.editPage + 1 < pageCount)
+	{
+		pm.editPage++;
+		RenderPage(slot);
+		return;
+	}
+	if (num == m_itemsPerPage + 2 && pm.editPage > 0)
+	{
+		pm.editPage--;
+		RenderPage(slot);
+		return;
+	}
+	const int option = pm.editPage * m_itemsPerPage + num - 1;
+	if (num >= 1 && num <= m_itemsPerPage && option < optionCount)
+	{
+		// A pick closes the list, like a dropdown.
+		pm.editItem = -1;
+		pm.editPage = 0;
+		ChangeValue(slot, itemIndex, option);
 	}
 }
 
@@ -2084,6 +2481,8 @@ void MenuManager::RenderHtml(int slot)
 	const std::string &counterFormat = pick(st.counterFormat, m_settings.counterFormat);
 	const std::string &footerHintFormat = pick(st.footerHintFormat, m_settings.footerHintFormat);
 	const std::string &footerRangeFormat = pick(st.footerRangeFormat, m_settings.footerRangeFormat);
+	const std::string &valueFormat = pick(st.valueFormat, m_settings.valueFormat);
+	const std::string &editFormat = pick(st.editFormat, m_settings.editFormat);
 	const std::string &align = pick(st.align, m_settings.align);
 	bool showCounter = pickFlag(st.showCounter, m_settings.showCounter);
 	bool showFooter = pickFlag(st.showFooter, m_settings.showFooter);
@@ -2100,6 +2499,8 @@ void MenuManager::RenderHtml(int slot)
 	const std::string footerCls = SizeClass(pick(st.footerSize, m_settings.footerSize)) + commonCls;
 	const std::string counterCls = SizeClass(pick(st.counterSize, m_settings.counterSize)) + commonCls;
 	const std::string markerHtml = center_html::Escape(marker);
+	// While set, Up/Down adjust this row instead of moving the cursor.
+	const MenuItem *edited = EditedItem(slot);
 
 	std::string html;
 	html.reserve(512);
@@ -2190,6 +2591,18 @@ void MenuManager::RenderHtml(int slot)
 		{
 			html += center_html::ColorizeChat(item.text, base, itemCls.c_str());
 		}
+		if (item.type != MenuItemType::Normal)
+		{
+			const bool editing = i == pm.editItem && edited;
+			std::string value = ValueText(slot, *def, item);
+			if (editing)
+			{
+				value = FillTemplate(editFormat, {{"value", value}});
+			}
+			html += "<font color='";
+			html += editing ? navColor.c_str() : base;
+			html += "' class='" + itemCls + "'>" + center_html::Escape(FillTemplate(valueFormat, {{"value", value}})) + "</font>";
+		}
 		// Trailing affordance so a submenu item reads as "opens another menu".
 		if (item.submenu != kInvalidMenuHandle && !submenuSuffix.empty())
 		{
@@ -2231,7 +2644,26 @@ void MenuManager::RenderHtml(int slot)
 		return center_html::Escape(seg);
 	};
 
-	if (upOn && downOn)
+	if (edited)
+	{
+		if (upOn && downOn)
+		{
+			std::string keys = FillTemplate(footerRangeFormat, {{"up", EffectiveNavLabel(*def, slot, MenuNavAction::Up)},
+																{"down", EffectiveNavLabel(*def, slot, MenuNavAction::Down)}});
+			addSegment(hint(MenuLabel::Adjust, keys));
+		}
+		else if (upOn || downOn)
+		{
+			addSegment(hint(MenuLabel::Adjust, EffectiveNavLabel(*def, slot, upOn ? MenuNavAction::Up : MenuNavAction::Down)));
+		}
+		// Back leaves the edit even on a menu that can't be exited.
+		const bool backKey = EffectiveNavMask(*def, slot, MenuNavAction::Back) != 0;
+		if (selectOn || backKey)
+		{
+			addSegment(hint(MenuLabel::Done, EffectiveNavLabel(*def, slot, selectOn ? MenuNavAction::Select : MenuNavAction::Back)));
+		}
+	}
+	else if (upOn && downOn)
 	{
 		std::string keys = FillTemplate(footerRangeFormat, {{"up", EffectiveNavLabel(*def, slot, MenuNavAction::Up)},
 															{"down", EffectiveNavLabel(*def, slot, MenuNavAction::Down)}});
@@ -2245,11 +2677,11 @@ void MenuManager::RenderHtml(int slot)
 	{
 		addSegment(hint(MenuLabel::Scroll, EffectiveNavLabel(*def, slot, MenuNavAction::Up)));
 	}
-	if (selectOn)
+	if (selectOn && !edited)
 	{
 		addSegment(hint(MenuLabel::Select, EffectiveNavLabel(*def, slot, MenuNavAction::Select)));
 	}
-	if (backOn)
+	if (backOn && !edited)
 	{
 		addSegment(hint(MenuLabel::Exit, EffectiveNavLabel(*def, slot, MenuNavAction::Back)));
 	}
@@ -2358,7 +2790,68 @@ void MenuManager::RenderPanorama(int slot)
 			row.value = "\xE2\x80\xBA"; // ›
 		}
 		row.disabled = item.disabled;
+		switch (item.type)
+		{
+			case MenuItemType::Toggle:
+				row.control = panorama_hud::View::Control::Toggle;
+				row.on = item.value != 0;
+				break;
+			case MenuItemType::Stepper:
+				row.control = panorama_hud::View::Control::Stepper;
+				break;
+			case MenuItemType::Choice:
+				row.control = panorama_hud::View::Control::Choice;
+				break;
+			default:
+				break;
+		}
+		if (item.type != MenuItemType::Normal)
+		{
+			row.value = panorama_hud::StripColors(ValueText(slot, *def, item));
+		}
 		view.rows.push_back(std::move(row));
+	}
+
+	if (const MenuItem *edited = EditedItem(slot))
+	{
+		const std::string title = panorama_hud::StripColors(edited->text);
+		if (edited->type == MenuItemType::Stepper)
+		{
+			view.step.open = true;
+			view.step.title = title;
+			view.step.readout = std::to_string(edited->value);
+			const auto counts = StepCounts(*edited);
+			for (int b = 0; b < panorama_hud::kStepButtons; b++)
+			{
+				if (counts[b] == 0)
+				{
+					continue;
+				}
+				panorama_hud::View::StepButton &button = view.step.buttons[b];
+				button.label = (counts[b] > 0 ? "+" : "") + std::to_string(static_cast<long long>(counts[b]) * edited->step);
+				button.enabled = counts[b] < 0 ? edited->value > edited->min : edited->value < edited->max;
+			}
+		}
+		else
+		{
+			view.list.open = true;
+			view.list.title = title;
+			const int optionCount = static_cast<int>(edited->options.size());
+			const int listPages = (std::max)(1, (optionCount + panorama_hud::kListSlots - 1) / panorama_hud::kListSlots);
+			pm.editPage = (std::max)(0, (std::min)(pm.editPage, listPages - 1));
+			const int firstOption = pm.editPage * panorama_hud::kListSlots;
+			const int lastOption = (std::min)(firstOption + panorama_hud::kListSlots, optionCount);
+			for (int i = firstOption; i < lastOption; i++)
+			{
+				view.list.rows.push_back({panorama_hud::StripColors(edited->options[i]), i == edited->value});
+			}
+			if (listPages > 1)
+			{
+				view.list.page = std::to_string(pm.editPage + 1) + "/" + std::to_string(listPages);
+				view.list.prev = pm.editPage > 0;
+				view.list.next = pm.editPage + 1 < listPages;
+			}
+		}
 	}
 
 	// Left column: every page, or a window around the current one when they don't fit.
@@ -2446,7 +2939,48 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 	switch (click)
 	{
 		case panorama_hud::Click::Close:
+			// The window's own X, so an open popup doesn't swallow it.
+			pm.editItem = -1;
 			NavClose(slot);
+			break;
+		case panorama_hud::Click::PopupClose:
+			StopEdit(slot);
+			break;
+		case panorama_hud::Click::Step:
+		{
+			const MenuItem *edited = EditedItem(slot);
+			if (edited && edited->type == MenuItemType::Stepper && index >= 0 && index < panorama_hud::kStepButtons)
+			{
+				const int count = StepCounts(*edited)[index];
+				if (count != 0)
+				{
+					StepValue(slot, pm.editItem, count);
+				}
+			}
+			break;
+		}
+		case panorama_hud::Click::ListRow:
+		{
+			const MenuItem *edited = EditedItem(slot);
+			const int option = pm.editPage * panorama_hud::kListSlots + index;
+			if (edited && edited->type == MenuItemType::Choice && index >= 0 && option < static_cast<int>(edited->options.size()))
+			{
+				// A pick closes the list, like a dropdown.
+				const int itemIndex = pm.editItem;
+				pm.editItem = -1;
+				pm.editPage = 0;
+				ChangeValue(slot, itemIndex, option);
+			}
+			break;
+		}
+		case panorama_hud::Click::ListPrev:
+		case panorama_hud::Click::ListNext:
+			if (EditedItem(slot))
+			{
+				// RenderPanorama clamps the page.
+				pm.editPage = (std::max)(0, pm.editPage + (click == panorama_hud::Click::ListNext ? 1 : -1));
+				RenderPanorama(slot);
+			}
 			break;
 		case panorama_hud::Click::Nav:
 			if (index >= 0 && index < static_cast<int>(pm.panoramaNav.size()))

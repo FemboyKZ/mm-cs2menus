@@ -50,6 +50,8 @@ struct MenuDefaultsCfg
 	std::string chatArrow = "-> ";                       // before Next/Prev/Exit labels
 	std::string chatPageFormat = "(page {cur}/{total})"; // {cur}/{total} = current/total page
 	bool chatShowPage = true;                            // show the page indicator on multi-page menus
+	std::string chatValueColor = "orchid";               // Toggle/Stepper/Choice value after the item text
+	std::string chatValueFormat = ": {value}";           // {value} = the item's value
 	// Optional branded line printed above the title (may use embedded color codes). Empty = none.
 	std::string chatHeader;
 
@@ -88,9 +90,11 @@ struct MenuDefaultsCfg
 	std::string htmlSubmenuSuffix = " >";
 	std::string htmlFooterSeparator = " | ";
 	// Render templates ({placeholders} filled per row). Edit one part, keep the rest.
-	std::string htmlCounterFormat = "[{cur}/{total}]";    // {cur}/{total} = position counter numbers
-	std::string htmlFooterHintFormat = "{label}: {keys}"; // {label} = hint label, {keys} = key or key range
-	std::string htmlFooterRangeFormat = "{up}/{down}";    // {up}/{down} = the two keys in the Move hint
+	std::string htmlCounterFormat = "[{cur}/{total}]";                // {cur}/{total} = position counter numbers
+	std::string htmlFooterHintFormat = "{label}: {keys}";             // {label} = hint label, {keys} = key or key range
+	std::string htmlFooterRangeFormat = "{up}/{down}";                // {up}/{down} = the two keys in the Move hint
+	std::string htmlValueFormat = ": {value}";                        // {value} = a Toggle/Stepper/Choice value after the item text
+	std::string htmlEditFormat = "\xE2\x80\xB9 {value} \xE2\x80\xBA"; // {value} = the value being edited, ‹ {value} ›
 	bool htmlHighlightText = true;
 	// Center-panel resend cadence (the message decays, re-sent while open).
 	// KeepAlive must stay below DurationSecs or the panel can blink.

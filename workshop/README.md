@@ -14,8 +14,11 @@ Panel ids, dialog variables and classes are written by `src/render/panorama_hud.
   The client matches them by name across all custom HUD layouts, so an unprefixed `item0` would collide with cs2kz's menu.
 - The client validates custom HUD layouts: only `Panel`, `Label` and `Button`, and a `Label` rejects `html`.
   Text is plain, colors are classes.
-- Slot counts: 20 `cm_nav<N>`, 30 `cm_item<N>` with 27 `cm_seg<N>_<S>` runs each
-  (`kNavSlots`, `kItemSlots`, `kRowSegments` in `src/render/panorama_hud.h`).
+- Slot counts: 20 `cm_nav<N>`, 30 `cm_item<N>` with 27 `cm_seg<N>_<S>` runs each, 4 `cm_step_b<N>` and 16 `cm_li<N>`
+  (`kNavSlots`, `kItemSlots`, `kRowSegments`, `kStepButtons`, `kListSlots` in `src/render/panorama_hud.h`).
+- The game interns at most 1024 panel ids and dialog variables per layout, and the layout sits near 970. Budget any new id.
+- Value items: rows get `type-toggle` (plus `on`), `type-step` or `type-choice`.
+  Editing opens `cm_step` or `cm_list` beside the menu box and adds `shift` to `cm_root`.
 - The `cm-col<N>` classes in `menu.css` match `kPalette` in `src/render/panorama_hud.cpp`.
 - Font classes in `fonts.css` match `kPanoramaFonts` in `src/cs2menus.cpp`.
 

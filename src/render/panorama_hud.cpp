@@ -182,6 +182,27 @@ namespace
 		window.vars[key] = value;
 	}
 
+	// Every name written is interned for good, so panels a menu never uses are left alone until it does.
+	bool Touched(int slot, const char *panel, const char *cls)
+	{
+		return s_windows[slot].classes.count(std::string(panel) + ' ' + cls) != 0;
+	}
+
+	const char *ControlClass(panorama_hud::View::Control control)
+	{
+		switch (control)
+		{
+			case panorama_hud::View::Control::Toggle:
+				return "type-toggle";
+			case panorama_hud::View::Control::Stepper:
+				return "type-step";
+			case panorama_hud::View::Control::Choice:
+				return "type-choice";
+			default:
+				return "";
+		}
+	}
+
 	// Replaces the panel's previous class from the same set. Empty removes it.
 	void WriteSwap(int slot, CCSCustomHudLayout *layout, const char *panel, const std::string &cls)
 	{
@@ -407,8 +428,61 @@ bool panorama_hud::Show(int slot, const View &view)
 				WriteSwap(slot, layout, label, ColorClass(row.segments[0].color));
 			}
 			WriteClass(slot, layout, panel, "disabled", row.disabled);
+			WriteSwap(slot, layout, panel, ControlClass(row.control));
+			const bool toggle = row.control == View::Control::Toggle;
+			if (toggle || Touched(slot, panel, "on"))
+			{
+				WriteClass(slot, layout, panel, "on", toggle && row.on);
+			}
 		}
 		WriteClass(slot, layout, panel, "hidden", !used);
+	}
+
+	WriteClass(slot, layout, "cm_root", "shift", view.step.open || view.list.open);
+	if (view.step.open || Touched(slot, "cm_step", "hidden"))
+	{
+		WriteClass(slot, layout, "cm_step", "hidden", !view.step.open);
+	}
+	if (view.step.open)
+	{
+		WriteVar(slot, layout, "cm_step_title", "cm_step_title", view.step.title);
+		WriteVar(slot, layout, "cm_step_val", "cm_step_val", view.step.readout);
+		for (int i = 0; i < kStepButtons; i++)
+		{
+			const View::StepButton &button = view.step.buttons[i];
+			snprintf(panel, sizeof(panel), "cm_step_b%d", i);
+			snprintf(label, sizeof(label), "cm_step_l%d", i);
+			WriteVar(slot, layout, label, label, button.label);
+			WriteClass(slot, layout, panel, "disabled", !button.enabled);
+			WriteClass(slot, layout, panel, "hidden", button.label.empty());
+		}
+	}
+	if (view.list.open || Touched(slot, "cm_list", "hidden"))
+	{
+		WriteClass(slot, layout, "cm_list", "hidden", !view.list.open);
+	}
+	if (view.list.open)
+	{
+		WriteVar(slot, layout, "cm_list_title", "cm_list_title", view.list.title);
+		for (int i = 0; i < kListSlots; i++)
+		{
+			const bool used = i < static_cast<int>(view.list.rows.size());
+			snprintf(panel, sizeof(panel), "cm_li%d", i);
+			if (used)
+			{
+				snprintf(label, sizeof(label), "cm_li_lbl%d", i);
+				WriteVar(slot, layout, label, label, view.list.rows[i].label);
+				WriteClass(slot, layout, panel, "selected", view.list.rows[i].selected);
+			}
+			WriteClass(slot, layout, panel, "hidden", !used);
+		}
+		WriteClass(slot, layout, "cm_list", "paged", !view.list.page.empty());
+		if (!view.list.page.empty())
+		{
+			WriteVar(slot, layout, "cm_list_page", "cm_list_page", view.list.page);
+			WriteClass(slot, layout, "cm_list_prev", "disabled", !view.list.prev);
+			WriteClass(slot, layout, "cm_list_next", "disabled", !view.list.next);
+		}
 	}
 	WriteClass(slot, layout, "cm_root", "hidden", false);
 	window.shown = true;
@@ -516,6 +590,26 @@ panorama_hud::Click panorama_hud::ParseClick(int slot, uint32_t layoutHandle, co
 	if (strcmp(buttonId, "cm_close") == 0)
 	{
 		return Click::Close;
+	}
+	if (strcmp(buttonId, "cm_step_close") == 0 || strcmp(buttonId, "cm_list_close") == 0)
+	{
+		return Click::PopupClose;
+	}
+	if (strcmp(buttonId, "cm_list_prev") == 0)
+	{
+		return Click::ListPrev;
+	}
+	if (strcmp(buttonId, "cm_list_next") == 0)
+	{
+		return Click::ListNext;
+	}
+	if (ParseSlotId(buttonId, "cm_step_b", kStepButtons, index))
+	{
+		return Click::Step;
+	}
+	if (ParseSlotId(buttonId, "cm_li", kListSlots, index))
+	{
+		return Click::ListRow;
 	}
 	if (ParseSlotId(buttonId, "cm_nav", kNavSlots, index))
 	{

@@ -401,6 +401,43 @@ class CS2MenusAPI : public ICS2Menus
 	{
 		return g_MenuManager.GetExternalBusy(slot);
 	}
+
+	// --- Value items ---
+
+	int AddToggle(MenuHandle menu, const char *text, bool on, const char *info) override
+	{
+		return g_MenuManager.AddToggle(menu, text, on, info);
+	}
+
+	int AddStepper(MenuHandle menu, const char *text, int value, int min, int max, int step, const char *info) override
+	{
+		return g_MenuManager.AddStepper(menu, text, value, min, max, step, info);
+	}
+
+	int AddChoice(MenuHandle menu, const char *text, const char *const *options, int optionCount, int selected, const char *info) override
+	{
+		return g_MenuManager.AddChoice(menu, text, options, optionCount, selected, info);
+	}
+
+	MenuItemType GetItemType(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemType(menu, item);
+	}
+
+	void SetItemValue(MenuHandle menu, int item, int value) override
+	{
+		g_MenuManager.SetItemValue(menu, item, value);
+	}
+
+	int GetItemValue(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemValue(menu, item);
+	}
+
+	void SetMenuChangeCallback(MenuHandle menu, MenuItemChangeFn onChange) override
+	{
+		g_MenuManager.SetMenuChangeCallback(menu, std::move(onChange));
+	}
 };
 
 static CS2MenusAPI g_CS2MenusAPI;
@@ -414,7 +451,7 @@ ICS2Menus *Cs2Menus_GetLocalAPI()
 
 void *CS2MenusPlugin::OnMetamodQuery(const char *iface, int *ret)
 {
-	if (!strcmp(iface, CS2MENUS_INTERFACE))
+	if (!strcmp(iface, CS2MENUS_INTERFACE) || !strcmp(iface, "ICS2Menus003"))
 	{
 		if (ret)
 		{
@@ -619,6 +656,8 @@ static void LoadAndApplyConfig()
 	settings.chatPageFormat = m.chatPageFormat;
 	settings.chatShowPage = m.chatShowPage;
 	settings.chatHeader = m.chatHeader;
+	settings.chatValueColor = ChatColorByte(m.chatValueColor, CHAT_COLOR_ORCHID);
+	settings.chatValueFormat = m.chatValueFormat;
 	settings.htmlVisibleItems = g_MenusConfig.menu.htmlVisibleItems;
 	settings.defaultExitItem = g_MenusConfig.menu.htmlExitItem;
 	ApplyHexColor("HtmlNavColor", g_MenusConfig.menu.htmlNavColor, settings.navColor);
@@ -645,6 +684,8 @@ static void LoadAndApplyConfig()
 	settings.counterFormat = g_MenusConfig.menu.htmlCounterFormat;
 	settings.footerHintFormat = g_MenusConfig.menu.htmlFooterHintFormat;
 	settings.footerRangeFormat = g_MenusConfig.menu.htmlFooterRangeFormat;
+	settings.valueFormat = g_MenusConfig.menu.htmlValueFormat;
+	settings.editFormat = g_MenusConfig.menu.htmlEditFormat;
 	settings.highlightText = g_MenusConfig.menu.htmlHighlightText;
 	// Resend cadence: keep sane and keepAlive strictly below the decay duration, else the panel blinks.
 	if (g_MenusConfig.menu.htmlDurationSecs >= 1)

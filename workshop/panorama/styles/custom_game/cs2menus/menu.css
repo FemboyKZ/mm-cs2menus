@@ -11,10 +11,18 @@
 	width: 100%;
 	height: 100%;
 	color: #ffffff;
+	transition-property: position;
+	transition-duration: 0.1s;
+	transition-timing-function: ease-in-out;
 }
 
 #cm_root.hidden {
 	visibility: collapse;
+}
+
+/* An open popup sits right of the menu box, so both slide left to stay on a 4:3 screen. */
+#cm_root.shift {
+	x: -170px;
 }
 
 /* Sized so all 20 nav buttons fit without scrolling. */
@@ -208,6 +216,180 @@ VerticalScrollBar:hover .ScrollThumb {
 	white-space: nowrap;
 }
 
+/* --- value items, the server adds type-toggle / type-step / type-choice to the row --- */
+
+.item.type-toggle .item-value {
+	padding: 2px 10px;
+	border-radius: 9px;
+	background-color: #ffffff14;
+}
+
+.item.type-toggle.on .item-value {
+	background-color: #24f09733;
+}
+
+.item.type-step .item-value {
+	padding: 2px 8px;
+	border-radius: 3px;
+	background-color: #ffffff0d;
+}
+
+.item.type-choice .item-value {
+	padding: 2px 8px;
+	border-radius: 3px;
+	background-color: #ffffff0d;
+}
+
+/* --- popups beside the menu box, cm_step for a Stepper and cm_list for a Choice --- */
+
+/* Centred like the box, then x moves it right by half the box (450) + a 14px gap + half its own width. */
+.popup {
+	horizontal-align: center;
+	vertical-align: middle;
+	x: 614px;
+	width: 300px;
+	flow-children: down;
+	padding: 16px;
+	border: 1px solid #5f494926;
+	border-radius: 5px;
+	background-image: url("s2r://panorama/images/backgrounds/bluedots_large_png.vtex");
+	background-size: 360px 360px;
+	background-img-opacity: 0.01;
+	background-color: rgba(1, 1, 1, 0.97);
+}
+
+.popup.hidden {
+	visibility: collapse;
+}
+
+.step-popup {
+	width: 340px;
+	x: 634px;
+}
+
+.popup-title {
+	width: fill-parent-flow(1);
+	vertical-align: center;
+	font-size: 18px;
+	text-overflow: ellipsis;
+}
+
+.step-row {
+	flow-children: right;
+	horizontal-align: center;
+}
+
+.step-btn {
+	width: 52px;
+	padding: 5px 0px;
+	margin: 2px;
+	border-radius: 3px;
+	background-color: #ffffff1a;
+	transition-property: background-color;
+	transition-duration: 0.05s;
+}
+
+.step-btn:hover {
+	background-color: #ffffff40;
+}
+
+.step-btn.disabled {
+	opacity: 0.35;
+}
+
+.step-btn.disabled:hover {
+	background-color: #ffffff1a;
+}
+
+.step-btn.hidden {
+	visibility: collapse;
+}
+
+.step-btn-label {
+	horizontal-align: center;
+	white-space: nowrap;
+}
+
+.step-readout {
+	width: 96px;
+	text-align: center;
+	vertical-align: middle;
+	font-size: 19px;
+	text-overflow: ellipsis;
+}
+
+.list-rows {
+	flow-children: down;
+	width: 100%;
+}
+
+.li {
+	width: 100%;
+	padding: 6px 10px;
+	border-radius: 3px;
+	background-color: #00000000;
+	transition-property: background-color;
+	transition-duration: 0.05s;
+}
+
+.li:hover {
+	background-color: #ffffff1a;
+}
+
+.li.selected {
+	background-color: #24f09733;
+}
+
+.li.hidden {
+	visibility: collapse;
+}
+
+.li-label {
+	width: 100%;
+	font-size: 17px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* The page arrows only show once the server adds "paged". */
+.popup-nav {
+	flow-children: right;
+	horizontal-align: center;
+	margin-top: 12px;
+	visibility: collapse;
+}
+
+.list-popup.paged .popup-nav {
+	visibility: visible;
+}
+
+.popup-btn {
+	padding: 5px 12px;
+	margin: 0px 3px;
+	border-radius: 3px;
+	background-color: #ffffff1a;
+	transition-property: background-color;
+	transition-duration: 0.05s;
+}
+
+.popup-btn:hover {
+	background-color: #ffffff40;
+}
+
+.popup-btn.disabled {
+	opacity: 0.35;
+}
+
+.popup-btn-label {
+	horizontal-align: center;
+}
+
+.popup-page {
+	vertical-align: middle;
+	width: 60px;
+	text-align: center;
+}
+
 /* --- text colors, kPalette in panorama_hud.cpp. cm-col1 to cm-col16 are the chat color codes 0x01-0x10 --- */
 
 .cm-col1 { color: #FFFFFF; }
@@ -254,5 +436,29 @@ VerticalScrollBar:hover .ScrollThumb {
 }
 
 .snd .item:not(.disabled):active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+.snd .li:hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .li:active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+.snd .popup-btn:not(.disabled):hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .popup-btn:not(.disabled):active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+.snd .step-btn:not(.disabled):hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .step-btn:not(.disabled):active {
 	sound: "UIPanorama.generic_button_press";
 }
