@@ -917,7 +917,7 @@ void MenuManager::SetMenuLayout(MenuHandle menu, MenuLayout layout)
 	ScopedLock lock(m_mutex);
 	if (MenuDef *def = Find(menu))
 	{
-		// Page sizes differ between the layouts, so viewers keep the item their page started with.
+		// Page sizes differ per layout, so viewers keep their page's first item.
 		std::vector<std::pair<int, int>> viewers; // slot, first item shown
 		for (int slot = 0; slot <= MAXPLAYERS; slot++)
 		{
@@ -3072,7 +3072,7 @@ void MenuManager::RenderPanorama(int slot)
 	// Left column: every page, or a window around the current one when they don't fit.
 	else if (pageCount > 1)
 	{
-		// Section names, else the first to last letter on each page. Numbered when several pages share one, like "B (1)" and "B (2)".
+		// Section names, else first to last letter per page. Numbered when pages share one, like "B (1)".
 		std::vector<std::string> labels(pageCount);
 		std::map<std::string, int> rangeTotals;
 		for (int page = 0; page < pageCount; page++)

@@ -50,7 +50,7 @@ struct MenuDefaultsCfg
 	std::string chatArrow = "-> ";                       // before Next/Prev/Exit labels
 	std::string chatPageFormat = "(page {cur}/{total})"; // {cur}/{total} = current/total page
 	bool chatShowPage = true;                            // show the page indicator on multi-page menus
-	std::string chatValueColor = "orchid";               // Toggle/Stepper/Choice value after the item text
+	std::string chatValueColor = "orchid";               // value after a value item's text
 	std::string chatValueFormat = ": {value}";           // {value} = the item's value
 	std::string chatSectionColor = "orchid";             // header line above a section's items
 	std::string chatSectionFormat = "== {section} ==";   // {section} = the section's name
@@ -95,7 +95,7 @@ struct MenuDefaultsCfg
 	std::string htmlCounterFormat = "[{cur}/{total}]";                // {cur}/{total} = position counter numbers
 	std::string htmlFooterHintFormat = "{label}: {keys}";             // {label} = hint label, {keys} = key or key range
 	std::string htmlFooterRangeFormat = "{up}/{down}";                // {up}/{down} = the two keys in the Move hint
-	std::string htmlValueFormat = ": {value}";                        // {value} = a Toggle/Stepper/Choice value after the item text
+	std::string htmlValueFormat = ": {value}";                        // {value} = a value after the item text
 	std::string htmlEditFormat = "\xE2\x80\xB9 {value} \xE2\x80\xBA"; // {value} = the value being edited, ‹ {value} ›
 	std::string htmlSectionFormat = "{section}";                      // {section} = the name on the header line above a section
 	std::string htmlSectionColor = "#9aa0a6";

@@ -8,11 +8,11 @@
 class CCheckTransmitInfo;
 
 // Menus in our workshop addon's windows (workshop/panorama/layout/custom_game/cs2menus/),
-// one custom_hud_layout per player and layout, hidden from everyone but its owner. At most one is shown.
+// one custom_hud_layout per player and layout, hidden from everyone but its owner. At most one shown.
 // Menus go in the global state since the per-player states follow whoever a client watches.
 namespace panorama_hud
 {
-	// Each is its own file with its own id prefix, since the client matches ids by name across every custom HUD layout.
+	// Own file and id prefix each, since the client matches ids by name across every custom HUD layout.
 	enum class Layout
 	{
 		List, // menu.xml, "cm_"
@@ -32,7 +32,7 @@ namespace panorama_hud
 	// The layout only takes plain text, so each run is its own label with a palette class.
 	// rtv's longest label is the current map in !nominate with 5+ courses in both modes, 27 runs.
 	constexpr int kRowSegments = 27;
-	// The popups are shared by every row, so they cost the same ids whatever the row count.
+	// Popups are shared by every row, so their ids don't grow with rows.
 	constexpr int kListSlots = 16;
 	constexpr int kStepButtons = 4;
 
@@ -63,7 +63,7 @@ namespace panorama_hud
 			bool disabled = false;
 			Control control = Control::None;
 			bool on = false;   // Toggle
-			std::string image; // grid only, a key from grid.css like "ak47"
+			std::string image; // grid only, like "ak47"
 		};
 
 		struct Nav
@@ -104,7 +104,7 @@ namespace panorama_hud
 		bool closeButton = true;
 		std::vector<Row> rows; // at most ItemSlots(layout): list rows or grid tiles
 		std::vector<Nav> nav;  // at most NavSlots(layout): the list's left column or the grid's tabs, empty hides them
-		// Grid only: the page arrows, empty page hides them.
+		// Grid page arrows, empty page hides them.
 		std::string page;
 		bool prev = false;
 		bool next = false;
@@ -143,7 +143,7 @@ namespace panorama_hud
 	// Signatures resolved and the layout mounted.
 	bool Available(Layout layout = Layout::List);
 
-	// Also puts the player in cursor mode and hides their window of any other layout. False if the slot has no usable window.
+	// Also enables cursor mode and hides the player's other layout. False without a usable window.
 	bool Show(int slot, const View &view);
 	// Gives movement back. No-op if not shown.
 	void Hide(int slot);

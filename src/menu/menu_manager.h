@@ -42,7 +42,7 @@ struct MenuManagerSettings
 	std::string chatPageFormat = "(page {cur}/{total})"; // {cur}/{total} = current/total page
 	bool chatShowPage = true;
 	std::string chatHeader;
-	// Toggle/Stepper/Choice value after the item text. {value} = the value.
+	// After a value item's text. {value} = the value.
 	std::string chatValueColor = CHAT_COLOR_ORCHID;
 	std::string chatValueFormat = ": {value}";
 	// Header line above a section's items. {section} = its name.
@@ -404,7 +404,6 @@ private:
 		// Panorama: the page each left-column button opens.
 		std::vector<int> panoramaNav;
 		// The Stepper or Choice being edited, -1 for none.
-		// Chat lists its steps or options, HTML adjusts it in place, panorama opens a popup.
 		int editItem = -1;
 		// Chat and panorama page through a Choice's options.
 		int editPage = 0;
@@ -435,15 +434,15 @@ private:
 	int AddValueItem(MenuHandle menu, MenuItem item);
 	static int ClampValue(const MenuItem &item, int value);
 	std::string ValueText(int slot, const MenuDef &def, const MenuItem &item) const;
-	// Store a player's change and fire onChange. Re-renders the slot even when the value didn't move.
+	// Stores a player's change and fires onChange. Re-renders even when the value didn't move.
 	void ChangeValue(int slot, int itemIndex, int value);
 	// A Stepper moves by steps * step (clamped), a Choice by steps options (wrapping), a Toggle flips.
 	void StepValue(int slot, int itemIndex, int steps);
-	// The steps a Stepper's buttons move by, 0 for no button. The outer big steps only when its range is wide enough.
+	// A Stepper's button steps, 0 for no button. Big steps only for a wide enough range.
 	static std::array<int, panorama_hud::kStepButtons> StepCounts(const MenuItem &item);
-	// Selecting a value item: flips a Toggle, starts editing a Stepper or Choice.
+	// Flips a Toggle, starts editing a Stepper or Choice.
 	void ActivateValueItem(int slot, int itemIndex);
-	// The item behind pm.editItem, or nullptr once it's gone, disabled or no longer a Stepper/Choice.
+	// The item behind pm.editItem, or nullptr once it's gone, disabled or not a Stepper/Choice.
 	const MenuItem *EditedItem(int slot) const;
 	void StopEdit(int slot);
 
@@ -454,8 +453,7 @@ private:
 		bool current = false; // drawn in the accent color, like a Choice's selected option
 	};
 
-	// Header, title with the page indicator, numbered rows, then the Next/Prev/Exit keys.
-	// A non-empty section is a header line under the title.
+	// Header, title with page indicator, section line, numbered rows, then Next/Prev/Exit.
 	void PrintChatPage(int slot, const MenuDef &def, const std::string &title, const std::string &section, const std::vector<ChatRow> &rows, int page,
 					   int pageCount, bool exitRow);
 	// Chat edit view: a Stepper's steps or a page of a Choice's options.

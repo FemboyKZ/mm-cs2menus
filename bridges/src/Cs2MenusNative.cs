@@ -192,7 +192,7 @@ internal static unsafe class Cs2MenusNative
 			return false;
 		}
 
-		// Appended exports are optional, so an older cs2menus still loads without them.
+		// Optional, so an older cs2menus still loads.
 		if (TryGet(lib, "cs2m_add_toggle", out nint addToggle)
 			&& TryGet(lib, "cs2m_add_stepper", out nint addStepper)
 			&& TryGet(lib, "cs2m_add_choice", out nint addChoice)

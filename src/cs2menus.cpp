@@ -862,7 +862,7 @@ CON_COMMAND_F(cs2menus_panorama_diag, "Print panorama menu status: signatures, a
 	}
 }
 
-// A throwaway menu holding every item type, to try each renderer in game.
+// Every item type, to try each renderer in game.
 CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_demo [chat|html|panorama].", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
@@ -889,7 +889,7 @@ CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_de
 		g_MenuManager.SetCloseOnSelect(m, false);
 		g_MenuManager.SetMenuChangeCallback(m, [](MenuHandle changed, int s, int item, int value)
 											{ MENU_PrintToChat(s, "%s = %d", g_MenuManager.GetItemText(changed, item), value); });
-		// Only the menu on screen when the display ends fires this, so any one frees them all.
+		// Only the menu on screen at the end fires this, so any one frees all three.
 		g_MenuManager.SetMenuEndCallback(m,
 										 [menu, child, grid](MenuHandle, int, MenuEndReason)
 										 {
@@ -1107,11 +1107,10 @@ namespace
 		g_MenuPrefsDB.SavePrefs(s_prefs[slot].xuid, row);
 	}
 
-	// The type names behind the open preference menu's style options, by option index.
-	// Built at open, since which styles the server can show can change.
+	// Type names behind the open prefs menu's style options. Built at open, availability can change.
 	std::vector<std::string> s_prefsTypes[MAXPLAYERS + 1];
 
-	// Key options: "default", every key in keys::kKeys order, then "none". "default" clears (use server config), "none" disables the action.
+	// Key options: "default" (server config), each key in keys::kKeys order, then "none" (disabled).
 	std::string KeyOptionName(int option)
 	{
 		if (option <= 0 || option > keys::kKeyCount)
@@ -1144,7 +1143,6 @@ namespace
 		return 0;
 	}
 
-	// Rows of the preference menu, in order.
 	enum PrefsRow
 	{
 		kPrefsType,
@@ -1154,7 +1152,7 @@ namespace
 		kPrefsBack,
 	};
 
-	// Sync the slot's open preference menu with its stored names (no-op if it isn't open).
+	// Syncs the slot's open prefs menu with its stored names.
 	void RefreshPrefsItems(int slot)
 	{
 		MenuHandle menu = s_prefsMenu[slot];
@@ -1170,8 +1168,7 @@ namespace
 		g_MenuManager.SetItemValue(menu, kPrefsBack, KeyOptionIndex(p.back));
 	}
 
-	// Stored and saved at once, but applied when the menu closes:
-	// an HTML menu edits a key row with the nav keys, so rebinding them mid-edit would pull the key out from under the player.
+	// Saved at once but applied on close, since HTML edits key rows with the very nav keys being rebound.
 	void OnPrefsChange(MenuHandle /*menu*/, int slot, int item, int value)
 	{
 		SlotPrefs &p = s_prefs[slot];
@@ -1235,7 +1232,7 @@ namespace
 		}
 		g_MenuManager.SetMenuChangeCallback(menu, OnPrefsChange);
 
-		// Only the styles the server can show right now, plus the stored one so it still reads correctly.
+		// Styles the server can show now, plus the stored one.
 		std::vector<std::string> &types = s_prefsTypes[slot];
 		types = {"", "chat"};
 		if (g_MenuManager.HasHtml())

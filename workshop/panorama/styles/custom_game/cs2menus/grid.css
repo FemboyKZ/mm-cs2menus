@@ -1,4 +1,4 @@
-/* The grid layout (grid.xml). The window, popups, palette and nav colors come from menu.css. Slot counts match panorama_hud.h. */
+/* grid.xml. The window, popups and palette come from menu.css. Slot counts match panorama_hud.h. */
 
 #cg_root {
 	width: 100%;

@@ -205,7 +205,7 @@ namespace
 		return true;
 	}
 
-	// One window's diff-cached writes. Every id is the layout's prefix plus a suffix, and a label's dialog variable is named after it.
+	// One window's diff-cached writes. Ids are the layout prefix plus a suffix, a label's dialog variable is named after it.
 	struct Writer
 	{
 		Window &window;
@@ -280,7 +280,7 @@ namespace
 			current = cls;
 		}
 
-		// Every name written is interned for good, so panels a menu never uses are left alone until it does.
+		// Written names stay interned, so untouched panels are left alone.
 		bool Touched(const std::string &panel, const char *cls) const
 		{
 			return window.classes.count(panel + ' ' + cls) != 0;
