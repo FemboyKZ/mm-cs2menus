@@ -816,6 +816,67 @@ CON_COMMAND_F(cs2menus_panorama_diag, "Print panorama menu status: signatures, a
 	}
 }
 
+// A throwaway menu holding every item type, to try each renderer in game.
+CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_demo [chat|html|panorama].", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+{
+	int slot = context.GetPlayerSlot().Get();
+	if (!ValidSlot(slot))
+	{
+		return;
+	}
+	if (!MENU_AdminBridge_CanUseCommand(slot, "cs2menus_demo", CS2ADMIN_FLAG_ROOT))
+	{
+		MENU_PrintToChat(slot, "You don't have permission to use this command.");
+		return;
+	}
+	const bool forced = args.ArgC() > 1;
+	const MenuType type = forced ? ParseMenuType(args.Arg(1)) : MenuType::Default;
+
+	MenuHandle menu = g_MenuManager.CreateMenu(type, "cs2menus demo", [](MenuHandle m, int s, int item)
+											   { MENU_PrintToChat(s, "Selected %s", g_MenuManager.GetItemText(m, item)); });
+	MenuHandle child = g_MenuManager.CreateMenu(type, "Submenu", nullptr);
+	for (MenuHandle m : {menu, child})
+	{
+		g_MenuManager.SetMenuForceType(m, forced);
+		g_MenuManager.SetCloseOnSelect(m, false);
+		g_MenuManager.SetMenuChangeCallback(m, [](MenuHandle changed, int s, int item, int value)
+											{ MENU_PrintToChat(s, "%s = %d", g_MenuManager.GetItemText(changed, item), value); });
+		// Only the menu on screen when the display ends fires this, so either one frees both.
+		g_MenuManager.SetMenuEndCallback(m,
+										 [menu, child](MenuHandle, int, MenuEndReason)
+										 {
+											 g_MenuManager.DestroyMenu(menu);
+											 g_MenuManager.DestroyMenu(child);
+										 });
+	}
+
+	g_MenuManager.AddItem(menu, "Plain item", "", false);
+	g_MenuManager.AddItem(menu, "Disabled item", "", true);
+	g_MenuManager.AddToggle(menu, "Toggle", true, "");
+	g_MenuManager.SetItemDisabled(menu, g_MenuManager.AddToggle(menu, "Disabled toggle", false, ""), true);
+	g_MenuManager.AddStepper(menu, "Stepper 0-100 by 5", 50, 0, 100, 5, "");
+	g_MenuManager.AddStepper(menu, "Stepper 1-5", 3, 1, 5, 1, "");
+	const char *qualities[] = {"Low", "Medium", "High"};
+	g_MenuManager.AddChoice(menu, "Choice", qualities, 3, 1, "");
+	// Enough options for the list popup and the chat edit view to page.
+	std::vector<std::string> names;
+	for (int i = 1; i <= 40; i++)
+	{
+		names.push_back("Option " + std::to_string(i));
+	}
+	std::vector<const char *> options;
+	for (const std::string &name : names)
+	{
+		options.push_back(name.c_str());
+	}
+	g_MenuManager.AddChoice(menu, "Long choice", options.data(), static_cast<int>(options.size()), 0, "");
+	g_MenuManager.AddSubMenu(menu, "Submenu", child, "");
+	g_MenuManager.AddToggle(child, "Nested toggle", false, "");
+	g_MenuManager.AddStepper(child, "Nested stepper", 0, -10, 10, 1, "");
+
+	g_MenuManager.DisplayMenu(menu, slot, 0.0f, MenuNow());
+}
+
 // Per-player menu preferences (optional, sql_mm)
 //
 // The DB stores key choices by name (e.g. "shift"), so cs2menus keeps each slot's chosen names
