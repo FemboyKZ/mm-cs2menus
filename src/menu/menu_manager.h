@@ -45,6 +45,9 @@ struct MenuManagerSettings
 	// Toggle/Stepper/Choice value after the item text. {value} = the value.
 	std::string chatValueColor = CHAT_COLOR_ORCHID;
 	std::string chatValueFormat = ": {value}";
+	// Header line above a section's items. {section} = its name.
+	std::string chatSectionColor = CHAT_COLOR_ORCHID;
+	std::string chatSectionFormat = "== {section} ==";
 	// Resolves MenuType::Default at CreateMenu time.
 	MenuType defaultType = MenuType::Chat;
 	// Exit-button default for new menus.
@@ -94,6 +97,8 @@ struct MenuManagerSettings
 	std::string footerRangeFormat = "{up}/{down}";                // {up}/{down} = the two keys in the Move hint
 	std::string valueFormat = ": {value}";                        // after a value item's text
 	std::string editFormat = "\xE2\x80\xB9 {value} \xE2\x80\xBA"; // ‹ {value} ›, the value being edited
+	std::string sectionFormat = "{section}";                      // header line above a section's items
+	std::string sectionColor = "#9aa0a6";
 	bool highlightText = true;
 	// HTML: center-panel resend cadence (the message decays, so it's re-sent while open).
 	// keepAlive must stay below durationSecs or the panel can blink.
@@ -166,6 +171,15 @@ public:
 	void SetItemValue(MenuHandle menu, int item, int value);
 	int GetItemValue(MenuHandle menu, int item) const;
 	void SetMenuChangeCallback(MenuHandle menu, MenuItemChangeFn onChange);
+
+	int AddSection(MenuHandle menu, const char *name);
+	int GetItemSection(MenuHandle menu, int item) const;
+	void SetMenuLayout(MenuHandle menu, MenuLayout layout);
+	MenuLayout GetMenuLayout(MenuHandle menu) const;
+	void SetItemImage(MenuHandle menu, int item, const char *image);
+	const char *GetItemImage(MenuHandle menu, int item) const;
+	void SetItemSubtext(MenuHandle menu, int item, const char *subtext);
+	const char *GetItemSubtext(MenuHandle menu, int item) const;
 
 	// Read back per-menu state (create-time default for an unset flag, MenuType::Default / false / etc. for invalid).
 	MenuType GetMenuType(MenuHandle menu) const;
@@ -291,6 +305,9 @@ private:
 		int step = 1;
 		// Choice
 		std::vector<std::string> options;
+		int section = -1;
+		std::string image;
+		std::string subtext;
 	};
 
 	// Per-menu HTML nav-key overrides, indexed by MenuNavAction (Up/Down/Select/Back).
@@ -331,6 +348,8 @@ private:
 		std::string footerRangeFormat; // the two keys in the Move hint, placeholders {up} {down}
 		std::string valueFormat;       // after a value item's text, placeholder {value}
 		std::string editFormat;        // the edited item's value, placeholder {value}
+		std::string sectionFormat;     // header line above a section, placeholder {section}
+		std::string sectionColor;
 	};
 
 	struct MenuDef
@@ -345,6 +364,8 @@ private:
 		MenuItemSelectFn onSelect;
 		MenuEndFn onEnd;
 		MenuItemChangeFn onChange;
+		std::vector<std::string> sections;
+		MenuLayout layout = MenuLayout::List;
 		bool exitButton = true;
 		bool closeOnSelect = true;
 		bool exitItem = false; // HTML: show a selectable "Exit" row in the list
@@ -434,8 +455,9 @@ private:
 	};
 
 	// Header, title with the page indicator, numbered rows, then the Next/Prev/Exit keys.
-	void PrintChatPage(int slot, const MenuDef &def, const std::string &title, const std::vector<ChatRow> &rows, int page, int pageCount,
-					   bool exitRow);
+	// A non-empty section is a header line under the title.
+	void PrintChatPage(int slot, const MenuDef &def, const std::string &title, const std::string &section, const std::vector<ChatRow> &rows, int page,
+					   int pageCount, bool exitRow);
 	// Chat edit view: a Stepper's steps or a page of a Choice's options.
 	void RenderEditPage(int slot, const MenuDef &def, const MenuItem &item);
 	void ApplyEditNumber(int slot, const MenuItem &item, int num);
@@ -453,8 +475,20 @@ private:
 	void RenderHtml(int slot);     // html
 	void RenderPanorama(int slot); // panorama
 
-	// Chat and panorama page, HTML scrolls instead.
-	int PageSize(MenuType type) const;
+	// Chat and panorama pages, HTML scrolls instead. A new page starts at every section.
+	struct Page
+	{
+		int first = 0;
+		int end = 0; // one past the last item
+		int section = -1;
+	};
+
+	std::vector<Page> Pages(const MenuDef &def, MenuType type) const;
+	int PageOf(const MenuDef &def, MenuType type, int item) const;
+	// The grid when the menu asks for it and the addon has it.
+	panorama_hud::Layout PanoramaLayout(const MenuDef &def) const;
+	// Shown after an item's text: a value item's value, else its subtext.
+	std::string SuffixText(int slot, const MenuDef &def, const MenuItem &item) const;
 
 	// Re-render every player currently viewing `menu` (after a live mutation).
 	// Defers to the next GameFrame if called off the main thread.

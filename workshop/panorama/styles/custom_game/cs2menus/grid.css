@@ -1,0 +1,261 @@
+/* The grid layout (grid.xml). The window, popups, palette and nav colors come from menu.css. Slot counts match panorama_hud.h. */
+
+#cg_root {
+	width: 100%;
+	height: 100%;
+	color: #ffffff;
+	transition-property: position;
+	transition-duration: 0.1s;
+	transition-timing-function: ease-in-out;
+}
+
+#cg_root.hidden {
+	visibility: collapse;
+}
+
+#cg_root.shift {
+	x: -170px;
+}
+
+/* --- tabs, one per menu section --- */
+
+.tabs {
+	flow-children: right;
+	width: 100%;
+	margin-bottom: 10px;
+	border-bottom: 1px solid #ffffff1a;
+}
+
+.tabs.hidden {
+	visibility: collapse;
+}
+
+.tab {
+	padding: 6px 14px;
+	margin-right: 2px;
+	border-radius: 3px 3px 0px 0px;
+	background-color: #00000000;
+	transition-property: background-color;
+	transition-duration: 0.05s;
+}
+
+.tab:hover {
+	background-color: #ffffff1a;
+}
+
+.tab.selected {
+	background-color: #ffffff26;
+}
+
+.tab.hidden {
+	visibility: collapse;
+}
+
+.tab-label {
+	font-size: 15px;
+	white-space: nowrap;
+	text-transform: uppercase;
+}
+
+/* --- tiles, 6 x 4: 138 + 2 x 3 margin = 144px each, 864 of the box's 868 --- */
+
+.tiles {
+	flow-children: right-wrap;
+	width: 100%;
+	height: fill-parent-flow(1);
+}
+
+.tile {
+	width: 138px;
+	height: 116px;
+	margin: 3px;
+	padding: 6px;
+	flow-children: down;
+	border-radius: 3px;
+	border: 1px solid #ffffff14;
+	background-color: #ffffff08;
+	transition-property: background-color, border-color;
+	transition-duration: 0.05s;
+}
+
+.tile:hover {
+	background-color: #ffffff1a;
+	border-color: #ffffff40;
+}
+
+.tile.disabled {
+	opacity: 0.4;
+}
+
+.tile.disabled:hover {
+	background-color: #ffffff08;
+	border-color: #ffffff14;
+}
+
+.tile.type-toggle.on {
+	border-color: #24f09780;
+	background-color: #24f09726;
+}
+
+.tile.hidden {
+	visibility: collapse;
+}
+
+.tile-img {
+	width: 100%;
+	height: 56px;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: 50% 50%;
+}
+
+.tile-name {
+	width: 100%;
+	margin-top: 4px;
+	font-size: 15px;
+	text-align: center;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.tile-sub {
+	width: 100%;
+	font-size: 13px;
+	text-align: center;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	opacity: 0.7;
+}
+
+/* --- page arrows within a section --- */
+
+.pager {
+	flow-children: right;
+	horizontal-align: center;
+	margin-top: 8px;
+}
+
+.pager.hidden {
+	visibility: collapse;
+}
+
+/* --- sounds, on when the server adds "snd" to cg_root --- */
+
+.snd .tab:hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .tab:active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+.snd .tile:not(.disabled):hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .tile:not(.disabled):active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+/* --- tile images, generated from panorama/images/icons/equipment --- */
+.img-ak47 { background-image: url("s2r://panorama/images/icons/equipment/ak47.vsvg"); }
+.img-ammobox { background-image: url("s2r://panorama/images/icons/equipment/ammobox.vsvg"); }
+.img-ammobox_threepack { background-image: url("s2r://panorama/images/icons/equipment/ammobox_threepack.vsvg"); }
+.img-armor { background-image: url("s2r://panorama/images/icons/equipment/armor.vsvg"); }
+.img-armor_helmet { background-image: url("s2r://panorama/images/icons/equipment/armor_helmet.vsvg"); }
+.img-assaultsuit { background-image: url("s2r://panorama/images/icons/equipment/assaultsuit.vsvg"); }
+.img-assaultsuit_helmet_only { background-image: url("s2r://panorama/images/icons/equipment/assaultsuit_helmet_only.vsvg"); }
+.img-aug { background-image: url("s2r://panorama/images/icons/equipment/aug.vsvg"); }
+.img-awp { background-image: url("s2r://panorama/images/icons/equipment/awp.vsvg"); }
+.img-bayonet { background-image: url("s2r://panorama/images/icons/equipment/bayonet.vsvg"); }
+.img-bizon { background-image: url("s2r://panorama/images/icons/equipment/bizon.vsvg"); }
+.img-c4 { background-image: url("s2r://panorama/images/icons/equipment/c4.vsvg"); }
+.img-clothing_hands { background-image: url("s2r://panorama/images/icons/equipment/clothing_hands.vsvg"); }
+.img-customplayer { background-image: url("s2r://panorama/images/icons/equipment/customplayer.vsvg"); }
+.img-cz75a { background-image: url("s2r://panorama/images/icons/equipment/cz75a.vsvg"); }
+.img-deagle { background-image: url("s2r://panorama/images/icons/equipment/deagle.vsvg"); }
+.img-decoy { background-image: url("s2r://panorama/images/icons/equipment/decoy.vsvg"); }
+.img-defuser { background-image: url("s2r://panorama/images/icons/equipment/defuser.vsvg"); }
+.img-disconnect { background-image: url("s2r://panorama/images/icons/equipment/disconnect.vsvg"); }
+.img-dronegun { background-image: url("s2r://panorama/images/icons/equipment/dronegun.vsvg"); }
+.img-elite { background-image: url("s2r://panorama/images/icons/equipment/elite.vsvg"); }
+.img-famas { background-image: url("s2r://panorama/images/icons/equipment/famas.vsvg"); }
+.img-firebomb { background-image: url("s2r://panorama/images/icons/equipment/firebomb.vsvg"); }
+.img-fiveseven { background-image: url("s2r://panorama/images/icons/equipment/fiveseven.vsvg"); }
+.img-flair0 { background-image: url("s2r://panorama/images/icons/equipment/flair0.vsvg"); }
+.img-flashbang { background-image: url("s2r://panorama/images/icons/equipment/flashbang.vsvg"); }
+.img-flashbang_assist { background-image: url("s2r://panorama/images/icons/equipment/flashbang_assist.vsvg"); }
+.img-g3sg1 { background-image: url("s2r://panorama/images/icons/equipment/g3sg1.vsvg"); }
+.img-galilar { background-image: url("s2r://panorama/images/icons/equipment/galilar.vsvg"); }
+.img-glock { background-image: url("s2r://panorama/images/icons/equipment/glock.vsvg"); }
+.img-grenadepack { background-image: url("s2r://panorama/images/icons/equipment/grenadepack.vsvg"); }
+.img-grenadepack2 { background-image: url("s2r://panorama/images/icons/equipment/grenadepack2.vsvg"); }
+.img-healthshot { background-image: url("s2r://panorama/images/icons/equipment/healthshot.vsvg"); }
+.img-heavy_armor { background-image: url("s2r://panorama/images/icons/equipment/heavy_armor.vsvg"); }
+.img-hegrenade { background-image: url("s2r://panorama/images/icons/equipment/hegrenade.vsvg"); }
+.img-helmet { background-image: url("s2r://panorama/images/icons/equipment/helmet.vsvg"); }
+.img-hkp2000 { background-image: url("s2r://panorama/images/icons/equipment/hkp2000.vsvg"); }
+.img-incgrenade { background-image: url("s2r://panorama/images/icons/equipment/incgrenade.vsvg"); }
+.img-inferno { background-image: url("s2r://panorama/images/icons/equipment/inferno.vsvg"); }
+.img-kevlar { background-image: url("s2r://panorama/images/icons/equipment/kevlar.vsvg"); }
+.img-knife { background-image: url("s2r://panorama/images/icons/equipment/knife.vsvg"); }
+.img-knife_bowie { background-image: url("s2r://panorama/images/icons/equipment/knife_bowie.vsvg"); }
+.img-knife_butterfly { background-image: url("s2r://panorama/images/icons/equipment/knife_butterfly.vsvg"); }
+.img-knife_canis { background-image: url("s2r://panorama/images/icons/equipment/knife_canis.vsvg"); }
+.img-knife_cord { background-image: url("s2r://panorama/images/icons/equipment/knife_cord.vsvg"); }
+.img-knife_css { background-image: url("s2r://panorama/images/icons/equipment/knife_css.vsvg"); }
+.img-knife_falchion { background-image: url("s2r://panorama/images/icons/equipment/knife_falchion.vsvg"); }
+.img-knife_flip { background-image: url("s2r://panorama/images/icons/equipment/knife_flip.vsvg"); }
+.img-knife_gut { background-image: url("s2r://panorama/images/icons/equipment/knife_gut.vsvg"); }
+.img-knife_gypsy_jackknife { background-image: url("s2r://panorama/images/icons/equipment/knife_gypsy_jackknife.vsvg"); }
+.img-knife_karambit { background-image: url("s2r://panorama/images/icons/equipment/knife_karambit.vsvg"); }
+.img-knife_kukri { background-image: url("s2r://panorama/images/icons/equipment/knife_kukri.vsvg"); }
+.img-knife_m9_bayonet { background-image: url("s2r://panorama/images/icons/equipment/knife_m9_bayonet.vsvg"); }
+.img-knife_outdoor { background-image: url("s2r://panorama/images/icons/equipment/knife_outdoor.vsvg"); }
+.img-knife_push { background-image: url("s2r://panorama/images/icons/equipment/knife_push.vsvg"); }
+.img-knife_skeleton { background-image: url("s2r://panorama/images/icons/equipment/knife_skeleton.vsvg"); }
+.img-knife_stiletto { background-image: url("s2r://panorama/images/icons/equipment/knife_stiletto.vsvg"); }
+.img-knife_survival_bowie { background-image: url("s2r://panorama/images/icons/equipment/knife_survival_bowie.vsvg"); }
+.img-knife_t { background-image: url("s2r://panorama/images/icons/equipment/knife_t.vsvg"); }
+.img-knife_tactical { background-image: url("s2r://panorama/images/icons/equipment/knife_tactical.vsvg"); }
+.img-knife_twinblade { background-image: url("s2r://panorama/images/icons/equipment/knife_twinblade.vsvg"); }
+.img-knife_ursus { background-image: url("s2r://panorama/images/icons/equipment/knife_ursus.vsvg"); }
+.img-knife_widowmaker { background-image: url("s2r://panorama/images/icons/equipment/knife_widowmaker.vsvg"); }
+.img-knifegg { background-image: url("s2r://panorama/images/icons/equipment/knifegg.vsvg"); }
+.img-m249 { background-image: url("s2r://panorama/images/icons/equipment/m249.vsvg"); }
+.img-m4a1 { background-image: url("s2r://panorama/images/icons/equipment/m4a1.vsvg"); }
+.img-m4a1_silencer { background-image: url("s2r://panorama/images/icons/equipment/m4a1_silencer.vsvg"); }
+.img-m4a1_silencer_off { background-image: url("s2r://panorama/images/icons/equipment/m4a1_silencer_off.vsvg"); }
+.img-mac10 { background-image: url("s2r://panorama/images/icons/equipment/mac10.vsvg"); }
+.img-mag7 { background-image: url("s2r://panorama/images/icons/equipment/mag7.vsvg"); }
+.img-melee { background-image: url("s2r://panorama/images/icons/equipment/melee.vsvg"); }
+.img-molotov { background-image: url("s2r://panorama/images/icons/equipment/molotov.vsvg"); }
+.img-movelinear { background-image: url("s2r://panorama/images/icons/equipment/movelinear.vsvg"); }
+.img-mp5sd { background-image: url("s2r://panorama/images/icons/equipment/mp5sd.vsvg"); }
+.img-mp7 { background-image: url("s2r://panorama/images/icons/equipment/mp7.vsvg"); }
+.img-mp9 { background-image: url("s2r://panorama/images/icons/equipment/mp9.vsvg"); }
+.img-negev { background-image: url("s2r://panorama/images/icons/equipment/negev.vsvg"); }
+.img-nova { background-image: url("s2r://panorama/images/icons/equipment/nova.vsvg"); }
+.img-p2000 { background-image: url("s2r://panorama/images/icons/equipment/p2000.vsvg"); }
+.img-p250 { background-image: url("s2r://panorama/images/icons/equipment/p250.vsvg"); }
+.img-p90 { background-image: url("s2r://panorama/images/icons/equipment/p90.vsvg"); }
+.img-pet { background-image: url("s2r://panorama/images/icons/equipment/pet.vsvg"); }
+.img-planted_c4 { background-image: url("s2r://panorama/images/icons/equipment/planted_c4.vsvg"); }
+.img-prop_exploding_barrel { background-image: url("s2r://panorama/images/icons/equipment/prop_exploding_barrel.vsvg"); }
+.img-revolver { background-image: url("s2r://panorama/images/icons/equipment/revolver.vsvg"); }
+.img-sawedoff { background-image: url("s2r://panorama/images/icons/equipment/sawedoff.vsvg"); }
+.img-scar20 { background-image: url("s2r://panorama/images/icons/equipment/scar20.vsvg"); }
+.img-sg556 { background-image: url("s2r://panorama/images/icons/equipment/sg556.vsvg"); }
+.img-smokegrenade { background-image: url("s2r://panorama/images/icons/equipment/smokegrenade.vsvg"); }
+.img-spray0 { background-image: url("s2r://panorama/images/icons/equipment/spray0.vsvg"); }
+.img-ssg08 { background-image: url("s2r://panorama/images/icons/equipment/ssg08.vsvg"); }
+.img-stomp_damage { background-image: url("s2r://panorama/images/icons/equipment/stomp_damage.vsvg"); }
+.img-taser { background-image: url("s2r://panorama/images/icons/equipment/taser.vsvg"); }
+.img-tec9 { background-image: url("s2r://panorama/images/icons/equipment/tec9.vsvg"); }
+.img-trigger_hurt { background-image: url("s2r://panorama/images/icons/equipment/trigger_hurt.vsvg"); }
+.img-ump45 { background-image: url("s2r://panorama/images/icons/equipment/ump45.vsvg"); }
+.img-usp_silencer { background-image: url("s2r://panorama/images/icons/equipment/usp_silencer.vsvg"); }
+.img-usp_silencer_off { background-image: url("s2r://panorama/images/icons/equipment/usp_silencer_off.vsvg"); }
+.img-world { background-image: url("s2r://panorama/images/icons/equipment/world.vsvg"); }
+.img-worldent { background-image: url("s2r://panorama/images/icons/equipment/worldent.vsvg"); }
+.img-xm1014 { background-image: url("s2r://panorama/images/icons/equipment/xm1014.vsvg"); }

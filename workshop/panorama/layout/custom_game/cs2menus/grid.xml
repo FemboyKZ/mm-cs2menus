@@ -1,0 +1,251 @@
+<root>
+  <styles>
+    <include src="file://{resources}/styles/custom_game/cs2menus/fonts.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/menu.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/grid.css" />
+  </styles>
+  <Panel class="root" hittest="false">
+    <Panel id="cg_root" class="menu hidden">
+      <Panel class="menu-box">
+        <Panel class="window-header">
+          <Label id="cg_title" class="menu-title" text="{s:cg_title}" />
+          <Button id="cg_close" class="close-btn" />
+        </Panel>
+        <Panel id="cg_pages" class="tabs">
+          <Button id="cg_nav0" class="tab hidden">
+            <Label id="cg_nav_lbl0" class="tab-label" text="{s:cg_nav_lbl0}" />
+          </Button>
+          <Button id="cg_nav1" class="tab hidden">
+            <Label id="cg_nav_lbl1" class="tab-label" text="{s:cg_nav_lbl1}" />
+          </Button>
+          <Button id="cg_nav2" class="tab hidden">
+            <Label id="cg_nav_lbl2" class="tab-label" text="{s:cg_nav_lbl2}" />
+          </Button>
+          <Button id="cg_nav3" class="tab hidden">
+            <Label id="cg_nav_lbl3" class="tab-label" text="{s:cg_nav_lbl3}" />
+          </Button>
+          <Button id="cg_nav4" class="tab hidden">
+            <Label id="cg_nav_lbl4" class="tab-label" text="{s:cg_nav_lbl4}" />
+          </Button>
+          <Button id="cg_nav5" class="tab hidden">
+            <Label id="cg_nav_lbl5" class="tab-label" text="{s:cg_nav_lbl5}" />
+          </Button>
+          <Button id="cg_nav6" class="tab hidden">
+            <Label id="cg_nav_lbl6" class="tab-label" text="{s:cg_nav_lbl6}" />
+          </Button>
+          <Button id="cg_nav7" class="tab hidden">
+            <Label id="cg_nav_lbl7" class="tab-label" text="{s:cg_nav_lbl7}" />
+          </Button>
+          <Button id="cg_nav8" class="tab hidden">
+            <Label id="cg_nav_lbl8" class="tab-label" text="{s:cg_nav_lbl8}" />
+          </Button>
+          <Button id="cg_nav9" class="tab hidden">
+            <Label id="cg_nav_lbl9" class="tab-label" text="{s:cg_nav_lbl9}" />
+          </Button>
+        </Panel>
+        <Panel class="tiles">
+          <Button id="cg_item0" class="tile hidden">
+            <Panel id="cg_img0" class="tile-img" />
+            <Label id="cg_name0" class="tile-name" text="{s:cg_name0}" />
+            <Label id="cg_val0" class="tile-sub" text="{s:cg_val0}" />
+          </Button>
+          <Button id="cg_item1" class="tile hidden">
+            <Panel id="cg_img1" class="tile-img" />
+            <Label id="cg_name1" class="tile-name" text="{s:cg_name1}" />
+            <Label id="cg_val1" class="tile-sub" text="{s:cg_val1}" />
+          </Button>
+          <Button id="cg_item2" class="tile hidden">
+            <Panel id="cg_img2" class="tile-img" />
+            <Label id="cg_name2" class="tile-name" text="{s:cg_name2}" />
+            <Label id="cg_val2" class="tile-sub" text="{s:cg_val2}" />
+          </Button>
+          <Button id="cg_item3" class="tile hidden">
+            <Panel id="cg_img3" class="tile-img" />
+            <Label id="cg_name3" class="tile-name" text="{s:cg_name3}" />
+            <Label id="cg_val3" class="tile-sub" text="{s:cg_val3}" />
+          </Button>
+          <Button id="cg_item4" class="tile hidden">
+            <Panel id="cg_img4" class="tile-img" />
+            <Label id="cg_name4" class="tile-name" text="{s:cg_name4}" />
+            <Label id="cg_val4" class="tile-sub" text="{s:cg_val4}" />
+          </Button>
+          <Button id="cg_item5" class="tile hidden">
+            <Panel id="cg_img5" class="tile-img" />
+            <Label id="cg_name5" class="tile-name" text="{s:cg_name5}" />
+            <Label id="cg_val5" class="tile-sub" text="{s:cg_val5}" />
+          </Button>
+          <Button id="cg_item6" class="tile hidden">
+            <Panel id="cg_img6" class="tile-img" />
+            <Label id="cg_name6" class="tile-name" text="{s:cg_name6}" />
+            <Label id="cg_val6" class="tile-sub" text="{s:cg_val6}" />
+          </Button>
+          <Button id="cg_item7" class="tile hidden">
+            <Panel id="cg_img7" class="tile-img" />
+            <Label id="cg_name7" class="tile-name" text="{s:cg_name7}" />
+            <Label id="cg_val7" class="tile-sub" text="{s:cg_val7}" />
+          </Button>
+          <Button id="cg_item8" class="tile hidden">
+            <Panel id="cg_img8" class="tile-img" />
+            <Label id="cg_name8" class="tile-name" text="{s:cg_name8}" />
+            <Label id="cg_val8" class="tile-sub" text="{s:cg_val8}" />
+          </Button>
+          <Button id="cg_item9" class="tile hidden">
+            <Panel id="cg_img9" class="tile-img" />
+            <Label id="cg_name9" class="tile-name" text="{s:cg_name9}" />
+            <Label id="cg_val9" class="tile-sub" text="{s:cg_val9}" />
+          </Button>
+          <Button id="cg_item10" class="tile hidden">
+            <Panel id="cg_img10" class="tile-img" />
+            <Label id="cg_name10" class="tile-name" text="{s:cg_name10}" />
+            <Label id="cg_val10" class="tile-sub" text="{s:cg_val10}" />
+          </Button>
+          <Button id="cg_item11" class="tile hidden">
+            <Panel id="cg_img11" class="tile-img" />
+            <Label id="cg_name11" class="tile-name" text="{s:cg_name11}" />
+            <Label id="cg_val11" class="tile-sub" text="{s:cg_val11}" />
+          </Button>
+          <Button id="cg_item12" class="tile hidden">
+            <Panel id="cg_img12" class="tile-img" />
+            <Label id="cg_name12" class="tile-name" text="{s:cg_name12}" />
+            <Label id="cg_val12" class="tile-sub" text="{s:cg_val12}" />
+          </Button>
+          <Button id="cg_item13" class="tile hidden">
+            <Panel id="cg_img13" class="tile-img" />
+            <Label id="cg_name13" class="tile-name" text="{s:cg_name13}" />
+            <Label id="cg_val13" class="tile-sub" text="{s:cg_val13}" />
+          </Button>
+          <Button id="cg_item14" class="tile hidden">
+            <Panel id="cg_img14" class="tile-img" />
+            <Label id="cg_name14" class="tile-name" text="{s:cg_name14}" />
+            <Label id="cg_val14" class="tile-sub" text="{s:cg_val14}" />
+          </Button>
+          <Button id="cg_item15" class="tile hidden">
+            <Panel id="cg_img15" class="tile-img" />
+            <Label id="cg_name15" class="tile-name" text="{s:cg_name15}" />
+            <Label id="cg_val15" class="tile-sub" text="{s:cg_val15}" />
+          </Button>
+          <Button id="cg_item16" class="tile hidden">
+            <Panel id="cg_img16" class="tile-img" />
+            <Label id="cg_name16" class="tile-name" text="{s:cg_name16}" />
+            <Label id="cg_val16" class="tile-sub" text="{s:cg_val16}" />
+          </Button>
+          <Button id="cg_item17" class="tile hidden">
+            <Panel id="cg_img17" class="tile-img" />
+            <Label id="cg_name17" class="tile-name" text="{s:cg_name17}" />
+            <Label id="cg_val17" class="tile-sub" text="{s:cg_val17}" />
+          </Button>
+          <Button id="cg_item18" class="tile hidden">
+            <Panel id="cg_img18" class="tile-img" />
+            <Label id="cg_name18" class="tile-name" text="{s:cg_name18}" />
+            <Label id="cg_val18" class="tile-sub" text="{s:cg_val18}" />
+          </Button>
+          <Button id="cg_item19" class="tile hidden">
+            <Panel id="cg_img19" class="tile-img" />
+            <Label id="cg_name19" class="tile-name" text="{s:cg_name19}" />
+            <Label id="cg_val19" class="tile-sub" text="{s:cg_val19}" />
+          </Button>
+          <Button id="cg_item20" class="tile hidden">
+            <Panel id="cg_img20" class="tile-img" />
+            <Label id="cg_name20" class="tile-name" text="{s:cg_name20}" />
+            <Label id="cg_val20" class="tile-sub" text="{s:cg_val20}" />
+          </Button>
+          <Button id="cg_item21" class="tile hidden">
+            <Panel id="cg_img21" class="tile-img" />
+            <Label id="cg_name21" class="tile-name" text="{s:cg_name21}" />
+            <Label id="cg_val21" class="tile-sub" text="{s:cg_val21}" />
+          </Button>
+          <Button id="cg_item22" class="tile hidden">
+            <Panel id="cg_img22" class="tile-img" />
+            <Label id="cg_name22" class="tile-name" text="{s:cg_name22}" />
+            <Label id="cg_val22" class="tile-sub" text="{s:cg_val22}" />
+          </Button>
+          <Button id="cg_item23" class="tile hidden">
+            <Panel id="cg_img23" class="tile-img" />
+            <Label id="cg_name23" class="tile-name" text="{s:cg_name23}" />
+            <Label id="cg_val23" class="tile-sub" text="{s:cg_val23}" />
+          </Button>
+        </Panel>
+        <Panel id="cg_pager" class="pager hidden">
+          <Button id="cg_prev" class="popup-btn"><Label class="popup-btn-label" text="&lt;" /></Button>
+          <Label id="cg_page" class="popup-page" text="{s:cg_page}" />
+          <Button id="cg_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
+        </Panel>
+      </Panel>
+      <Panel id="cg_step" class="popup step-popup hidden">
+        <Panel class="window-header">
+          <Label id="cg_step_title" class="popup-title" text="{s:cg_step_title}" />
+          <Button id="cg_step_close" class="close-btn" />
+        </Panel>
+        <Panel class="step-row">
+          <Button id="cg_step_b0" class="step-btn"><Label id="cg_step_l0" class="step-btn-label" text="{s:cg_step_l0}" /></Button>
+          <Button id="cg_step_b1" class="step-btn"><Label id="cg_step_l1" class="step-btn-label" text="{s:cg_step_l1}" /></Button>
+          <Label id="cg_step_val" class="step-readout" text="{s:cg_step_val}" />
+          <Button id="cg_step_b2" class="step-btn"><Label id="cg_step_l2" class="step-btn-label" text="{s:cg_step_l2}" /></Button>
+          <Button id="cg_step_b3" class="step-btn"><Label id="cg_step_l3" class="step-btn-label" text="{s:cg_step_l3}" /></Button>
+        </Panel>
+      </Panel>
+
+      <Panel id="cg_list" class="popup list-popup hidden">
+        <Panel class="window-header">
+          <Label id="cg_list_title" class="popup-title" text="{s:cg_list_title}" />
+          <Button id="cg_list_close" class="close-btn" />
+        </Panel>
+        <Panel class="list-rows">
+          <Button id="cg_li0" class="li hidden">
+            <Label id="cg_li_lbl0" class="li-label" text="{s:cg_li_lbl0}" />
+          </Button>
+          <Button id="cg_li1" class="li hidden">
+            <Label id="cg_li_lbl1" class="li-label" text="{s:cg_li_lbl1}" />
+          </Button>
+          <Button id="cg_li2" class="li hidden">
+            <Label id="cg_li_lbl2" class="li-label" text="{s:cg_li_lbl2}" />
+          </Button>
+          <Button id="cg_li3" class="li hidden">
+            <Label id="cg_li_lbl3" class="li-label" text="{s:cg_li_lbl3}" />
+          </Button>
+          <Button id="cg_li4" class="li hidden">
+            <Label id="cg_li_lbl4" class="li-label" text="{s:cg_li_lbl4}" />
+          </Button>
+          <Button id="cg_li5" class="li hidden">
+            <Label id="cg_li_lbl5" class="li-label" text="{s:cg_li_lbl5}" />
+          </Button>
+          <Button id="cg_li6" class="li hidden">
+            <Label id="cg_li_lbl6" class="li-label" text="{s:cg_li_lbl6}" />
+          </Button>
+          <Button id="cg_li7" class="li hidden">
+            <Label id="cg_li_lbl7" class="li-label" text="{s:cg_li_lbl7}" />
+          </Button>
+          <Button id="cg_li8" class="li hidden">
+            <Label id="cg_li_lbl8" class="li-label" text="{s:cg_li_lbl8}" />
+          </Button>
+          <Button id="cg_li9" class="li hidden">
+            <Label id="cg_li_lbl9" class="li-label" text="{s:cg_li_lbl9}" />
+          </Button>
+          <Button id="cg_li10" class="li hidden">
+            <Label id="cg_li_lbl10" class="li-label" text="{s:cg_li_lbl10}" />
+          </Button>
+          <Button id="cg_li11" class="li hidden">
+            <Label id="cg_li_lbl11" class="li-label" text="{s:cg_li_lbl11}" />
+          </Button>
+          <Button id="cg_li12" class="li hidden">
+            <Label id="cg_li_lbl12" class="li-label" text="{s:cg_li_lbl12}" />
+          </Button>
+          <Button id="cg_li13" class="li hidden">
+            <Label id="cg_li_lbl13" class="li-label" text="{s:cg_li_lbl13}" />
+          </Button>
+          <Button id="cg_li14" class="li hidden">
+            <Label id="cg_li_lbl14" class="li-label" text="{s:cg_li_lbl14}" />
+          </Button>
+          <Button id="cg_li15" class="li hidden">
+            <Label id="cg_li_lbl15" class="li-label" text="{s:cg_li_lbl15}" />
+          </Button>
+        </Panel>
+        <Panel class="popup-nav">
+          <Button id="cg_list_prev" class="popup-btn"><Label class="popup-btn-label" text="&lt;" /></Button>
+          <Label id="cg_list_page" class="popup-page" text="{s:cg_list_page}" />
+          <Button id="cg_list_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
+        </Panel>
+      </Panel>
+    </Panel>
+  </Panel>
+</root>

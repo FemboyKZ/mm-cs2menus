@@ -7,16 +7,27 @@
 
 class CCheckTransmitInfo;
 
-// Menus in our workshop addon's window (workshop/panorama/layout/custom_game/cs2menus/menu.xml),
-// one custom_hud_layout per player, hidden from everyone but its owner.
+// Menus in our workshop addon's windows (workshop/panorama/layout/custom_game/cs2menus/),
+// one custom_hud_layout per player and layout, hidden from everyone but its owner. At most one is shown.
 // Menus go in the global state since the per-player states follow whoever a client watches.
 namespace panorama_hud
 {
-	// Fixed by the layout.
+	// Each is its own file with its own id prefix, since the client matches ids by name across every custom HUD layout.
+	enum class Layout
+	{
+		List, // menu.xml, "cm_"
+		Grid, // grid.xml, "cg_"
+		Count,
+	};
+
+	// Fixed by the layouts.
 	// The game interns at most 1024 panel ids and dialog variable names per layout, and every row run is one of each.
-	// 30 rows of 27 runs uses about 915, the popups about 50 more.
+	// The list's 30 rows of 27 runs use about 915, the popups about 50 more.
 	constexpr int kItemSlots = 30;
 	constexpr int kNavSlots = 20;
+	// Grid tiles (6 x 4) and section tabs.
+	constexpr int kGridSlots = 24;
+	constexpr int kGridTabs = 10;
 	// Differently colored runs per row.
 	// The layout only takes plain text, so each run is its own label with a palette class.
 	// rtv's longest label is the current map in !nominate with 5+ courses in both modes, 27 runs.
@@ -51,7 +62,8 @@ namespace panorama_hud
 			std::string value;             // right-aligned, in the first segment's color
 			bool disabled = false;
 			Control control = Control::None;
-			bool on = false; // Toggle
+			bool on = false;   // Toggle
+			std::string image; // grid only, a key from grid.css like "ak47"
 		};
 
 		struct Nav
@@ -85,12 +97,17 @@ namespace panorama_hud
 			bool next = false;
 		};
 
+		Layout layout = Layout::List;
 		std::string title;
 		std::string titleColor;
 		std::string navColor;
 		bool closeButton = true;
-		std::vector<Row> rows; // at most kItemSlots
-		std::vector<Nav> nav;  // at most kNavSlots, empty hides the left column
+		std::vector<Row> rows; // at most ItemSlots(layout): list rows or grid tiles
+		std::vector<Nav> nav;  // at most NavSlots(layout): the list's left column or the grid's tabs, empty hides them
+		// Grid only: the page arrows, empty page hides them.
+		std::string page;
+		bool prev = false;
+		bool next = false;
 		std::string fontClass; // from fonts.css, empty for the layout default
 		bool sounds = true;
 		StepPopup step;
@@ -101,14 +118,19 @@ namespace panorama_hud
 	{
 		None,
 		Close,
-		Nav,        // index = left-column slot
-		Item,       // index = row on the page
+		Nav,        // index = left-column slot or grid tab
+		Item,       // index = row or tile on the page
 		PopupClose, // either popup's close button
 		Step,       // index = step button
 		ListRow,    // index = list popup row
 		ListPrev,
 		ListNext,
+		PagePrev, // grid page arrows
+		PageNext,
 	};
+
+	int ItemSlots(Layout layout);
+	int NavSlots(Layout layout);
 
 	// Drops chat color codes.
 	std::string StripColors(const std::string &text);
@@ -119,9 +141,9 @@ namespace panorama_hud
 	// No-op once the signatures resolve.
 	bool Init();
 	// Signatures resolved and the layout mounted.
-	bool Available();
+	bool Available(Layout layout = Layout::List);
 
-	// Also puts the player in cursor mode. False if the slot has no usable window.
+	// Also puts the player in cursor mode and hides their window of any other layout. False if the slot has no usable window.
 	bool Show(int slot, const View &view);
 	// Gives movement back. No-op if not shown.
 	void Hide(int slot);

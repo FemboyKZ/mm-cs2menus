@@ -19,7 +19,22 @@
 
 namespace
 {
-	constexpr const char *kLayout = "panorama/layout/custom_game/cs2menus/menu.vxml_c";
+	using panorama_hud::Layout;
+
+	struct LayoutDef
+	{
+		const char *file;
+		const char *prefix;
+		const char *name; // in the entity's targetname and the diagnostic
+		int items;
+		int nav;
+	};
+
+	constexpr int kLayoutCount = static_cast<int>(Layout::Count);
+	constexpr LayoutDef kLayouts[kLayoutCount] = {
+		{"panorama/layout/custom_game/cs2menus/menu.vxml_c", "cm_", "list", panorama_hud::kItemSlots, panorama_hud::kNavSlots},
+		{"panorama/layout/custom_game/cs2menus/grid.vxml_c", "cg_", "grid", panorama_hud::kGridSlots, panorama_hud::kGridTabs},
+	};
 	// Lets a reloaded plugin find the windows it left behind.
 	constexpr const char *kTargetPrefix = "cs2menus_";
 
@@ -37,7 +52,7 @@ namespace
 	SetDialogVariableString_t s_setDialogVariableString = nullptr;
 	SetInputCaptureEnabled_t s_setInputCaptureEnabled = nullptr;
 
-	bool s_mounted = false;
+	bool s_mounted[kLayoutCount] = {};
 	// Clicks decoded from any layout, so the diagnostic can tell a dead click hook from an unclicked menu.
 	int s_clicksSeen = 0;
 
@@ -87,107 +102,6 @@ namespace
 		return best->className;
 	}
 
-	struct Window
-	{
-		CEntityHandle entity;
-		bool shown = false;
-		bool capture = false;
-		// Last written values, keyed "panel class" and "panel var", so unchanged writes are skipped.
-		std::unordered_map<std::string, bool> classes;
-		std::unordered_map<std::string, std::string> vars;
-		// The one class per panel from a set, like its font or color, keyed by panel.
-		std::unordered_map<std::string, std::string> swaps;
-	};
-
-	Window s_windows[MAXPLAYERS];
-
-	void *FindSig(void *base, size_t size, const char *signature, const char *name)
-	{
-		bool multiple = false;
-		void *address = sig::FindSignatureUnique(base, size, signature, multiple);
-		if (!address || multiple)
-		{
-			MMU_LOG_WARN("%s signature %s - panorama menus disabled.\n", name, address ? "matched multiple times" : "not found");
-			return nullptr;
-		}
-		return address;
-	}
-
-	CCSCustomHudLayout *GetLayout(int slot)
-	{
-		const CEntityHandle &handle = s_windows[slot].entity;
-		if (!handle.IsValid() || !g_pEntitySystem)
-		{
-			return nullptr;
-		}
-		return static_cast<CCSCustomHudLayout *>(g_pEntitySystem->GetEntityInstance(handle));
-	}
-
-	CCSCustomHudLayout *EnsureLayout(int slot)
-	{
-		if (CCSCustomHudLayout *layout = GetLayout(slot))
-		{
-			return layout;
-		}
-		// The caches belonged to an entity that's gone.
-		s_windows[slot] = Window {};
-		if (!g_pEntitySystem || !panorama_hud::Available())
-		{
-			return nullptr;
-		}
-		CEntityInstance *entity = s_createEntity("custom_hud_layout", -1);
-		if (!entity)
-		{
-			return nullptr;
-		}
-		char name[32];
-		snprintf(name, sizeof(name), "%s%d", kTargetPrefix, slot);
-		CEntityKeyValues *keyValues = new CEntityKeyValues();
-		keyValues->SetString("layout", kLayout);
-		keyValues->SetString("targetname", name);
-		s_dispatchSpawn(entity, keyValues);
-		s_windows[slot].entity = entity->GetRefEHandle();
-		return static_cast<CCSCustomHudLayout *>(entity);
-	}
-
-	// The game interns the names and flags the network change itself.
-	void WriteClass(int slot, CCSCustomHudLayout *layout, const char *panel, const char *cls, bool present)
-	{
-		Window &window = s_windows[slot];
-		const std::string key = std::string(panel) + ' ' + cls;
-		auto it = window.classes.find(key);
-		if (it != window.classes.end() && it->second == present)
-		{
-			return;
-		}
-		CUtlString panelId(panel);
-		CUtlString className(cls);
-		s_setHasClass(layout, &panelId, &className, present ? 1 : 0);
-		window.classes[key] = present;
-	}
-
-	void WriteVar(int slot, CCSCustomHudLayout *layout, const char *panel, const char *var, const std::string &value)
-	{
-		Window &window = s_windows[slot];
-		const std::string key = std::string(panel) + ' ' + var;
-		auto it = window.vars.find(key);
-		if (it != window.vars.end() && it->second == value)
-		{
-			return;
-		}
-		CUtlString panelId(panel);
-		CUtlString name(var);
-		CUtlString text(value.c_str());
-		s_setDialogVariableString(layout, &panelId, &name, &text);
-		window.vars[key] = value;
-	}
-
-	// Every name written is interned for good, so panels a menu never uses are left alone until it does.
-	bool Touched(int slot, const char *panel, const char *cls)
-	{
-		return s_windows[slot].classes.count(std::string(panel) + ' ' + cls) != 0;
-	}
-
 	const char *ControlClass(panorama_hud::View::Control control)
 	{
 		switch (control)
@@ -203,26 +117,70 @@ namespace
 		}
 	}
 
-	// Replaces the panel's previous class from the same set. Empty removes it.
-	void WriteSwap(int slot, CCSCustomHudLayout *layout, const char *panel, const std::string &cls)
+	struct Window
 	{
-		std::string &current = s_windows[slot].swaps[panel];
-		if (current == cls)
+		CEntityHandle entity;
+		bool shown = false;
+		bool capture = false;
+		// Last written values, keyed "panel class" and "panel var", so unchanged writes are skipped.
+		std::unordered_map<std::string, bool> classes;
+		std::unordered_map<std::string, std::string> vars;
+		// The one class per panel from a set, like its font or color, keyed by panel.
+		std::unordered_map<std::string, std::string> swaps;
+	};
+
+	Window s_windows[MAXPLAYERS][kLayoutCount];
+
+	void *FindSig(void *base, size_t size, const char *signature, const char *name)
+	{
+		bool multiple = false;
+		void *address = sig::FindSignatureUnique(base, size, signature, multiple);
+		if (!address || multiple)
 		{
-			return;
+			MMU_LOG_WARN("%s signature %s - panorama menus disabled.\n", name, address ? "matched multiple times" : "not found");
+			return nullptr;
 		}
-		if (!current.empty())
-		{
-			WriteClass(slot, layout, panel, current.c_str(), false);
-		}
-		if (!cls.empty())
-		{
-			WriteClass(slot, layout, panel, cls.c_str(), true);
-		}
-		current = cls;
+		return address;
 	}
 
-	bool SetCapture(int slot, CCSCustomHudLayout *layout, bool enabled)
+	CCSCustomHudLayout *GetLayout(int slot, int layout)
+	{
+		const CEntityHandle &handle = s_windows[slot][layout].entity;
+		if (!handle.IsValid() || !g_pEntitySystem)
+		{
+			return nullptr;
+		}
+		return static_cast<CCSCustomHudLayout *>(g_pEntitySystem->GetEntityInstance(handle));
+	}
+
+	CCSCustomHudLayout *EnsureLayout(int slot, int layout)
+	{
+		if (CCSCustomHudLayout *existing = GetLayout(slot, layout))
+		{
+			return existing;
+		}
+		// The caches belonged to an entity that's gone.
+		s_windows[slot][layout] = Window {};
+		if (!g_pEntitySystem || !panorama_hud::Available(static_cast<Layout>(layout)))
+		{
+			return nullptr;
+		}
+		CEntityInstance *entity = s_createEntity("custom_hud_layout", -1);
+		if (!entity)
+		{
+			return nullptr;
+		}
+		char name[48];
+		snprintf(name, sizeof(name), "%s%s%d", kTargetPrefix, kLayouts[layout].name, slot);
+		CEntityKeyValues *keyValues = new CEntityKeyValues();
+		keyValues->SetString("layout", kLayouts[layout].file);
+		keyValues->SetString("targetname", name);
+		s_dispatchSpawn(entity, keyValues);
+		s_windows[slot][layout].entity = entity->GetRefEHandle();
+		return static_cast<CCSCustomHudLayout *>(entity);
+	}
+
+	bool SetCapture(int slot, Window &window, CCSCustomHudLayout *layout, bool enabled)
 	{
 		schema::Collection<CCSCustomHudLayoutState> states = layout->m_vecPlayerLayoutStates();
 		const int16_t slotOffset = CCSCustomHudLayoutState::m_playerSlot_Offset();
@@ -243,8 +201,239 @@ namespace
 			state->MarkChanged();
 		}
 		s_setInputCaptureEnabled(layout, slot, enabled);
-		s_windows[slot].capture = enabled;
+		window.capture = enabled;
 		return true;
+	}
+
+	// One window's diff-cached writes. Every id is the layout's prefix plus a suffix, and a label's dialog variable is named after it.
+	struct Writer
+	{
+		Window &window;
+		CCSCustomHudLayout *entity;
+		const char *prefix;
+
+		std::string Id(const char *suffix) const
+		{
+			return prefix + std::string(suffix);
+		}
+
+		std::string Id(const char *format, int a) const
+		{
+			char suffix[32];
+			snprintf(suffix, sizeof(suffix), format, a);
+			return prefix + std::string(suffix);
+		}
+
+		std::string Id(const char *format, int a, int b) const
+		{
+			char suffix[32];
+			snprintf(suffix, sizeof(suffix), format, a, b);
+			return prefix + std::string(suffix);
+		}
+
+		// The game interns the names and flags the network change itself.
+		void Class(const std::string &panel, const char *cls, bool present)
+		{
+			const std::string key = panel + ' ' + cls;
+			auto it = window.classes.find(key);
+			if (it != window.classes.end() && it->second == present)
+			{
+				return;
+			}
+			CUtlString panelId(panel.c_str());
+			CUtlString className(cls);
+			s_setHasClass(entity, &panelId, &className, present ? 1 : 0);
+			window.classes[key] = present;
+		}
+
+		void Var(const std::string &panel, const std::string &value)
+		{
+			const std::string key = panel + ' ' + panel;
+			auto it = window.vars.find(key);
+			if (it != window.vars.end() && it->second == value)
+			{
+				return;
+			}
+			CUtlString panelId(panel.c_str());
+			CUtlString name(panel.c_str());
+			CUtlString text(value.c_str());
+			s_setDialogVariableString(entity, &panelId, &name, &text);
+			window.vars[key] = value;
+		}
+
+		// Replaces the panel's previous class from the same set. Empty removes it.
+		void Swap(const std::string &panel, const std::string &cls)
+		{
+			std::string &current = window.swaps[panel];
+			if (current == cls)
+			{
+				return;
+			}
+			if (!current.empty())
+			{
+				Class(panel, current.c_str(), false);
+			}
+			if (!cls.empty())
+			{
+				Class(panel, cls.c_str(), true);
+			}
+			current = cls;
+		}
+
+		// Every name written is interned for good, so panels a menu never uses are left alone until it does.
+		bool Touched(const std::string &panel, const char *cls) const
+		{
+			return window.classes.count(panel + ' ' + cls) != 0;
+		}
+
+		void Control(const std::string &panel, const panorama_hud::View::Row &row)
+		{
+			Class(panel, "disabled", row.disabled);
+			Swap(panel, ControlClass(row.control));
+			const bool toggle = row.control == panorama_hud::View::Control::Toggle;
+			if (toggle || Touched(panel, "on"))
+			{
+				Class(panel, "on", toggle && row.on);
+			}
+		}
+	};
+
+	void WriteListRows(Writer &w, const panorama_hud::View &view)
+	{
+		for (int i = 0; i < panorama_hud::kItemSlots; i++)
+		{
+			const bool used = i < static_cast<int>(view.rows.size());
+			const std::string panel = w.Id("item%d", i);
+			if (used)
+			{
+				const panorama_hud::View::Row &row = view.rows[i];
+				for (int s = 0; s < panorama_hud::kRowSegments; s++)
+				{
+					// Unused runs are emptied, not hidden, so they take no width and keep their last class.
+					const std::string label = w.Id("seg%d_%d", i, s);
+					const bool filled = s < static_cast<int>(row.segments.size());
+					w.Var(label, filled ? row.segments[s].text : std::string());
+					if (filled)
+					{
+						w.Swap(label, ColorClass(row.segments[s].color));
+					}
+				}
+				const std::string value = w.Id("val%d", i);
+				w.Var(value, row.value);
+				if (!row.segments.empty())
+				{
+					w.Swap(value, ColorClass(row.segments[0].color));
+				}
+				w.Control(panel, row);
+			}
+			w.Class(panel, "hidden", !used);
+		}
+	}
+
+	void WriteGridTiles(Writer &w, const panorama_hud::View &view)
+	{
+		for (int i = 0; i < panorama_hud::kGridSlots; i++)
+		{
+			const bool used = i < static_cast<int>(view.rows.size());
+			const std::string panel = w.Id("item%d", i);
+			if (used)
+			{
+				const panorama_hud::View::Row &row = view.rows[i];
+				// A tile's name is one label, in the color its text starts with.
+				std::string name;
+				for (const panorama_hud::View::Segment &segment : row.segments)
+				{
+					name += segment.text;
+				}
+				const char *color = ColorClass(row.segments.empty() ? std::string() : row.segments[0].color);
+				const std::string nameLabel = w.Id("name%d", i);
+				w.Var(nameLabel, name);
+				w.Swap(nameLabel, color);
+				const std::string value = w.Id("val%d", i);
+				w.Var(value, row.value);
+				w.Swap(value, color);
+				w.Swap(w.Id("img%d", i), row.image.empty() ? std::string() : "img-" + row.image);
+				w.Control(panel, row);
+			}
+			w.Class(panel, "hidden", !used);
+		}
+		const std::string pager = w.Id("pager");
+		if (!view.page.empty() || w.Touched(pager, "hidden"))
+		{
+			w.Class(pager, "hidden", view.page.empty());
+		}
+		if (!view.page.empty())
+		{
+			w.Var(w.Id("page"), view.page);
+			w.Class(w.Id("prev"), "disabled", !view.prev);
+			w.Class(w.Id("next"), "disabled", !view.next);
+		}
+	}
+
+	void WritePopups(Writer &w, const panorama_hud::View &view)
+	{
+		w.Class(w.Id("root"), "shift", view.step.open || view.list.open);
+		const std::string step = w.Id("step");
+		if (view.step.open || w.Touched(step, "hidden"))
+		{
+			w.Class(step, "hidden", !view.step.open);
+		}
+		if (view.step.open)
+		{
+			w.Var(w.Id("step_title"), view.step.title);
+			w.Var(w.Id("step_val"), view.step.readout);
+			for (int i = 0; i < panorama_hud::kStepButtons; i++)
+			{
+				const panorama_hud::View::StepButton &button = view.step.buttons[i];
+				const std::string panel = w.Id("step_b%d", i);
+				w.Var(w.Id("step_l%d", i), button.label);
+				w.Class(panel, "disabled", !button.enabled);
+				w.Class(panel, "hidden", button.label.empty());
+			}
+		}
+		const std::string list = w.Id("list");
+		if (view.list.open || w.Touched(list, "hidden"))
+		{
+			w.Class(list, "hidden", !view.list.open);
+		}
+		if (view.list.open)
+		{
+			w.Var(w.Id("list_title"), view.list.title);
+			for (int i = 0; i < panorama_hud::kListSlots; i++)
+			{
+				const bool used = i < static_cast<int>(view.list.rows.size());
+				const std::string panel = w.Id("li%d", i);
+				if (used)
+				{
+					w.Var(w.Id("li_lbl%d", i), view.list.rows[i].label);
+					w.Class(panel, "selected", view.list.rows[i].selected);
+				}
+				w.Class(panel, "hidden", !used);
+			}
+			w.Class(list, "paged", !view.list.page.empty());
+			if (!view.list.page.empty())
+			{
+				w.Var(w.Id("list_page"), view.list.page);
+				w.Class(w.Id("list_prev"), "disabled", !view.list.prev);
+				w.Class(w.Id("list_next"), "disabled", !view.list.next);
+			}
+		}
+	}
+
+	void HideWindow(int slot, int layout)
+	{
+		Window &window = s_windows[slot][layout];
+		if (!window.shown)
+		{
+			return;
+		}
+		window.shown = false;
+		if (CCSCustomHudLayout *entity = GetLayout(slot, layout))
+		{
+			Writer w {window, entity, kLayouts[layout].prefix};
+			w.Class(w.Id("root"), "hidden", true);
+			SetCapture(slot, window, entity, false);
+		}
 	}
 
 	bool ReadVarint(const uint8_t *&p, const uint8_t *end, uint64_t &out)
@@ -287,6 +476,16 @@ namespace
 		return true;
 	}
 } // namespace
+
+int panorama_hud::ItemSlots(Layout layout)
+{
+	return kLayouts[static_cast<int>(layout)].items;
+}
+
+int panorama_hud::NavSlots(Layout layout)
+{
+	return kLayouts[static_cast<int>(layout)].nav;
+}
 
 std::string panorama_hud::StripColors(const std::string &text)
 {
@@ -348,18 +547,19 @@ bool panorama_hud::Init()
 	return Resolved();
 }
 
-bool panorama_hud::Available()
+bool panorama_hud::Available(Layout layout)
 {
 	if (!Resolved() || !g_pFullFileSystem)
 	{
 		return false;
 	}
 	// MultiAddonManager can mount the addon after load, so keep checking.
-	if (!s_mounted)
+	bool &mounted = s_mounted[static_cast<int>(layout)];
+	if (!mounted)
 	{
-		s_mounted = g_pFullFileSystem->FileExists(kLayout);
+		mounted = g_pFullFileSystem->FileExists(kLayouts[static_cast<int>(layout)].file);
 	}
-	return s_mounted;
+	return mounted;
 }
 
 bool panorama_hud::Show(int slot, const View &view)
@@ -368,144 +568,91 @@ bool panorama_hud::Show(int slot, const View &view)
 	{
 		return false;
 	}
-	CCSCustomHudLayout *layout = EnsureLayout(slot);
-	if (!layout)
+	const int layout = static_cast<int>(view.layout);
+	for (int other = 0; other < kLayoutCount; other++)
+	{
+		if (other != layout)
+		{
+			HideWindow(slot, other);
+		}
+	}
+	CCSCustomHudLayout *entity = EnsureLayout(slot, layout);
+	if (!entity)
 	{
 		return false;
 	}
-	Window &window = s_windows[slot];
-	if (!window.capture && !SetCapture(slot, layout, true))
+	Window &window = s_windows[slot][layout];
+	if (!window.capture && !SetCapture(slot, window, entity, true))
 	{
 		MMU_LOG_WARN("custom_hud_layout has no player state for slot %d.\n", slot);
 		return false;
 	}
 
-	WriteClass(slot, layout, "cm_root", "snd", view.sounds);
-	WriteSwap(slot, layout, "cm_root", view.fontClass);
-	WriteVar(slot, layout, "cm_title", "cm_title", view.title);
-	WriteSwap(slot, layout, "cm_title", ColorClass(view.titleColor));
-	WriteClass(slot, layout, "cm_close", "hidden", !view.closeButton);
-	WriteClass(slot, layout, "cm_pages", "hidden", view.nav.empty());
+	Writer w {window, entity, kLayouts[layout].prefix};
+	const std::string root = w.Id("root");
+	w.Class(root, "snd", view.sounds);
+	w.Swap(root, view.fontClass);
+	const std::string title = w.Id("title");
+	w.Var(title, view.title);
+	w.Swap(title, ColorClass(view.titleColor));
+	w.Class(w.Id("close"), "hidden", !view.closeButton);
+	w.Class(w.Id("pages"), "hidden", view.nav.empty());
 
-	char panel[24];
-	char label[24];
 	const std::string navClass = ColorClass(view.navColor);
-	for (int i = 0; i < kNavSlots; i++)
+	for (int i = 0; i < kLayouts[layout].nav; i++)
 	{
 		const bool used = i < static_cast<int>(view.nav.size());
-		snprintf(panel, sizeof(panel), "cm_nav%d", i);
+		const std::string panel = w.Id("nav%d", i);
 		if (used)
 		{
-			snprintf(label, sizeof(label), "cm_nav_lbl%d", i);
-			WriteVar(slot, layout, label, label, view.nav[i].label);
-			WriteSwap(slot, layout, label, navClass);
-			WriteClass(slot, layout, panel, "selected", view.nav[i].selected);
+			const std::string label = w.Id("nav_lbl%d", i);
+			w.Var(label, view.nav[i].label);
+			w.Swap(label, navClass);
+			w.Class(panel, "selected", view.nav[i].selected);
 		}
-		WriteClass(slot, layout, panel, "hidden", !used);
-	}
-	for (int i = 0; i < kItemSlots; i++)
-	{
-		const bool used = i < static_cast<int>(view.rows.size());
-		snprintf(panel, sizeof(panel), "cm_item%d", i);
-		if (used)
-		{
-			const View::Row &row = view.rows[i];
-			for (int s = 0; s < kRowSegments; s++)
-			{
-				// Unused runs are emptied, not hidden, so they take no width and keep their last class.
-				snprintf(label, sizeof(label), "cm_seg%d_%d", i, s);
-				const bool filled = s < static_cast<int>(row.segments.size());
-				WriteVar(slot, layout, label, label, filled ? row.segments[s].text : std::string());
-				if (filled)
-				{
-					WriteSwap(slot, layout, label, ColorClass(row.segments[s].color));
-				}
-			}
-			snprintf(label, sizeof(label), "cm_val%d", i);
-			WriteVar(slot, layout, label, label, row.value);
-			if (!row.segments.empty())
-			{
-				WriteSwap(slot, layout, label, ColorClass(row.segments[0].color));
-			}
-			WriteClass(slot, layout, panel, "disabled", row.disabled);
-			WriteSwap(slot, layout, panel, ControlClass(row.control));
-			const bool toggle = row.control == View::Control::Toggle;
-			if (toggle || Touched(slot, panel, "on"))
-			{
-				WriteClass(slot, layout, panel, "on", toggle && row.on);
-			}
-		}
-		WriteClass(slot, layout, panel, "hidden", !used);
+		w.Class(panel, "hidden", !used);
 	}
 
-	WriteClass(slot, layout, "cm_root", "shift", view.step.open || view.list.open);
-	if (view.step.open || Touched(slot, "cm_step", "hidden"))
+	if (view.layout == Layout::Grid)
 	{
-		WriteClass(slot, layout, "cm_step", "hidden", !view.step.open);
+		WriteGridTiles(w, view);
 	}
-	if (view.step.open)
+	else
 	{
-		WriteVar(slot, layout, "cm_step_title", "cm_step_title", view.step.title);
-		WriteVar(slot, layout, "cm_step_val", "cm_step_val", view.step.readout);
-		for (int i = 0; i < kStepButtons; i++)
-		{
-			const View::StepButton &button = view.step.buttons[i];
-			snprintf(panel, sizeof(panel), "cm_step_b%d", i);
-			snprintf(label, sizeof(label), "cm_step_l%d", i);
-			WriteVar(slot, layout, label, label, button.label);
-			WriteClass(slot, layout, panel, "disabled", !button.enabled);
-			WriteClass(slot, layout, panel, "hidden", button.label.empty());
-		}
+		WriteListRows(w, view);
 	}
-	if (view.list.open || Touched(slot, "cm_list", "hidden"))
-	{
-		WriteClass(slot, layout, "cm_list", "hidden", !view.list.open);
-	}
-	if (view.list.open)
-	{
-		WriteVar(slot, layout, "cm_list_title", "cm_list_title", view.list.title);
-		for (int i = 0; i < kListSlots; i++)
-		{
-			const bool used = i < static_cast<int>(view.list.rows.size());
-			snprintf(panel, sizeof(panel), "cm_li%d", i);
-			if (used)
-			{
-				snprintf(label, sizeof(label), "cm_li_lbl%d", i);
-				WriteVar(slot, layout, label, label, view.list.rows[i].label);
-				WriteClass(slot, layout, panel, "selected", view.list.rows[i].selected);
-			}
-			WriteClass(slot, layout, panel, "hidden", !used);
-		}
-		WriteClass(slot, layout, "cm_list", "paged", !view.list.page.empty());
-		if (!view.list.page.empty())
-		{
-			WriteVar(slot, layout, "cm_list_page", "cm_list_page", view.list.page);
-			WriteClass(slot, layout, "cm_list_prev", "disabled", !view.list.prev);
-			WriteClass(slot, layout, "cm_list_next", "disabled", !view.list.next);
-		}
-	}
-	WriteClass(slot, layout, "cm_root", "hidden", false);
+	WritePopups(w, view);
+	w.Class(root, "hidden", false);
 	window.shown = true;
 	return true;
 }
 
 void panorama_hud::Hide(int slot)
 {
-	if (!ValidSlot(slot) || !s_windows[slot].shown)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
-	s_windows[slot].shown = false;
-	if (CCSCustomHudLayout *layout = GetLayout(slot))
+	for (int layout = 0; layout < kLayoutCount; layout++)
 	{
-		WriteClass(slot, layout, "cm_root", "hidden", true);
-		SetCapture(slot, layout, false);
+		HideWindow(slot, layout);
 	}
 }
 
 bool panorama_hud::IsShown(int slot)
 {
-	return ValidSlot(slot) && s_windows[slot].shown && GetLayout(slot);
+	if (!ValidSlot(slot))
+	{
+		return false;
+	}
+	for (int layout = 0; layout < kLayoutCount; layout++)
+	{
+		if (s_windows[slot][layout].shown && GetLayout(slot, layout))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 bool panorama_hud::DecodeClick(const void *buf, uint32_t size, uint32_t &layoutHandle, std::string &buttonId)
@@ -583,39 +730,59 @@ bool panorama_hud::DecodeClick(const void *buf, uint32_t size, uint32_t &layoutH
 panorama_hud::Click panorama_hud::ParseClick(int slot, uint32_t layoutHandle, const char *buttonId, int &index)
 {
 	index = -1;
-	if (!ValidSlot(slot) || !buttonId || !s_windows[slot].shown || static_cast<uint32_t>(s_windows[slot].entity.ToPackedInt()) != layoutHandle)
+	if (!ValidSlot(slot) || !buttonId)
 	{
 		return Click::None;
 	}
-	if (strcmp(buttonId, "cm_close") == 0)
+	int layout = 0;
+	while (layout < kLayoutCount
+		   && !(s_windows[slot][layout].shown && static_cast<uint32_t>(s_windows[slot][layout].entity.ToPackedInt()) == layoutHandle))
+	{
+		layout++;
+	}
+	const LayoutDef *def = layout < kLayoutCount ? &kLayouts[layout] : nullptr;
+	if (!def || strncmp(buttonId, def->prefix, strlen(def->prefix)) != 0)
+	{
+		return Click::None;
+	}
+	const char *id = buttonId + strlen(def->prefix);
+	if (strcmp(id, "close") == 0)
 	{
 		return Click::Close;
 	}
-	if (strcmp(buttonId, "cm_step_close") == 0 || strcmp(buttonId, "cm_list_close") == 0)
+	if (strcmp(id, "step_close") == 0 || strcmp(id, "list_close") == 0)
 	{
 		return Click::PopupClose;
 	}
-	if (strcmp(buttonId, "cm_list_prev") == 0)
+	if (strcmp(id, "list_prev") == 0)
 	{
 		return Click::ListPrev;
 	}
-	if (strcmp(buttonId, "cm_list_next") == 0)
+	if (strcmp(id, "list_next") == 0)
 	{
 		return Click::ListNext;
 	}
-	if (ParseSlotId(buttonId, "cm_step_b", kStepButtons, index))
+	if (strcmp(id, "prev") == 0)
+	{
+		return Click::PagePrev;
+	}
+	if (strcmp(id, "next") == 0)
+	{
+		return Click::PageNext;
+	}
+	if (ParseSlotId(id, "step_b", kStepButtons, index))
 	{
 		return Click::Step;
 	}
-	if (ParseSlotId(buttonId, "cm_li", kListSlots, index))
+	if (ParseSlotId(id, "li", kListSlots, index))
 	{
 		return Click::ListRow;
 	}
-	if (ParseSlotId(buttonId, "cm_nav", kNavSlots, index))
+	if (ParseSlotId(id, "nav", def->nav, index))
 	{
 		return Click::Nav;
 	}
-	if (ParseSlotId(buttonId, "cm_item", kItemSlots, index))
+	if (ParseSlotId(id, "item", def->items, index))
 	{
 		return Click::Item;
 	}
@@ -625,12 +792,15 @@ panorama_hud::Click panorama_hud::ParseClick(int slot, uint32_t layoutHandle, co
 void panorama_hud::OnCheckTransmit(CCheckTransmitInfo **infos, int count)
 {
 	// Resolved through the entity system, so a stale handle can't hide an unrelated entity reusing its index.
-	int entityIndex[MAXPLAYERS];
+	int entityIndex[MAXPLAYERS][kLayoutCount];
 	bool any = false;
 	for (int owner = 0; owner < MAXPLAYERS; owner++)
 	{
-		entityIndex[owner] = GetLayout(owner) ? s_windows[owner].entity.GetEntryIndex() : -1;
-		any = any || entityIndex[owner] >= 0;
+		for (int layout = 0; layout < kLayoutCount; layout++)
+		{
+			entityIndex[owner][layout] = GetLayout(owner, layout) ? s_windows[owner][layout].entity.GetEntryIndex() : -1;
+			any = any || entityIndex[owner][layout] >= 0;
+		}
 	}
 	if (!any)
 	{
@@ -643,18 +813,22 @@ void panorama_hud::OnCheckTransmit(CCheckTransmitInfo **infos, int count)
 		const int recipient = *reinterpret_cast<int *>(reinterpret_cast<uintptr_t>(info) + mmu::gamedata::kCheckTransmitPlayerSlotOffset);
 		for (int owner = 0; owner < MAXPLAYERS; owner++)
 		{
-			if (entityIndex[owner] < 0)
+			for (int layout = 0; layout < kLayoutCount; layout++)
 			{
-				continue;
-			}
-			// The engine can drop the entity from its owner's snapshot after a viewpoint change, like respawning out of spectate.
-			if (owner == recipient)
-			{
-				info->m_pTransmitEntity->Set(entityIndex[owner]);
-			}
-			else
-			{
-				info->m_pTransmitEntity->Clear(entityIndex[owner]);
+				const int index = entityIndex[owner][layout];
+				if (index < 0)
+				{
+					continue;
+				}
+				// The engine can drop the entity from its owner's snapshot after a viewpoint change, like respawning out of spectate.
+				if (owner == recipient)
+				{
+					info->m_pTransmitEntity->Set(index);
+				}
+				else
+				{
+					info->m_pTransmitEntity->Clear(index);
+				}
 			}
 		}
 	}
@@ -671,26 +845,32 @@ std::string panorama_hud::Describe()
 	snprintf(line, sizeof(line), "signatures: SetHasClass %s, SetDialogVariableString %s, SetInputCaptureEnabled %s\n",
 			 state(s_setHasClass != nullptr), state(s_setDialogVariableString != nullptr), state(s_setInputCaptureEnabled != nullptr));
 	out += line;
-	const bool mounted = g_pFullFileSystem && g_pFullFileSystem->FileExists(kLayout);
-	snprintf(line, sizeof(line), "layout: %s %s\n", kLayout, mounted ? "mounted" : "NOT MOUNTED");
-	out += line;
+	for (const LayoutDef &def : kLayouts)
+	{
+		const bool mounted = g_pFullFileSystem && g_pFullFileSystem->FileExists(def.file);
+		snprintf(line, sizeof(line), "layout %s: %s %s\n", def.name, def.file, mounted ? "mounted" : "NOT MOUNTED");
+		out += line;
+	}
 	snprintf(line, sizeof(line), "clicks seen: %d\n", s_clicksSeen);
 	out += line;
 
 	int windows = 0;
 	for (int slot = 0; slot < MAXPLAYERS; slot++)
 	{
-		const Window &window = s_windows[slot];
-		if (!window.entity.IsValid())
+		for (int layout = 0; layout < kLayoutCount; layout++)
 		{
-			continue;
+			const Window &window = s_windows[slot][layout];
+			if (!window.entity.IsValid())
+			{
+				continue;
+			}
+			windows++;
+			const bool alive = GetLayout(slot, layout) != nullptr;
+			snprintf(line, sizeof(line), "slot %d %s: entity %d %s, %s, capture %s, %d classes, %d vars\n", slot, kLayouts[layout].name,
+					 window.entity.GetEntryIndex(), alive ? "live" : "GONE", window.shown ? "shown" : "hidden", window.capture ? "on" : "off",
+					 static_cast<int>(window.classes.size()), static_cast<int>(window.vars.size()));
+			out += line;
 		}
-		windows++;
-		const bool alive = GetLayout(slot) != nullptr;
-		snprintf(line, sizeof(line), "slot %d: entity %d %s, %s, capture %s, %d classes, %d vars\n", slot, window.entity.GetEntryIndex(),
-				 alive ? "live" : "GONE", window.shown ? "shown" : "hidden", window.capture ? "on" : "off", static_cast<int>(window.classes.size()),
-				 static_cast<int>(window.vars.size()));
-		out += line;
 	}
 	if (windows == 0)
 	{
@@ -705,21 +885,30 @@ void panorama_hud::OnClientDisconnect(int slot)
 	{
 		return;
 	}
-	if (CCSCustomHudLayout *layout = GetLayout(slot))
+	for (int layout = 0; layout < kLayoutCount; layout++)
 	{
-		s_removeEntity(layout);
+		if (CCSCustomHudLayout *entity = GetLayout(slot, layout))
+		{
+			s_removeEntity(entity);
+		}
+		s_windows[slot][layout] = Window {};
 	}
-	s_windows[slot] = Window {};
 }
 
 void panorama_hud::OnLevelShutdown()
 {
-	for (Window &window : s_windows)
+	for (auto &windows : s_windows)
 	{
-		window = Window {};
+		for (Window &window : windows)
+		{
+			window = Window {};
+		}
 	}
 	// The next map may mount different addons.
-	s_mounted = false;
+	for (bool &mounted : s_mounted)
+	{
+		mounted = false;
+	}
 }
 
 void panorama_hud::RemoveOrphans()
@@ -748,14 +937,18 @@ void panorama_hud::Shutdown()
 {
 	for (int slot = 0; slot < MAXPLAYERS; slot++)
 	{
-		if (CCSCustomHudLayout *layout = GetLayout(slot))
+		for (int layout = 0; layout < kLayoutCount; layout++)
 		{
-			if (s_windows[slot].capture)
+			Window &window = s_windows[slot][layout];
+			if (CCSCustomHudLayout *entity = GetLayout(slot, layout))
 			{
-				SetCapture(slot, layout, false);
+				if (window.capture)
+				{
+					SetCapture(slot, window, entity, false);
+				}
+				s_removeEntity(entity);
 			}
-			s_removeEntity(layout);
+			window = Window {};
 		}
-		s_windows[slot] = Window {};
 	}
 }

@@ -438,6 +438,48 @@ class CS2MenusAPI : public ICS2Menus
 	{
 		g_MenuManager.SetMenuChangeCallback(menu, std::move(onChange));
 	}
+
+	// --- Sections and grids ---
+
+	int AddSection(MenuHandle menu, const char *name) override
+	{
+		return g_MenuManager.AddSection(menu, name);
+	}
+
+	int GetItemSection(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemSection(menu, item);
+	}
+
+	void SetMenuLayout(MenuHandle menu, MenuLayout layout) override
+	{
+		g_MenuManager.SetMenuLayout(menu, layout);
+	}
+
+	MenuLayout GetMenuLayout(MenuHandle menu) override
+	{
+		return g_MenuManager.GetMenuLayout(menu);
+	}
+
+	void SetItemImage(MenuHandle menu, int item, const char *image) override
+	{
+		g_MenuManager.SetItemImage(menu, item, image);
+	}
+
+	const char *GetItemImage(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemImage(menu, item);
+	}
+
+	void SetItemSubtext(MenuHandle menu, int item, const char *subtext) override
+	{
+		g_MenuManager.SetItemSubtext(menu, item, subtext);
+	}
+
+	const char *GetItemSubtext(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemSubtext(menu, item);
+	}
 };
 
 static CS2MenusAPI g_CS2MenusAPI;
@@ -658,6 +700,8 @@ static void LoadAndApplyConfig()
 	settings.chatHeader = m.chatHeader;
 	settings.chatValueColor = ChatColorByte(m.chatValueColor, CHAT_COLOR_ORCHID);
 	settings.chatValueFormat = m.chatValueFormat;
+	settings.chatSectionColor = ChatColorByte(m.chatSectionColor, CHAT_COLOR_ORCHID);
+	settings.chatSectionFormat = m.chatSectionFormat;
 	settings.htmlVisibleItems = g_MenusConfig.menu.htmlVisibleItems;
 	settings.defaultExitItem = g_MenusConfig.menu.htmlExitItem;
 	ApplyHexColor("HtmlNavColor", g_MenusConfig.menu.htmlNavColor, settings.navColor);
@@ -686,6 +730,8 @@ static void LoadAndApplyConfig()
 	settings.footerRangeFormat = g_MenusConfig.menu.htmlFooterRangeFormat;
 	settings.valueFormat = g_MenusConfig.menu.htmlValueFormat;
 	settings.editFormat = g_MenusConfig.menu.htmlEditFormat;
+	settings.sectionFormat = g_MenusConfig.menu.htmlSectionFormat;
+	ApplyHexColor("HtmlSectionColor", g_MenusConfig.menu.htmlSectionColor, settings.sectionColor);
 	settings.highlightText = g_MenusConfig.menu.htmlHighlightText;
 	// Resend cadence: keep sane and keepAlive strictly below the decay duration, else the panel blinks.
 	if (g_MenusConfig.menu.htmlDurationSecs >= 1)
@@ -835,23 +881,31 @@ CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_de
 	MenuHandle menu = g_MenuManager.CreateMenu(type, "cs2menus demo", [](MenuHandle m, int s, int item)
 											   { MENU_PrintToChat(s, "Selected %s", g_MenuManager.GetItemText(m, item)); });
 	MenuHandle child = g_MenuManager.CreateMenu(type, "Submenu", nullptr);
-	for (MenuHandle m : {menu, child})
+	MenuHandle grid = g_MenuManager.CreateMenu(type, "Grid", [](MenuHandle m, int s, int item)
+											   { MENU_PrintToChat(s, "Selected %s", g_MenuManager.GetItemText(m, item)); });
+	for (MenuHandle m : {menu, child, grid})
 	{
 		g_MenuManager.SetMenuForceType(m, forced);
 		g_MenuManager.SetCloseOnSelect(m, false);
 		g_MenuManager.SetMenuChangeCallback(m, [](MenuHandle changed, int s, int item, int value)
 											{ MENU_PrintToChat(s, "%s = %d", g_MenuManager.GetItemText(changed, item), value); });
-		// Only the menu on screen when the display ends fires this, so either one frees both.
+		// Only the menu on screen when the display ends fires this, so any one frees them all.
 		g_MenuManager.SetMenuEndCallback(m,
-										 [menu, child](MenuHandle, int, MenuEndReason)
+										 [menu, child, grid](MenuHandle, int, MenuEndReason)
 										 {
 											 g_MenuManager.DestroyMenu(menu);
 											 g_MenuManager.DestroyMenu(child);
+											 g_MenuManager.DestroyMenu(grid);
 										 });
 	}
 
+	g_MenuManager.AddSection(menu, "Items");
 	g_MenuManager.AddItem(menu, "Plain item", "", false);
 	g_MenuManager.AddItem(menu, "Disabled item", "", true);
+	g_MenuManager.SetItemSubtext(menu, g_MenuManager.AddItem(menu, "Item with subtext", "", false), "$2700");
+	g_MenuManager.AddSubMenu(menu, "Submenu", child, "");
+	g_MenuManager.AddSubMenu(menu, "Grid", grid, "");
+	g_MenuManager.AddSection(menu, "Values");
 	g_MenuManager.AddToggle(menu, "Toggle", true, "");
 	g_MenuManager.SetItemDisabled(menu, g_MenuManager.AddToggle(menu, "Disabled toggle", false, ""), true);
 	g_MenuManager.AddStepper(menu, "Stepper 0-100 by 5", 50, 0, 100, 5, "");
@@ -870,9 +924,38 @@ CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_de
 		options.push_back(name.c_str());
 	}
 	g_MenuManager.AddChoice(menu, "Long choice", options.data(), static_cast<int>(options.size()), 0, "");
-	g_MenuManager.AddSubMenu(menu, "Submenu", child, "");
 	g_MenuManager.AddToggle(child, "Nested toggle", false, "");
 	g_MenuManager.AddStepper(child, "Nested stepper", 0, -10, 10, 1, "");
+
+	struct Tile
+	{
+		const char *name;
+		const char *image;
+		const char *price;
+	};
+
+	const Tile pistols[] = {
+		{"Glock-18", "glock", "$200"}, {"USP-S", "usp_silencer", "$200"}, {"P250", "p250", "$300"}, {"Desert Eagle", "deagle", "$700"}};
+	const Tile rifles[] = {{"AK-47", "ak47", "$2700"}, {"M4A4", "m4a1", "$3100"}, {"M4A1-S", "m4a1_silencer", "$2900"}, {"AWP", "awp", "$4750"}};
+	g_MenuManager.SetMenuLayout(grid, MenuLayout::Grid);
+	for (const auto &[section, tiles] : {std::pair {"Pistols", pistols}, std::pair {"Rifles", rifles}})
+	{
+		g_MenuManager.AddSection(grid, section);
+		for (int i = 0; i < 4; i++)
+		{
+			const int item = g_MenuManager.AddItem(grid, tiles[i].name, "", false);
+			g_MenuManager.SetItemImage(grid, item, tiles[i].image);
+			g_MenuManager.SetItemSubtext(grid, item, tiles[i].price);
+		}
+	}
+	g_MenuManager.AddSection(grid, "Gear");
+	g_MenuManager.SetItemImage(grid, g_MenuManager.AddToggle(grid, "Defuse kit", false, ""), "defuser");
+	// More tiles than one page holds, for the page arrows.
+	for (int i = 1; i <= 30; i++)
+	{
+		const std::string name = "Grenade " + std::to_string(i);
+		g_MenuManager.SetItemImage(grid, g_MenuManager.AddItem(grid, name.c_str(), "", i % 7 == 0), "hegrenade");
+	}
 
 	g_MenuManager.DisplayMenu(menu, slot, 0.0f, MenuNow());
 }

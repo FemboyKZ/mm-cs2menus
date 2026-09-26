@@ -113,6 +113,14 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.chatValueFormat = value;
 		}
+		else if (k == "chatsectioncolor")
+		{
+			cfg->menu.chatSectionColor = ToLower(value);
+		}
+		else if (k == "chatsectionformat")
+		{
+			cfg->menu.chatSectionFormat = value;
+		}
 		else if (k == "htmlvisibleitems")
 		{
 			cfg->menu.htmlVisibleItems = std::atoi(value.c_str());
@@ -196,6 +204,14 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		else if (k == "htmleditformat")
 		{
 			cfg->menu.htmlEditFormat = value;
+		}
+		else if (k == "htmlsectionformat")
+		{
+			cfg->menu.htmlSectionFormat = value;
+		}
+		else if (k == "htmlsectioncolor")
+		{
+			cfg->menu.htmlSectionColor = value;
 		}
 		else if (k == "htmlhighlighttext")
 		{
