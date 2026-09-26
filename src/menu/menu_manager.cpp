@@ -82,6 +82,29 @@ static std::string NormalizeAlign(const std::string &v)
 	return "";
 }
 
+// Empty clears a per-menu flag override, "0" is off and anything else on.
+static int ParseTriState(const std::string &v)
+{
+	return v.empty() ? -1 : (v != "0" ? 1 : 0);
+}
+
+// Empty clears the override. An unknown token is ignored so a typo can't blank the size.
+static bool IsSizeOrEmpty(const std::string &v)
+{
+	return v.empty() || !SizeClass(v).empty();
+}
+
+// The per-menu override when set, else the server setting.
+static const char *Pick(const std::string &over, const std::string &fallback)
+{
+	return over.empty() ? fallback.c_str() : over.c_str();
+}
+
+static const char *PickBool(int over, bool fallback)
+{
+	return (over < 0 ? fallback : over != 0) ? "1" : "0";
+}
+
 // Substitute "{name}" placeholders in a template string. Unknown tokens are left untouched,
 // and a value is never re-scanned, so a value containing "{...}" can't trigger further replacement.
 static std::string FillTemplate(const std::string &tmpl, std::initializer_list<std::pair<const char *, std::string>> vars)
@@ -428,21 +451,20 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 			s.titleColor = v;
 			break;
 		case MenuStyle::TitleSize:
-			// Empty clears the override, an unknown token is ignored so a typo can't blank the size.
-			if (v.empty() || !SizeClass(v).empty())
+			if (IsSizeOrEmpty(v))
 			{
 				s.titleSize = v;
 			}
 			break;
 		case MenuStyle::RawTitle:
-			s.rawTitle = v.empty() ? -1 : (v != "0" ? 1 : 0);
+			s.rawTitle = ParseTriState(v);
 			break;
 		// Items
 		case MenuStyle::ItemColor:
 			s.itemColor = v;
 			break;
 		case MenuStyle::ItemSize:
-			if (v.empty() || !SizeClass(v).empty())
+			if (IsSizeOrEmpty(v))
 			{
 				s.itemSize = v;
 			}
@@ -461,17 +483,17 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 			s.marker = v;
 			break;
 		case MenuStyle::HighlightText:
-			s.highlightText = v.empty() ? -1 : (v != "0" ? 1 : 0);
+			s.highlightText = ParseTriState(v);
 			break;
 		// Position counter
 		case MenuStyle::ShowCounter:
-			s.showCounter = v.empty() ? -1 : (v != "0" ? 1 : 0);
+			s.showCounter = ParseTriState(v);
 			break;
 		case MenuStyle::CounterColor:
 			s.counterColor = v;
 			break;
 		case MenuStyle::CounterSize:
-			if (v.empty() || !SizeClass(v).empty())
+			if (IsSizeOrEmpty(v))
 			{
 				s.counterSize = v;
 			}
@@ -481,13 +503,13 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 			break;
 		// Key-hint footer
 		case MenuStyle::ShowFooter:
-			s.showFooter = v.empty() ? -1 : (v != "0" ? 1 : 0);
+			s.showFooter = ParseTriState(v);
 			break;
 		case MenuStyle::FooterColor:
 			s.footerColor = v;
 			break;
 		case MenuStyle::FooterSize:
-			if (v.empty() || !SizeClass(v).empty())
+			if (IsSizeOrEmpty(v))
 			{
 				s.footerSize = v;
 			}
@@ -537,9 +559,9 @@ const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 	{
 		// Global / layout
 		case MenuStyle::Align:
-			return s.align.empty() ? m_settings.align.c_str() : s.align.c_str();
+			return Pick(s.align, m_settings.align);
 		case MenuStyle::FontFace:
-			return s.fontFace.empty() ? m_settings.fontFace.c_str() : s.fontFace.c_str();
+			return Pick(s.fontFace, m_settings.fontFace);
 		case MenuStyle::VisibleItems:
 		{
 			int eff = (s.visibleItems > 0) ? (std::min)(s.visibleItems, MENU_MAX_HTML_VISIBLE) : m_htmlVisibleItems;
@@ -549,49 +571,49 @@ const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 		}
 		// Title
 		case MenuStyle::TitleColor:
-			return s.titleColor.empty() ? m_settings.titleColor.c_str() : s.titleColor.c_str();
+			return Pick(s.titleColor, m_settings.titleColor);
 		case MenuStyle::TitleSize:
-			return s.titleSize.empty() ? m_settings.titleSize.c_str() : s.titleSize.c_str();
+			return Pick(s.titleSize, m_settings.titleSize);
 		case MenuStyle::RawTitle:
 			return (s.rawTitle == 1) ? "1" : "0";
 		// Items
 		case MenuStyle::ItemColor:
-			return s.itemColor.empty() ? m_settings.itemColor.c_str() : s.itemColor.c_str();
+			return Pick(s.itemColor, m_settings.itemColor);
 		case MenuStyle::ItemSize:
-			return s.itemSize.empty() ? m_settings.itemSize.c_str() : s.itemSize.c_str();
+			return Pick(s.itemSize, m_settings.itemSize);
 		case MenuStyle::DisabledColor:
-			return s.disabledColor.empty() ? m_settings.disabledColor.c_str() : s.disabledColor.c_str();
+			return Pick(s.disabledColor, m_settings.disabledColor);
 		case MenuStyle::SubmenuSuffix:
-			return s.submenuSuffix.empty() ? m_settings.submenuSuffix.c_str() : s.submenuSuffix.c_str();
+			return Pick(s.submenuSuffix, m_settings.submenuSuffix);
 		// Cursor row
 		case MenuStyle::NavColor:
-			return s.navColor.empty() ? m_settings.navColor.c_str() : s.navColor.c_str();
+			return Pick(s.navColor, m_settings.navColor);
 		case MenuStyle::Marker:
-			return s.marker.empty() ? m_settings.marker.c_str() : s.marker.c_str();
+			return Pick(s.marker, m_settings.marker);
 		case MenuStyle::HighlightText:
-			return (s.highlightText < 0 ? m_settings.highlightText : s.highlightText != 0) ? "1" : "0";
+			return PickBool(s.highlightText, m_settings.highlightText);
 		// Position counter
 		case MenuStyle::ShowCounter:
-			return (s.showCounter < 0 ? m_settings.showCounter : s.showCounter != 0) ? "1" : "0";
+			return PickBool(s.showCounter, m_settings.showCounter);
 		case MenuStyle::CounterColor:
-			return s.counterColor.empty() ? m_settings.counterColor.c_str() : s.counterColor.c_str();
+			return Pick(s.counterColor, m_settings.counterColor);
 		case MenuStyle::CounterSize:
-			return s.counterSize.empty() ? m_settings.counterSize.c_str() : s.counterSize.c_str();
+			return Pick(s.counterSize, m_settings.counterSize);
 		case MenuStyle::CounterFormat:
-			return s.counterFormat.empty() ? m_settings.counterFormat.c_str() : s.counterFormat.c_str();
+			return Pick(s.counterFormat, m_settings.counterFormat);
 		// Key-hint footer
 		case MenuStyle::ShowFooter:
-			return (s.showFooter < 0 ? m_settings.showFooter : s.showFooter != 0) ? "1" : "0";
+			return PickBool(s.showFooter, m_settings.showFooter);
 		case MenuStyle::FooterColor:
-			return s.footerColor.empty() ? m_settings.footerColor.c_str() : s.footerColor.c_str();
+			return Pick(s.footerColor, m_settings.footerColor);
 		case MenuStyle::FooterSize:
-			return s.footerSize.empty() ? m_settings.footerSize.c_str() : s.footerSize.c_str();
+			return Pick(s.footerSize, m_settings.footerSize);
 		case MenuStyle::FooterSeparator:
-			return s.footerSeparator.empty() ? m_settings.footerSeparator.c_str() : s.footerSeparator.c_str();
+			return Pick(s.footerSeparator, m_settings.footerSeparator);
 		case MenuStyle::FooterHintFormat:
-			return s.footerHintFormat.empty() ? m_settings.footerHintFormat.c_str() : s.footerHintFormat.c_str();
+			return Pick(s.footerHintFormat, m_settings.footerHintFormat);
 		case MenuStyle::FooterRangeFormat:
-			return s.footerRangeFormat.empty() ? m_settings.footerRangeFormat.c_str() : s.footerRangeFormat.c_str();
+			return Pick(s.footerRangeFormat, m_settings.footerRangeFormat);
 		// Panorama
 		case MenuStyle::PagePrefixDelimiter:
 		{
@@ -601,14 +623,14 @@ const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 		}
 		// Value items
 		case MenuStyle::ValueFormat:
-			return s.valueFormat.empty() ? m_settings.valueFormat.c_str() : s.valueFormat.c_str();
+			return Pick(s.valueFormat, m_settings.valueFormat);
 		case MenuStyle::EditFormat:
-			return s.editFormat.empty() ? m_settings.editFormat.c_str() : s.editFormat.c_str();
+			return Pick(s.editFormat, m_settings.editFormat);
 		// Sections
 		case MenuStyle::SectionFormat:
-			return s.sectionFormat.empty() ? m_settings.sectionFormat.c_str() : s.sectionFormat.c_str();
+			return Pick(s.sectionFormat, m_settings.sectionFormat);
 		case MenuStyle::SectionColor:
-			return s.sectionColor.empty() ? m_settings.sectionColor.c_str() : s.sectionColor.c_str();
+			return Pick(s.sectionColor, m_settings.sectionColor);
 	}
 	return "";
 }

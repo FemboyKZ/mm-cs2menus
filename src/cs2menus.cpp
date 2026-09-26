@@ -18,6 +18,7 @@
 #include "utils/html_style.h"
 #include "utils/print_utils.h"
 #include "mmu/cvarquery.h"
+#include "mmu/interface_bridge.h"
 #include "mmu/log.h"
 #include "mmu/print.h"
 #include "mmu/str_utils.h"
@@ -45,7 +46,7 @@ IServerGameClients *g_pGameClients = nullptr;
 IVEngineServer *g_pEngine = nullptr;
 ICvar *g_pICvar = nullptr;
 IGameEventSystem *g_pGameEventSystem = nullptr;
-static IMultiAddonManager *s_pMultiAddonManager = nullptr;
+static mmu::InterfaceBridge<IMultiAddonManager> s_multiAddonManager(MULTIADDONMANAGER_INTERFACE);
 
 // Language key for the player in `slot`, mapped from their cl_language.
 // Empty string when unavailable, which makes Translate use the default language.
@@ -509,8 +510,12 @@ void *CS2MenusPlugin::OnMetamodQuery(const char *iface, int *ret)
 	return nullptr;
 }
 
-static MenuType ParseMenuType(const std::string &name)
+static MenuType ParseMenuType(const std::string &name, MenuType fallback = MenuType::Chat)
 {
+	if (name == "chat")
+	{
+		return MenuType::Chat;
+	}
 	if (name == "html")
 	{
 		return MenuType::Html;
@@ -519,7 +524,7 @@ static MenuType ParseMenuType(const std::string &name)
 	{
 		return MenuType::Panorama;
 	}
-	return MenuType::Chat; // "chat" and any unknown value
+	return fallback;
 }
 
 // Map a config key name (canonical or alias) to its IN_* button mask. Returns 0 for unknown names.
@@ -544,6 +549,43 @@ static std::string NavKeyLabel(const std::string &name)
 		c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
 	}
 	return label;
+}
+
+struct NavCommand
+{
+	MenuNavAction action;
+	const char *name;
+};
+
+// Console and chat nav command bodies. The first entry per action is its admin_overrides.cfg key.
+constexpr NavCommand kNavCommands[] = {
+	{MenuNavAction::Up, "menu_up"},      {MenuNavAction::Down, "menu_down"}, {MenuNavAction::Select, "menu_select"},
+	{MenuNavAction::Back, "menu_close"}, {MenuNavAction::Back, "menu_exit"}, {MenuNavAction::Back, "menu_back"},
+};
+
+static bool MatchMenuNavBody(const char *body, MenuNavAction &action)
+{
+	for (const NavCommand &nav : kNavCommands)
+	{
+		if (!strcmp(body, nav.name))
+		{
+			action = nav.action;
+			return true;
+		}
+	}
+	return false;
+}
+
+static const char *NavCommandName(MenuNavAction action)
+{
+	for (const NavCommand &nav : kNavCommands)
+	{
+		if (nav.action == action)
+		{
+			return nav.name;
+		}
+	}
+	return "menu_close";
 }
 
 // True if the pawn button schema fields resolve. If any fails, HTML menus
@@ -594,31 +636,12 @@ static void ApplyHexColor(const char *key, const std::string &value, std::string
 	MMU_LOG_WARN("%s \"%s\" is not a #RRGGBB or #RRGGBBAA color, keeping %s.\n", key, value.c_str(), target.c_str());
 }
 
-// Resolve a chat color name to its client control byte (see CHAT_COLOR_* in common.h).
 // Chat has only the fixed client palette, so colors are names, not hex.
-// Names match common.h. Unknown names return `fallback` so a typo keeps the built-in color.
+// Unknown names return `fallback` so a typo keeps the built-in color.
 static std::string ChatColorByte(const std::string &name, const char *fallback)
 {
-	struct Entry
-	{
-		const char *name;
-		const char *code;
-	};
-
-	static const Entry kColors[] = {
-		{"default", CHAT_COLOR_DEFAULT}, {"darkred", CHAT_COLOR_DARKRED},   {"purple", CHAT_COLOR_PURPLE},     {"green", CHAT_COLOR_GREEN},
-		{"olive", CHAT_COLOR_OLIVE},     {"lime", CHAT_COLOR_LIME},         {"red", CHAT_COLOR_RED},           {"grey", CHAT_COLOR_GREY},
-		{"yellow", CHAT_COLOR_YELLOW},   {"bluegrey", CHAT_COLOR_BLUEGREY}, {"blue", CHAT_COLOR_BLUE},         {"darkblue", CHAT_COLOR_DARKBLUE},
-		{"grey2", CHAT_COLOR_GREY2},     {"orchid", CHAT_COLOR_ORCHID},     {"lightred", CHAT_COLOR_LIGHTRED}, {"gold", CHAT_COLOR_GOLD},
-	};
-	for (const Entry &e : kColors)
-	{
-		if (name == e.name)
-		{
-			return e.code;
-		}
-	}
-	return fallback;
+	const char *code = mmu::ChatColorByName(name);
+	return code ? code : fallback;
 }
 
 // Keep in step with workshop/panorama/styles/custom_game/cs2menus/fonts.css.
@@ -643,11 +666,11 @@ static void MountPanoramaAddon()
 {
 	static std::string s_mounted;
 	const MenuPanoramaCfg &p = g_MenusConfig.panorama;
-	if (!s_pMultiAddonManager || !p.mountAddon || p.workshopId.empty() || s_mounted == p.workshopId)
+	if (!s_multiAddonManager || !p.mountAddon || p.workshopId.empty() || s_mounted == p.workshopId)
 	{
 		return;
 	}
-	if (!s_pMultiAddonManager->AddAddon(p.workshopId.c_str(), true))
+	if (!s_multiAddonManager->AddAddon(p.workshopId.c_str(), true))
 	{
 		return;
 	}
@@ -804,13 +827,23 @@ static void LoadAndApplyConfig()
 	g_MenuManager.SetLanguageResolver([](int slot) { return SlotLanguage(slot); });
 }
 
+// Tells the player when they lack access.
+static bool RequireAccess(int slot, const char *commandName, uint32_t defaultFlag)
+{
+	if (MENU_AdminBridge_CanUseCommand(slot, commandName, defaultFlag))
+	{
+		return true;
+	}
+	MENU_PrintToChat(slot, "You don't have permission to use this command.");
+	return false;
+}
+
 // Server console / rcon command to reapply core.cfg without waiting for a map change.
 CON_COMMAND_F(cs2menus_reload, "Reload cs2menus core.cfg and re-probe HTML availability.", FCVAR_RELEASE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!MENU_AdminBridge_CanUseCommand(slot, "cs2menus_reload", CS2ADMIN_FLAG_ROOT))
+	if (!RequireAccess(slot, "cs2menus_reload", CS2ADMIN_FLAG_ROOT))
 	{
-		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
 	LoadAndApplyConfig();
@@ -821,9 +854,8 @@ CON_COMMAND_F(cs2menus_reload, "Reload cs2menus core.cfg and re-probe HTML avail
 CON_COMMAND_F(cs2menus_version, "Print the cs2menus plugin and menu-API interface versions.", FCVAR_RELEASE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!MENU_AdminBridge_CanUseCommand(slot, "cs2menus_version", CS2ADMIN_FLAG_ROOT))
+	if (!RequireAccess(slot, "cs2menus_version", CS2ADMIN_FLAG_ROOT))
 	{
-		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
 	MMU_LOG_INFO("Plugin version %s, interface %s.\n", PLUGIN_FULL_VERSION, CS2MENUS_INTERFACE);
@@ -833,14 +865,13 @@ CON_COMMAND_F(cs2menus_panorama_diag, "Print panorama menu status: signatures, a
 			  FCVAR_RELEASE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!MENU_AdminBridge_CanUseCommand(slot, "cs2menus_panorama_diag", CS2ADMIN_FLAG_ROOT))
+	if (!RequireAccess(slot, "cs2menus_panorama_diag", CS2ADMIN_FLAG_ROOT))
 	{
-		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
 	const MenuPanoramaCfg &p = g_MenusConfig.panorama;
 	char header[256];
-	snprintf(header, sizeof(header), "MultiAddonManager: %s, WorkshopId \"%s\", MountAddon %d\n", s_pMultiAddonManager ? "loaded" : "not loaded",
+	snprintf(header, sizeof(header), "MultiAddonManager: %s, WorkshopId \"%s\", MountAddon %d\n", s_multiAddonManager ? "loaded" : "not loaded",
 			 p.workshopId.c_str(), p.mountAddon ? 1 : 0);
 	const std::string text = header + panorama_hud::Describe();
 	// Line by line, a whole server's worth of windows can outgrow one console message.
@@ -870,9 +901,8 @@ CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_de
 	{
 		return;
 	}
-	if (!MENU_AdminBridge_CanUseCommand(slot, "cs2menus_demo", CS2ADMIN_FLAG_ROOT))
+	if (!RequireAccess(slot, "cs2menus_demo", CS2ADMIN_FLAG_ROOT))
 	{
-		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
 	const bool forced = args.ArgC() > 1;
@@ -969,47 +999,43 @@ CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_de
 namespace
 {
 	// One slot's chosen preference names. Empty string = no preference (server default).
+	constexpr int kNavActionCount = static_cast<int>(MenuNavAction::Back) + 1;
+
 	struct SlotPrefs
 	{
 		uint64_t xuid = 0;
-		std::string type; // "", "chat", "html", "panorama"
-		std::string up;   // key names, "" / "default" / "none" / "w" / ...
-		std::string down;
-		std::string select;
-		std::string back;
+		std::string type;                  // "", "chat", "html", "panorama"
+		std::string keys[kNavActionCount]; // by MenuNavAction, "" / "default" / "none" / "w" / ...
 	};
+
+	void PrefsFromRow(SlotPrefs &p, const MenuPrefsRow &row)
+	{
+		p.type = row.type;
+		p.keys[0] = row.keyUp;
+		p.keys[1] = row.keyDown;
+		p.keys[2] = row.keySelect;
+		p.keys[3] = row.keyBack;
+	}
+
+	MenuPrefsRow RowFromPrefs(const SlotPrefs &p)
+	{
+		MenuPrefsRow row;
+		row.type = p.type;
+		row.keyUp = p.keys[0];
+		row.keyDown = p.keys[1];
+		row.keySelect = p.keys[2];
+		row.keyBack = p.keys[3];
+		return row;
+	}
 
 	SlotPrefs s_prefs[MAXPLAYERS + 1];
 	// The slot's open preference menu, so commands can refresh its rows live. 0 = none.
 	MenuHandle s_prefsMenu[MAXPLAYERS + 1] = {};
 
-	bool ParseNavActionName(const char *name, MenuNavAction &out)
+	// "up", "down", "select", or "back" and its aliases.
+	bool ParseNavActionName(const std::string &name, MenuNavAction &out)
 	{
-		if (!name)
-		{
-			return false;
-		}
-		if (!strcmp(name, "up"))
-		{
-			out = MenuNavAction::Up;
-			return true;
-		}
-		if (!strcmp(name, "down"))
-		{
-			out = MenuNavAction::Down;
-			return true;
-		}
-		if (!strcmp(name, "select"))
-		{
-			out = MenuNavAction::Select;
-			return true;
-		}
-		if (!strcmp(name, "back") || !strcmp(name, "exit"))
-		{
-			out = MenuNavAction::Back;
-			return true;
-		}
-		return false;
+		return MatchMenuNavBody(("menu_" + name).c_str(), out);
 	}
 
 	// Human-readable label for a stored key name.
@@ -1071,24 +1097,11 @@ namespace
 	void ApplyPrefsToManager(int slot)
 	{
 		const SlotPrefs &p = s_prefs[slot];
-		MenuType type = MenuType::Default;
-		if (p.type == "chat")
+		g_MenuManager.SetPlayerTypePref(slot, ParseMenuType(p.type, MenuType::Default));
+		for (int action = 0; action < kNavActionCount; action++)
 		{
-			type = MenuType::Chat;
+			ApplyOneNav(slot, static_cast<MenuNavAction>(action), p.keys[action]);
 		}
-		else if (p.type == "html")
-		{
-			type = MenuType::Html;
-		}
-		else if (p.type == "panorama")
-		{
-			type = MenuType::Panorama;
-		}
-		g_MenuManager.SetPlayerTypePref(slot, type);
-		ApplyOneNav(slot, MenuNavAction::Up, p.up);
-		ApplyOneNav(slot, MenuNavAction::Down, p.down);
-		ApplyOneNav(slot, MenuNavAction::Select, p.select);
-		ApplyOneNav(slot, MenuNavAction::Back, p.back);
 	}
 
 	// Persist a slot's current preference names to the database.
@@ -1098,13 +1111,7 @@ namespace
 		{
 			return;
 		}
-		MenuPrefsRow row;
-		row.type = s_prefs[slot].type;
-		row.keyUp = s_prefs[slot].up;
-		row.keyDown = s_prefs[slot].down;
-		row.keySelect = s_prefs[slot].select;
-		row.keyBack = s_prefs[slot].back;
-		g_MenuPrefsDB.SavePrefs(s_prefs[slot].xuid, row);
+		g_MenuPrefsDB.SavePrefs(s_prefs[slot].xuid, RowFromPrefs(s_prefs[slot]));
 	}
 
 	// Type names behind the open prefs menu's style options. Built at open, availability can change.
@@ -1143,14 +1150,9 @@ namespace
 		return 0;
 	}
 
-	enum PrefsRow
-	{
-		kPrefsType,
-		kPrefsUp,
-		kPrefsDown,
-		kPrefsSelect,
-		kPrefsBack,
-	};
+	// Menu rows: the style, then one key row per MenuNavAction.
+	constexpr int kPrefsType = 0;
+	constexpr int kPrefsFirstKey = 1;
 
 	// Syncs the slot's open prefs menu with its stored names.
 	void RefreshPrefsItems(int slot)
@@ -1162,35 +1164,27 @@ namespace
 		}
 		const SlotPrefs &p = s_prefs[slot];
 		g_MenuManager.SetItemValue(menu, kPrefsType, TypeOptionIndex(slot, p.type));
-		g_MenuManager.SetItemValue(menu, kPrefsUp, KeyOptionIndex(p.up));
-		g_MenuManager.SetItemValue(menu, kPrefsDown, KeyOptionIndex(p.down));
-		g_MenuManager.SetItemValue(menu, kPrefsSelect, KeyOptionIndex(p.select));
-		g_MenuManager.SetItemValue(menu, kPrefsBack, KeyOptionIndex(p.back));
+		for (int action = 0; action < kNavActionCount; action++)
+		{
+			g_MenuManager.SetItemValue(menu, kPrefsFirstKey + action, KeyOptionIndex(p.keys[action]));
+		}
 	}
 
 	// Saved at once but applied on close, since HTML edits key rows with the very nav keys being rebound.
 	void OnPrefsChange(MenuHandle /*menu*/, int slot, int item, int value)
 	{
 		SlotPrefs &p = s_prefs[slot];
-		switch (item)
+		if (item == kPrefsType)
 		{
-			case kPrefsType:
-				p.type = value < static_cast<int>(s_prefsTypes[slot].size()) ? s_prefsTypes[slot][value] : std::string();
-				break;
-			case kPrefsUp:
-				p.up = KeyOptionName(value);
-				break;
-			case kPrefsDown:
-				p.down = KeyOptionName(value);
-				break;
-			case kPrefsSelect:
-				p.select = KeyOptionName(value);
-				break;
-			case kPrefsBack:
-				p.back = KeyOptionName(value);
-				break;
-			default:
-				return;
+			p.type = value < static_cast<int>(s_prefsTypes[slot].size()) ? s_prefsTypes[slot][value] : std::string();
+		}
+		else if (item >= kPrefsFirstKey && item < kPrefsFirstKey + kNavActionCount)
+		{
+			p.keys[item - kPrefsFirstKey] = KeyOptionName(value);
+		}
+		else
+		{
+			return;
 		}
 		SaveSlotPrefs(slot);
 	}
@@ -1316,11 +1310,7 @@ namespace
 									{
 										return;
 									}
-									s_prefs[slot].type = row.type;
-									s_prefs[slot].up = row.keyUp;
-									s_prefs[slot].down = row.keyDown;
-									s_prefs[slot].select = row.keySelect;
-									s_prefs[slot].back = row.keyBack;
+									PrefsFromRow(s_prefs[slot], row);
 									ApplyPrefsToManager(slot);
 								});
 	}
@@ -1334,9 +1324,8 @@ CON_COMMAND_F(mm_menu_prefs, "Open your personal menu-preferences menu.", FCVAR_
 	{
 		return;
 	}
-	if (!MENU_AdminBridge_CanUseCommand(slot, "menu_prefs", 0))
+	if (!RequireAccess(slot, "menu_prefs", 0))
 	{
-		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
 	OpenPrefsMenu(slot);
@@ -1349,9 +1338,8 @@ CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | panora
 	{
 		return;
 	}
-	if (!MENU_AdminBridge_CanUseCommand(slot, "pref_type", 0))
+	if (!RequireAccess(slot, "pref_type", 0))
 	{
-		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
 	if (!RequirePrefsDB(slot))
@@ -1387,9 +1375,8 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 	{
 		return;
 	}
-	if (!MENU_AdminBridge_CanUseCommand(slot, "pref_key", 0))
+	if (!RequireAccess(slot, "pref_key", 0))
 	{
-		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
 	if (args.ArgC() < 3)
@@ -1406,7 +1393,7 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 	str::ToLowerInPlace(actionName);
 	str::ToLowerInPlace(keyName);
 	MenuNavAction action;
-	if (!ParseNavActionName(actionName.c_str(), action))
+	if (!ParseNavActionName(actionName, action))
 	{
 		MENU_PrintToChat(slot, "Unknown action. Use up, down, select or back.");
 		return;
@@ -1417,21 +1404,7 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 		MENU_PrintToChat(slot, "Unknown key \"%s\".", keyName.c_str());
 		return;
 	}
-	switch (action)
-	{
-		case MenuNavAction::Up:
-			s_prefs[slot].up = keyName;
-			break;
-		case MenuNavAction::Down:
-			s_prefs[slot].down = keyName;
-			break;
-		case MenuNavAction::Select:
-			s_prefs[slot].select = keyName;
-			break;
-		default:
-			s_prefs[slot].back = keyName;
-			break;
-	}
+	s_prefs[slot].keys[static_cast<int>(action)] = keyName;
 	ApplyPrefsToManager(slot);
 	SaveSlotPrefs(slot);
 	RefreshPrefsItems(slot);
@@ -1445,9 +1418,8 @@ CON_COMMAND_F(mm_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_
 	{
 		return;
 	}
-	if (!MENU_AdminBridge_CanUseCommand(slot, "pref_show", 0))
+	if (!RequireAccess(slot, "pref_show", 0))
 	{
-		MENU_PrintToChat(slot, "You don't have permission to use this command.");
 		return;
 	}
 	if (!RequirePrefsDB(slot))
@@ -1455,8 +1427,8 @@ CON_COMMAND_F(mm_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_
 		return;
 	}
 	const SlotPrefs &p = s_prefs[slot];
-	MENU_PrintToChat(slot, "Style: %s | Up: %s | Down: %s | Select: %s | Back: %s", TypeDisplay(p.type).c_str(), KeyDisplay(p.up).c_str(),
-					 KeyDisplay(p.down).c_str(), KeyDisplay(p.select).c_str(), KeyDisplay(p.back).c_str());
+	MENU_PrintToChat(slot, "Style: %s | Up: %s | Down: %s | Select: %s | Back: %s", TypeDisplay(p.type).c_str(), KeyDisplay(p.keys[0]).c_str(),
+					 KeyDisplay(p.keys[1]).c_str(), KeyDisplay(p.keys[2]).c_str(), KeyDisplay(p.keys[3]).c_str());
 }
 
 // Console has no chat, so it gets the server log.
@@ -1703,7 +1675,7 @@ void CS2MenusPlugin::AllPluginsLoaded()
 {
 	// Resolve mm-cs2admin so admin_overrides.cfg can gate our commands.
 	MENU_AdminBridge_Init();
-	s_pMultiAddonManager = static_cast<IMultiAddonManager *>(g_SMAPI->MetaFactory(MULTIADDONMANAGER_INTERFACE, nullptr, nullptr));
+	s_multiAddonManager.Refresh();
 
 	// Per-player preferences are opt-in and need sql_mm, which must be fully loaded by now.
 	if (!g_MenusConfig.databaseEnabled)
@@ -1737,13 +1709,13 @@ void CS2MenusPlugin::AllPluginsLoaded()
 void CS2MenusPlugin::OnPluginLoad(PluginId /*id*/)
 {
 	MENU_AdminBridge_Refresh();
-	s_pMultiAddonManager = static_cast<IMultiAddonManager *>(g_SMAPI->MetaFactory(MULTIADDONMANAGER_INTERFACE, nullptr, nullptr));
+	s_multiAddonManager.Refresh();
 }
 
 void CS2MenusPlugin::OnPluginUnload(PluginId /*id*/)
 {
 	MENU_AdminBridge_Refresh();
-	s_pMultiAddonManager = static_cast<IMultiAddonManager *>(g_SMAPI->MetaFactory(MULTIADDONMANAGER_INTERFACE, nullptr, nullptr));
+	s_multiAddonManager.Refresh();
 }
 
 bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
@@ -1886,32 +1858,6 @@ KHook::Return<void> CS2MenusPlugin::Hook_CheckTransmit(ISource2GameEntities *, C
 {
 	panorama_hud::OnCheckTransmit(pInfo, infoCount);
 	return {KHook::Action::Ignore};
-}
-
-// Map a bare command body to a nav action. "menu_close" also answers to exit/back.
-static bool MatchMenuNavBody(const char *body, MenuNavAction &action)
-{
-	if (!strcmp(body, "menu_up"))
-	{
-		action = MenuNavAction::Up;
-		return true;
-	}
-	if (!strcmp(body, "menu_down"))
-	{
-		action = MenuNavAction::Down;
-		return true;
-	}
-	if (!strcmp(body, "menu_select"))
-	{
-		action = MenuNavAction::Select;
-		return true;
-	}
-	if (!strcmp(body, "menu_close") || !strcmp(body, "menu_exit") || !strcmp(body, "menu_back"))
-	{
-		action = MenuNavAction::Back;
-		return true;
-	}
-	return false;
 }
 
 // Strip CS2's outer quotes and surrounding whitespace from a say message,
@@ -2122,23 +2068,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_DispatchConCommand(ICvar *, ConCommandR
 	if (ParseChatMenuNav(rawMsg, navAction, navNumber, navSilent))
 	{
 		// Match the override key to the equivalent console nav command.
-		const char *navCmd = "menu_close";
-		switch (navAction)
-		{
-			case MenuNavAction::Up:
-				navCmd = "menu_up";
-				break;
-			case MenuNavAction::Down:
-				navCmd = "menu_down";
-				break;
-			case MenuNavAction::Select:
-				navCmd = "menu_select";
-				break;
-			default:
-				navCmd = "menu_close";
-				break;
-		}
-		if (!MENU_AdminBridge_CanUseCommand(slot, navCmd, 0))
+		if (!MENU_AdminBridge_CanUseCommand(slot, NavCommandName(navAction), 0))
 		{
 			return {navSilent ? KHook::Action::Supersede : KHook::Action::Ignore};
 		}

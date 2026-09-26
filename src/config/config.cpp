@@ -37,13 +37,9 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.defaultLanguage = ToLower(value);
 		}
-		else if (k == "logtofile")
+		else if (mmu::config::ApplyLogKey(cfg->log, k, value))
 		{
-			cfg->log.toFile = (value != "0");
-		}
-		else if (k == "logretentiondays")
-		{
-			cfg->log.retentionDays = std::atoi(value.c_str());
+			// consumed
 		}
 		else if (k == "exitbutton")
 		{
