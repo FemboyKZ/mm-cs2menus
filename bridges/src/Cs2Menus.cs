@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -16,7 +17,13 @@ public enum MenuButton
 
 public enum MenuNavAction { Up = 0, Down = 1, Select = 2, Back = 3 }
 
-public enum MenuLabel { Exit = 0, NextPage = 1, PrevPage = 2, Move = 3, Scroll = 4, Select = 5 }
+public enum MenuLabel { Exit = 0, NextPage = 1, PrevPage = 2, Move = 3, Scroll = 4, Select = 5, On = 6, Off = 7, Adjust = 8, Done = 9 }
+
+/// <summary>What an item does when picked. See <see cref="Cs2Menu.AddToggle"/>, <see cref="Cs2Menu.AddStepper"/> and <see cref="Cs2Menu.AddChoice"/>.</summary>
+public enum MenuItemType { Normal = 0, Toggle, Stepper, Choice }
+
+/// <summary>How panorama lays a menu out. Chat and HTML menus are always lists.</summary>
+public enum MenuLayout { List = 0, Grid }
 
 /// <summary>
 /// Per-menu HTML style fields settable via <see cref="Cs2Menu.SetMenuStyle"/>.
@@ -54,7 +61,13 @@ public enum MenuStyle
 	FooterSeparator,
 	FooterHintFormat,
 	FooterRangeFormat,
-	PagePrefixDelimiter
+	PagePrefixDelimiter,
+	// Value items
+	ValueFormat,
+	EditFormat,
+	// Sections
+	SectionFormat,
+	SectionColor
 }
 
 /// <summary>
@@ -74,6 +87,12 @@ public sealed partial class Cs2MenusBridge : IDisposable
 
 	/// <summary>True if cs2menus has been loaded and its API is reachable.</summary>
 	public bool Available => Cs2MenusNative.Loaded && Cs2MenusNative.Available() != 0;
+
+	/// <summary>
+	/// True if the loaded cs2menus has value items, sections and grids.
+	/// Without them those <see cref="Cs2Menu"/> methods throw <see cref="NotSupportedException"/>, and their getters return defaults.
+	/// </summary>
+	public bool SupportsValueItemsAndGrids => Cs2MenusNative.Supports004;
 
 	/// <summary>
 	/// Resolve the cs2menus binary at an absolute path. Safe to call repeatedly, loads once.
@@ -144,6 +163,7 @@ public sealed partial class Cs2MenusBridge : IDisposable
 			}
 			menu.Bind(handle);
 			Cs2MenusNative.SetEndCallback(handle, (nint)(delegate* unmanaged[Cdecl]<uint, int, int, void*, void>)&Trampolines.OnEnd, menu.Token);
+			Cs2MenusNative.SetChangeCallback(handle, (nint)(delegate* unmanaged[Cdecl]<uint, int, int, int, void*, void>)&Trampolines.OnChange, menu.Token);
 		}
 
 		_menus[menu.Handle] = menu;
@@ -183,6 +203,12 @@ public sealed class Cs2Menu : IDisposable
 	internal Action<Cs2Menu, int, int>? OnSelectHandler { get; }
 	public event Action<Cs2Menu, int, MenuEndReason>? Ended;
 
+	/// <summary>
+	/// A player changed a toggle, stepper or choice: (menu, slot, item, value). The value is already stored on the item.
+	/// The menu stays open whatever <see cref="SetCloseOnSelect"/> says. <see cref="SetItemValue"/> inside the handler overrides the change.
+	/// </summary>
+	public event Action<Cs2Menu, int, int, int>? Changed;
+
 	public uint Handle { get; private set; }
 	internal unsafe void* Token => (void*)GCHandle.ToIntPtr(_self);
 
@@ -203,6 +229,7 @@ public sealed class Cs2Menu : IDisposable
 	}
 
 	internal void RaiseEnded(int slot, MenuEndReason reason) => Ended?.Invoke(this, slot, reason);
+	internal void RaiseChanged(int slot, int item, int value) => Changed?.Invoke(this, slot, item, value);
 
 	// --- Menu properties (chainable setters + paired getters) ---
 	public Cs2Menu SetTitle(string title) { Cs2MenusNative.SetTitle(Handle, title); return this; }
@@ -287,6 +314,41 @@ public sealed class Cs2Menu : IDisposable
 		return h != 0 ? _owner.Find(h) : null;
 	}
 
+	// --- Value items: they change in place and report through Changed, never the select callback ---
+	// The value belongs to the menu, like its text, so per-player settings need a menu per player.
+	// Each Add returns the new item's index, or -1.
+
+	public int AddToggle(string text, bool on, string info = "") => Cs2MenusNative.AddToggle(Handle, text, on, info);
+	/// <summary>An integer in [min, max] moved by step. min > max are swapped, a step below 1 becomes 1, and value is clamped.</summary>
+	public int AddStepper(string text, int value, int min, int max, int step = 1, string info = "") =>
+		Cs2MenusNative.AddStepper(Handle, text, value, min, max, step, info);
+	/// <summary>One of <paramref name="options"/>. The value is the selected option's index.</summary>
+	public int AddChoice(string text, IReadOnlyList<string> options, int selected = 0, string info = "") =>
+		Cs2MenusNative.AddChoice(Handle, text, options, selected, info);
+	public MenuItemType GetItemType(int item) => (MenuItemType)Cs2MenusNative.GetItemType(Handle, item);
+	/// <summary>Toggle 0/1, stepper value, choice index. Clamped, re-renders viewers, doesn't raise <see cref="Changed"/>.</summary>
+	public void SetItemValue(int item, int value) => Cs2MenusNative.SetItemValue(Handle, item, value);
+	public int GetItemValue(int item) => Cs2MenusNative.GetItemValue(Handle, item);
+
+	// --- Sections and grids ---
+
+	/// <summary>
+	/// Group the items added after this, until the next section. Panorama shows sections as the list's left column or the grid's tabs,
+	/// chat and HTML as a header line above each. Returns the section's index, or -1.
+	/// </summary>
+	public int AddSection(string name) => Cs2MenusNative.AddSection(Handle, name);
+	/// <summary>The item's section index, or -1 for none.</summary>
+	public int GetItemSection(int item) => Cs2MenusNative.GetItemSection(Handle, item);
+	/// <summary>Panorama only: rows or image tiles. Grid falls back to List when the addon has no grid layout.</summary>
+	public Cs2Menu SetLayout(MenuLayout layout) { Cs2MenusNative.SetMenuLayout(Handle, (int)layout); return this; }
+	public MenuLayout Layout => (MenuLayout)Cs2MenusNative.GetMenuLayout(Handle);
+	/// <summary>Grid tile image: an icon name from the game's panorama/images/icons/equipment, like "ak47". "" removes it.</summary>
+	public void SetItemImage(int item, string image) => Cs2MenusNative.SetItemImage(Handle, item, image);
+	public string GetItemImage(int item) => Cs2MenusNative.GetItemImage(Handle, item);
+	/// <summary>Secondary text, like a price. A value item shows its value instead.</summary>
+	public void SetItemSubtext(int item, string subtext) => Cs2MenusNative.SetItemSubtext(Handle, item, subtext);
+	public string GetItemSubtext(int item) => Cs2MenusNative.GetItemSubtext(Handle, item);
+
 	// --- Display ---
 	public bool Display(int slot, float duration = 0f) => Cs2MenusNative.Display(Handle, slot, duration);
 	public void DisplayToAll(float duration = 0f) => Cs2MenusNative.DisplayToAll(Handle, duration);
@@ -348,6 +410,23 @@ internal static unsafe class Trampolines
 		try
 		{
 			m.RaiseEnded(slot, (MenuEndReason)reason);
+		}
+		catch
+		{
+		}
+	}
+
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	public static void OnChange(uint menu, int slot, int item, int value, void* user)
+	{
+		var m = Resolve(user);
+		if (m is null)
+		{
+			return;
+		}
+		try
+		{
+			m.RaiseChanged(slot, item, value);
 		}
 		catch
 		{

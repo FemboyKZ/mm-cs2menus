@@ -1,4 +1,4 @@
-// Flat C ABI over ICS2Menus003 for managed hosts (SwiftlyS2, CounterStrikeSharp).
+// Flat C ABI over ICS2Menus004 for managed hosts (SwiftlyS2, CounterStrikeSharp).
 // See src/public/cs2menus_capi.h for the contract.
 
 #define CS2MENUS_EXPORTS
@@ -7,7 +7,7 @@
 
 #include <cstring>
 
-// Defined in cs2menus.cpp: the singleton ICS2Menus003 implementation.
+// Defined in cs2menus.cpp: the singleton ICS2Menus004 implementation.
 // Routing through it inherits the curtime stamping and off-thread queueing the interface wrapper already does.
 extern ICS2Menus *Cs2Menus_GetLocalAPI();
 
@@ -324,4 +324,90 @@ CS2M_API void CS2M_CALL cs2m_set_external_busy(int slot, int busy)
 CS2M_API int CS2M_CALL cs2m_get_external_busy(int slot)
 {
 	return API()->GetExternalBusy(slot) ? 1 : 0;
+}
+
+// --- Value items ---
+
+CS2M_API int CS2M_CALL cs2m_add_toggle(cs2m_handle menu, const char *text, int on, const char *info)
+{
+	return API()->AddToggle(menu, text ? text : "", on != 0, info ? info : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_add_stepper(cs2m_handle menu, const char *text, int value, int min, int max, int step, const char *info)
+{
+	return API()->AddStepper(menu, text ? text : "", value, min, max, step, info ? info : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_add_choice(cs2m_handle menu, const char *text, const char *const *options, int count, int selected, const char *info)
+{
+	return API()->AddChoice(menu, text ? text : "", options, options ? count : 0, selected, info ? info : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_type(cs2m_handle menu, int item)
+{
+	return static_cast<int>(API()->GetItemType(menu, item));
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_value(cs2m_handle menu, int item, int value)
+{
+	API()->SetItemValue(menu, item, value);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_value(cs2m_handle menu, int item)
+{
+	return API()->GetItemValue(menu, item);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_change_callback(cs2m_handle menu, cs2m_change_cb on_change, void *user)
+{
+	MenuItemChangeFn fn;
+	if (on_change)
+	{
+		fn = [on_change, user](MenuHandle m, int slot, int item, int value) { on_change(m, slot, item, value, user); };
+	}
+	API()->SetMenuChangeCallback(menu, std::move(fn));
+}
+
+// --- Sections and grids ---
+
+CS2M_API int CS2M_CALL cs2m_add_section(cs2m_handle menu, const char *name)
+{
+	return API()->AddSection(menu, name ? name : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_section(cs2m_handle menu, int item)
+{
+	return API()->GetItemSection(menu, item);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_menu_layout(cs2m_handle menu, int layout)
+{
+	API()->SetMenuLayout(menu, static_cast<MenuLayout>(layout));
+}
+
+CS2M_API int CS2M_CALL cs2m_get_menu_layout(cs2m_handle menu)
+{
+	return static_cast<int>(API()->GetMenuLayout(menu));
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_image(cs2m_handle menu, int item, const char *image)
+{
+	API()->SetItemImage(menu, item, image ? image : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_image(cs2m_handle menu, int item, char *buf, int buflen)
+{
+	// Copy immediately: the returned pointer aliases live menu storage.
+	return CopyOut(API()->GetItemImage(menu, item), buf, buflen);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_subtext(cs2m_handle menu, int item, const char *subtext)
+{
+	API()->SetItemSubtext(menu, item, subtext ? subtext : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_subtext(cs2m_handle menu, int item, char *buf, int buflen)
+{
+	// Copy immediately: the returned pointer aliases live menu storage.
+	return CopyOut(API()->GetItemSubtext(menu, item), buf, buflen);
 }

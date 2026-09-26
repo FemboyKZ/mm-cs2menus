@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace Cs2Menus;
@@ -80,7 +81,29 @@ internal static unsafe class Cs2MenusNative
 	private static delegate* unmanaged[Cdecl]<int, int, void> _setExternalBusy;
 	private static delegate* unmanaged[Cdecl]<int, int> _getExternalBusy;
 
+	// Value items
+	private static delegate* unmanaged[Cdecl]<uint, byte*, int, byte*, int> _addToggle;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, int, int, int, int, byte*, int> _addStepper;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, nint*, int, int, byte*, int> _addChoice;
+	private static delegate* unmanaged[Cdecl]<uint, int, int> _getItemType;
+	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemValue;
+	private static delegate* unmanaged[Cdecl]<uint, int, int> _getItemValue;
+	private static delegate* unmanaged[Cdecl]<uint, nint, void*, void> _setChangeCallback;
+
+	// Sections and grids
+	private static delegate* unmanaged[Cdecl]<uint, byte*, int> _addSection;
+	private static delegate* unmanaged[Cdecl]<uint, int, int> _getItemSection;
+	private static delegate* unmanaged[Cdecl]<uint, int, void> _setMenuLayout;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getMenuLayout;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setItemImage;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getItemImage;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setItemSubtext;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getItemSubtext;
+
 	public static bool Loaded { get; private set; }
+
+	/// <summary>True when the loaded cs2menus exports the ICS2Menus004 additions (value items, sections, grids).</summary>
+	public static bool Supports004 { get; private set; }
 
 	/// <summary>
 	/// Resolve every export from the cs2menus binary at <paramref name="binaryPath"/>.
@@ -169,11 +192,56 @@ internal static unsafe class Cs2MenusNative
 			return false;
 		}
 
+		// Appended exports are optional, so an older cs2menus still loads without them.
+		if (TryGet(lib, "cs2m_add_toggle", out nint addToggle)
+			&& TryGet(lib, "cs2m_add_stepper", out nint addStepper)
+			&& TryGet(lib, "cs2m_add_choice", out nint addChoice)
+			&& TryGet(lib, "cs2m_get_item_type", out nint getItemType)
+			&& TryGet(lib, "cs2m_set_item_value", out nint setItemValue)
+			&& TryGet(lib, "cs2m_get_item_value", out nint getItemValue)
+			&& TryGet(lib, "cs2m_set_change_callback", out nint setChangeCallback)
+			&& TryGet(lib, "cs2m_add_section", out nint addSection)
+			&& TryGet(lib, "cs2m_get_item_section", out nint getItemSection)
+			&& TryGet(lib, "cs2m_set_menu_layout", out nint setMenuLayout)
+			&& TryGet(lib, "cs2m_get_menu_layout", out nint getMenuLayout)
+			&& TryGet(lib, "cs2m_set_item_image", out nint setItemImage)
+			&& TryGet(lib, "cs2m_get_item_image", out nint getItemImage)
+			&& TryGet(lib, "cs2m_set_item_subtext", out nint setItemSubtext)
+			&& TryGet(lib, "cs2m_get_item_subtext", out nint getItemSubtext))
+		{
+			Supports004 = true;
+			_addToggle = (delegate* unmanaged[Cdecl]<uint, byte*, int, byte*, int>)addToggle;
+			_addStepper = (delegate* unmanaged[Cdecl]<uint, byte*, int, int, int, int, byte*, int>)addStepper;
+			_addChoice = (delegate* unmanaged[Cdecl]<uint, byte*, nint*, int, int, byte*, int>)addChoice;
+			_getItemType = (delegate* unmanaged[Cdecl]<uint, int, int>)getItemType;
+			_setItemValue = (delegate* unmanaged[Cdecl]<uint, int, int, void>)setItemValue;
+			_getItemValue = (delegate* unmanaged[Cdecl]<uint, int, int>)getItemValue;
+			_setChangeCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)setChangeCallback;
+			_addSection = (delegate* unmanaged[Cdecl]<uint, byte*, int>)addSection;
+			_getItemSection = (delegate* unmanaged[Cdecl]<uint, int, int>)getItemSection;
+			_setMenuLayout = (delegate* unmanaged[Cdecl]<uint, int, void>)setMenuLayout;
+			_getMenuLayout = (delegate* unmanaged[Cdecl]<uint, int>)getMenuLayout;
+			_setItemImage = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)setItemImage;
+			_getItemImage = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)getItemImage;
+			_setItemSubtext = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)setItemSubtext;
+			_getItemSubtext = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)getItemSubtext;
+		}
+
 		Loaded = true;
 		return true;
 	}
 
 	private static nint Get(nint lib, string name) => NativeLibrary.GetExport(lib, name);
+
+	private static bool TryGet(nint lib, string name, out nint address) => NativeLibrary.TryGetExport(lib, name, out address);
+
+	private static void Require004()
+	{
+		if (!Supports004)
+		{
+			throw new NotSupportedException("The loaded cs2menus predates value items, sections and grids (ICS2Menus004). Update cs2menus.");
+		}
+	}
 
 	// --- Handshake ---
 	public static int Available() => _available();
@@ -299,6 +367,109 @@ internal static unsafe class Cs2MenusNative
 	// --- Host coordination ---
 	public static void SetExternalBusy(int slot, bool busy) => _setExternalBusy(slot, busy ? 1 : 0);
 	public static bool GetExternalBusy(int slot) => _getExternalBusy(slot) != 0;
+
+	// --- Value items ---
+	public static int AddToggle(uint menu, ReadOnlySpan<char> text, bool on, ReadOnlySpan<char> info)
+	{
+		Require004();
+		fixed (byte* t = Utf8(text))
+		fixed (byte* i = Utf8(info))
+		{
+			return _addToggle(menu, t, on ? 1 : 0, i);
+		}
+	}
+
+	public static int AddStepper(uint menu, ReadOnlySpan<char> text, int value, int min, int max, int step, ReadOnlySpan<char> info)
+	{
+		Require004();
+		fixed (byte* t = Utf8(text))
+		fixed (byte* i = Utf8(info))
+		{
+			return _addStepper(menu, t, value, min, max, step, i);
+		}
+	}
+
+	public static int AddChoice(uint menu, ReadOnlySpan<char> text, IReadOnlyList<string> options, int selected, ReadOnlySpan<char> info)
+	{
+		Require004();
+		// cs2menus copies the strings, so they only need to outlive the call.
+		nint[] pointers = new nint[options.Count];
+		try
+		{
+			for (int o = 0; o < options.Count; o++)
+			{
+				pointers[o] = Marshal.StringToCoTaskMemUTF8(options[o] ?? string.Empty);
+			}
+			fixed (byte* t = Utf8(text))
+			fixed (byte* i = Utf8(info))
+			fixed (nint* p = pointers)
+			{
+				return _addChoice(menu, t, p, pointers.Length, selected, i);
+			}
+		}
+		finally
+		{
+			foreach (nint pointer in pointers)
+			{
+				Marshal.FreeCoTaskMem(pointer);
+			}
+		}
+	}
+
+	public static int GetItemType(uint menu, int item) => Supports004 ? _getItemType(menu, item) : 0;
+
+	public static void SetItemValue(uint menu, int item, int value)
+	{
+		Require004();
+		_setItemValue(menu, item, value);
+	}
+
+	public static int GetItemValue(uint menu, int item) => Supports004 ? _getItemValue(menu, item) : 0;
+
+	// No-op on an older cs2menus, where no item can change.
+	public static void SetChangeCallback(uint menu, nint onChange, void* user)
+	{
+		if (Supports004)
+		{
+			_setChangeCallback(menu, onChange, user);
+		}
+	}
+
+	// --- Sections and grids ---
+	public static int AddSection(uint menu, ReadOnlySpan<char> name)
+	{
+		Require004();
+		fixed (byte* n = Utf8(name))
+		{
+			return _addSection(menu, n);
+		}
+	}
+
+	public static int GetItemSection(uint menu, int item) => Supports004 ? _getItemSection(menu, item) : -1;
+
+	public static void SetMenuLayout(uint menu, int layout)
+	{
+		Require004();
+		_setMenuLayout(menu, layout);
+	}
+
+	public static int GetMenuLayout(uint menu) => Supports004 ? _getMenuLayout(menu) : 0;
+
+	public static void SetItemImage(uint menu, int item, ReadOnlySpan<char> image)
+	{
+		Require004();
+		fixed (byte* i = Utf8(image)) _setItemImage(menu, item, i);
+	}
+
+	public static string GetItemImage(uint menu, int item) => Supports004 ? ReadString(_getItemImage, menu, item) : string.Empty;
+
+	public static void SetItemSubtext(uint menu, int item, ReadOnlySpan<char> subtext)
+	{
+		Require004();
+		fixed (byte* s = Utf8(subtext)) _setItemSubtext(menu, item, s);
+	}
+
+	public static string GetItemSubtext(uint menu, int item) => Supports004 ? ReadString(_getItemSubtext, menu, item) : string.Empty;
 
 	private static string ReadString(delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> fn, uint menu, int item)
 	{

@@ -1107,48 +1107,54 @@ namespace
 		g_MenuPrefsDB.SavePrefs(s_prefs[slot].xuid, row);
 	}
 
-	// Next value when cycling the type item:
-	// Default -> Chat -> HTML -> Panorama -> Default, skipping styles the server can't show right now.
-	std::string CycleType(const std::string &cur)
+	// The type names behind the open preference menu's style options, by option index.
+	// Built at open, since which styles the server can show can change.
+	std::vector<std::string> s_prefsTypes[MAXPLAYERS + 1];
+
+	// Key options: "default", every key in keys::kKeys order, then "none". "default" clears (use server config), "none" disables the action.
+	std::string KeyOptionName(int option)
 	{
-		if (cur != "chat" && cur != "html" && cur != "panorama")
+		if (option <= 0 || option > keys::kKeyCount)
 		{
-			return "chat"; // "" / "default" / unknown
+			return option > keys::kKeyCount ? "none" : "default";
 		}
-		if (cur == "chat" && g_MenuManager.HasHtml())
-		{
-			return "html";
-		}
-		if (cur != "panorama" && panorama_hud::Available())
-		{
-			return "panorama";
-		}
-		return "";
+		return keys::Canonical(keys::kKeys[option - 1]);
 	}
 
-	// Next value when cycling a key item: default -> each key (keys::kKeys order) -> none -> default.
-	// "default" clears (use server config), "none" disables the action.
-	std::string CycleKey(const std::string &cur)
+	int KeyOptionIndex(const std::string &name)
 	{
-		std::string c = cur.empty() ? "default" : cur;
-		if (c == "default")
+		if (name == "none" || name == "off")
 		{
-			return keys::Canonical(keys::kKeys[0]);
+			return keys::kKeyCount + 1;
 		}
-		if (c == "none" || c == "off")
-		{
-			return "default";
-		}
-		const keys::KeyDef *k = keys::FindByName(c);
-		if (!k)
-		{
-			return "default"; // unknown name
-		}
-		int idx = static_cast<int>(k - keys::kKeys);
-		return (idx + 1 < keys::kKeyCount) ? keys::Canonical(keys::kKeys[idx + 1]) : "none";
+		const keys::KeyDef *k = name.empty() ? nullptr : keys::FindByName(name);
+		return k ? static_cast<int>(k - keys::kKeys) + 1 : 0; // "", "default" and unknown names
 	}
 
-	// Refresh the slot's open preference menu rows (no-op if it isn't open).
+	int TypeOptionIndex(int slot, const std::string &type)
+	{
+		const std::vector<std::string> &types = s_prefsTypes[slot];
+		for (int i = 0; i < static_cast<int>(types.size()); i++)
+		{
+			if (types[i] == type)
+			{
+				return i;
+			}
+		}
+		return 0;
+	}
+
+	// Rows of the preference menu, in order.
+	enum PrefsRow
+	{
+		kPrefsType,
+		kPrefsUp,
+		kPrefsDown,
+		kPrefsSelect,
+		kPrefsBack,
+	};
+
+	// Sync the slot's open preference menu with its stored names (no-op if it isn't open).
 	void RefreshPrefsItems(int slot)
 	{
 		MenuHandle menu = s_prefsMenu[slot];
@@ -1157,46 +1163,39 @@ namespace
 			return;
 		}
 		const SlotPrefs &p = s_prefs[slot];
-		char buf[128];
-		snprintf(buf, sizeof(buf), "Menu style: %s", TypeDisplay(p.type).c_str());
-		g_MenuManager.SetItemText(menu, 0, buf);
-		snprintf(buf, sizeof(buf), "Up key: %s", KeyDisplay(p.up).c_str());
-		g_MenuManager.SetItemText(menu, 1, buf);
-		snprintf(buf, sizeof(buf), "Down key: %s", KeyDisplay(p.down).c_str());
-		g_MenuManager.SetItemText(menu, 2, buf);
-		snprintf(buf, sizeof(buf), "Select key: %s", KeyDisplay(p.select).c_str());
-		g_MenuManager.SetItemText(menu, 3, buf);
-		snprintf(buf, sizeof(buf), "Back key: %s", KeyDisplay(p.back).c_str());
-		g_MenuManager.SetItemText(menu, 4, buf);
+		g_MenuManager.SetItemValue(menu, kPrefsType, TypeOptionIndex(slot, p.type));
+		g_MenuManager.SetItemValue(menu, kPrefsUp, KeyOptionIndex(p.up));
+		g_MenuManager.SetItemValue(menu, kPrefsDown, KeyOptionIndex(p.down));
+		g_MenuManager.SetItemValue(menu, kPrefsSelect, KeyOptionIndex(p.select));
+		g_MenuManager.SetItemValue(menu, kPrefsBack, KeyOptionIndex(p.back));
 	}
 
-	// Selection handler shared by every row of the preference menu.
-	void OnPrefsSelect(MenuHandle /*menu*/, int slot, int item)
+	// Stored and saved at once, but applied when the menu closes:
+	// an HTML menu edits a key row with the nav keys, so rebinding them mid-edit would pull the key out from under the player.
+	void OnPrefsChange(MenuHandle /*menu*/, int slot, int item, int value)
 	{
 		SlotPrefs &p = s_prefs[slot];
 		switch (item)
 		{
-			case 0:
-				p.type = CycleType(p.type);
+			case kPrefsType:
+				p.type = value < static_cast<int>(s_prefsTypes[slot].size()) ? s_prefsTypes[slot][value] : std::string();
 				break;
-			case 1:
-				p.up = CycleKey(p.up);
+			case kPrefsUp:
+				p.up = KeyOptionName(value);
 				break;
-			case 2:
-				p.down = CycleKey(p.down);
+			case kPrefsDown:
+				p.down = KeyOptionName(value);
 				break;
-			case 3:
-				p.select = CycleKey(p.select);
+			case kPrefsSelect:
+				p.select = KeyOptionName(value);
 				break;
-			case 4:
-				p.back = CycleKey(p.back);
+			case kPrefsBack:
+				p.back = KeyOptionName(value);
 				break;
 			default:
 				return;
 		}
-		ApplyPrefsToManager(slot);
 		SaveSlotPrefs(slot);
-		RefreshPrefsItems(slot); // live re-render with the new value
 	}
 
 	// True when the preference DB is connected.
@@ -1229,17 +1228,54 @@ namespace
 			return;
 		}
 
-		MenuHandle menu = g_MenuManager.CreateMenu(MenuType::Default, "Menu Preferences", OnPrefsSelect);
+		MenuHandle menu = g_MenuManager.CreateMenu(MenuType::Default, "Menu Preferences", nullptr);
 		if (menu == kInvalidMenuHandle)
 		{
 			return;
 		}
-		g_MenuManager.SetCloseOnSelect(menu, false); // stay open, cycle values in place
-		g_MenuManager.AddItem(menu, "", "type", false);
-		g_MenuManager.AddItem(menu, "", "up", false);
-		g_MenuManager.AddItem(menu, "", "down", false);
-		g_MenuManager.AddItem(menu, "", "select", false);
-		g_MenuManager.AddItem(menu, "", "back", false);
+		g_MenuManager.SetMenuChangeCallback(menu, OnPrefsChange);
+
+		// Only the styles the server can show right now, plus the stored one so it still reads correctly.
+		std::vector<std::string> &types = s_prefsTypes[slot];
+		types = {"", "chat"};
+		if (g_MenuManager.HasHtml())
+		{
+			types.push_back("html");
+		}
+		if (panorama_hud::Available())
+		{
+			types.push_back("panorama");
+		}
+		const std::string &stored = s_prefs[slot].type;
+		if (TypeOptionIndex(slot, stored) == 0 && (stored == "html" || stored == "panorama"))
+		{
+			types.push_back(stored);
+		}
+		std::vector<std::string> typeLabels;
+		for (const std::string &type : types)
+		{
+			typeLabels.push_back(TypeDisplay(type));
+		}
+		std::vector<std::string> keyLabels;
+		for (int option = 0; option <= keys::kKeyCount + 1; option++)
+		{
+			keyLabels.push_back(KeyDisplay(KeyOptionName(option)));
+		}
+		auto addChoice = [menu](const char *text, const std::vector<std::string> &labels)
+		{
+			std::vector<const char *> options;
+			for (const std::string &label : labels)
+			{
+				options.push_back(label.c_str());
+			}
+			g_MenuManager.AddChoice(menu, text, options.data(), static_cast<int>(options.size()), 0, "");
+		};
+		addChoice("Menu style", typeLabels);
+		addChoice("Up key", keyLabels);
+		addChoice("Down key", keyLabels);
+		addChoice("Select key", keyLabels);
+		addChoice("Back key", keyLabels);
+
 		g_MenuManager.SetMenuEndCallback(menu,
 										 [](MenuHandle endedMenu, int endSlot, MenuEndReason /*reason*/)
 										 {
@@ -1247,6 +1283,7 @@ namespace
 											 if (ValidSlot(endSlot) && s_prefsMenu[endSlot] == endedMenu)
 											 {
 												 s_prefsMenu[endSlot] = kInvalidMenuHandle;
+												 ApplyPrefsToManager(endSlot);
 											 }
 											 g_MenuManager.DestroyMenu(endedMenu);
 										 });
