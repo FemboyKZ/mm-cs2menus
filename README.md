@@ -18,9 +18,10 @@ Pass `MenuType::Default` to use the server's configured default style.
 
 For commands see: [COMMANDS.md](./COMMANDS.md).
 
-## Plugins using this library
+## Plugins that support this library
 
 - [CS2RockTheVote](https://github.com/FemboyKZ/mm-cs2rockthevote)
+- [CS2Admin](https://github.com/FemboyKZ/mm-cs2admin)
 - [CS2KZ-Metamod](https://github.com/KZGlobalTeam/cs2kz-metamod)
 
 ## For server owners
