@@ -314,6 +314,8 @@ void MenuManager::SetTitle(MenuHandle menu, const char *title)
 	if (MenuDef *def = Find(menu))
 	{
 		def->title = title ? title : "";
+		// Like SetItemText, so a menu kept open by CloseOnSelect off can show live values in its title.
+		RefreshMenu(menu);
 	}
 }
 
@@ -341,6 +343,15 @@ void MenuManager::SetMenuEndCallback(MenuHandle menu, MenuEndFn onEnd)
 	if (MenuDef *def = Find(menu))
 	{
 		def->onEnd = std::move(onEnd);
+	}
+}
+
+void MenuManager::SetMenuRefreshCallback(MenuHandle menu, MenuRefreshFn onRefresh)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->onRefresh = std::move(onRefresh);
 	}
 }
 
@@ -939,23 +950,7 @@ void MenuManager::SetMenuLayout(MenuHandle menu, MenuLayout layout)
 	ScopedLock lock(m_mutex);
 	if (MenuDef *def = Find(menu))
 	{
-		// Page sizes differ per layout, so viewers keep their page's first item.
-		std::vector<std::pair<int, int>> viewers; // slot, first item shown
-		for (int slot = 0; slot <= MAXPLAYERS; slot++)
-		{
-			const PlayerMenu &pm = m_players[slot];
-			if (pm.active && pm.handle == menu)
-			{
-				const std::vector<Page> pages = Pages(*def, pm.type);
-				viewers.emplace_back(slot, pages[(std::max)(0, (std::min)(pm.page, static_cast<int>(pages.size()) - 1))].first);
-			}
-		}
-		def->layout = layout;
-		for (const auto &[slot, first] : viewers)
-		{
-			m_players[slot].page = PageOf(*def, m_players[slot].type, first);
-		}
-		RefreshMenu(menu);
+		Repage(menu, *def, [&] { def->layout = layout; });
 	}
 }
 
@@ -964,6 +959,114 @@ MenuLayout MenuManager::GetMenuLayout(MenuHandle menu) const
 	ScopedLock lock(m_mutex);
 	const MenuDef *def = Find(menu);
 	return def ? def->layout : MenuLayout::List;
+}
+
+void MenuManager::SetMenuTileSize(MenuHandle menu, MenuTileSize size)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		Repage(menu, *def, [&] { def->tileSize = size; });
+	}
+}
+
+MenuTileSize MenuManager::GetMenuTileSize(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def ? def->tileSize : MenuTileSize::Small;
+}
+
+void MenuManager::SetMenuImage(MenuHandle menu, const char *image)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->image = image ? image : "";
+		RefreshMenu(menu);
+	}
+}
+
+const char *MenuManager::GetMenuImage(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def ? def->image.c_str() : "";
+}
+
+void MenuManager::SetMenuPinnedItem(MenuHandle menu, int item)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		Repage(menu, *def, [&] { def->pinned = item; });
+	}
+}
+
+int MenuManager::GetMenuPinnedItem(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def ? def->pinned : -1;
+}
+
+int MenuManager::PinnedItem(const MenuDef &def, MenuType type) const
+{
+	const bool showcase = type == MenuType::Panorama && PanoramaLayout(def) == panorama_hud::Layout::Showcase;
+	return showcase && def.pinned >= 0 && def.pinned < static_cast<int>(def.items.size()) ? def.pinned : -1;
+}
+
+int MenuManager::PageItem(const MenuDef &def, MenuType type, const Page &page, int index) const
+{
+	const int pinned = PinnedItem(def, type);
+	for (int i = page.first; i < page.end && index >= 0; i++)
+	{
+		if (i != pinned && index-- == 0)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+void MenuManager::Repage(MenuHandle menu, MenuDef &def, const std::function<void()> &change)
+{
+	std::vector<std::pair<int, int>> viewers; // slot, first item shown
+	for (int slot = 0; slot <= MAXPLAYERS; slot++)
+	{
+		const PlayerMenu &pm = m_players[slot];
+		if (pm.active && pm.handle == menu)
+		{
+			const std::vector<Page> pages = Pages(def, pm.type);
+			viewers.emplace_back(slot, pages[(std::max)(0, (std::min)(pm.page, static_cast<int>(pages.size()) - 1))].first);
+		}
+	}
+	change();
+	for (const auto &[slot, first] : viewers)
+	{
+		m_players[slot].page = PageOf(def, m_players[slot].type, first);
+	}
+	RefreshMenu(menu);
+}
+
+panorama_hud::TileSize MenuManager::TileSize(const MenuDef &def)
+{
+	// Longest run of items in one section, a section's items being consecutive.
+	int longest = 0;
+	for (int i = 0, run = 0; i < static_cast<int>(def.items.size()); i++)
+	{
+		run = i > 0 && def.items[i].section == def.items[i - 1].section ? run + 1 : 1;
+		longest = (std::max)(longest, run);
+	}
+	const auto own = static_cast<panorama_hud::TileSize>(def.tileSize);
+	for (auto size = panorama_hud::TileSize::Cards; size > own; size = static_cast<panorama_hud::TileSize>(static_cast<int>(size) - 1))
+	{
+		if (longest <= panorama_hud::TileSlots(size))
+		{
+			return size;
+		}
+	}
+	return own;
 }
 
 void MenuManager::SetItemImage(MenuHandle menu, int item, const char *image)
@@ -1006,18 +1109,27 @@ std::vector<MenuManager::Page> MenuManager::Pages(const MenuDef &def, MenuType t
 	int size = m_itemsPerPage;
 	if (type == MenuType::Panorama)
 	{
-		size = panorama_hud::ItemSlots(PanoramaLayout(def));
+		const panorama_hud::Layout layout = PanoramaLayout(def);
+		size = layout == panorama_hud::Layout::Grid ? panorama_hud::TileSlots(TileSize(def)) : panorama_hud::ItemSlots(layout);
 	}
 	std::vector<Page> pages;
 	const int count = static_cast<int>(def.items.size());
+	const int pinned = PinnedItem(def, type);
+	int rows = 0; // on the last page, the pinned item not counted
 	for (int i = 0; i < count; i++)
 	{
+		if (i == pinned)
+		{
+			continue;
+		}
 		const int section = def.items[i].section;
-		if (pages.empty() || pages.back().end - pages.back().first >= size || pages.back().section != section)
+		if (pages.empty() || rows >= size || pages.back().section != section)
 		{
 			pages.push_back({i, i, section});
+			rows = 0;
 		}
 		pages.back().end = i + 1;
+		rows++;
 	}
 	if (pages.empty())
 	{
@@ -1041,8 +1153,10 @@ int MenuManager::PageOf(const MenuDef &def, MenuType type, int item) const
 
 panorama_hud::Layout MenuManager::PanoramaLayout(const MenuDef &def) const
 {
-	return def.layout == MenuLayout::Grid && panorama_hud::Available(panorama_hud::Layout::Grid) ? panorama_hud::Layout::Grid
-																								 : panorama_hud::Layout::List;
+	const panorama_hud::Layout wanted = def.layout == MenuLayout::Grid       ? panorama_hud::Layout::Grid
+										: def.layout == MenuLayout::Showcase ? panorama_hud::Layout::Showcase
+																			 : panorama_hud::Layout::List;
+	return panorama_hud::Available(wanted) ? wanted : panorama_hud::Layout::List;
 }
 
 std::string MenuManager::SuffixText(int slot, const MenuDef &def, const MenuItem &item) const
@@ -1435,6 +1549,28 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 		return false;
 	}
 
+	// A CloseOnSelect pick that shows a fresh menu instead of pushing leaves its history behind.
+	if (!m_players[slot].active && (!m_players[slot].back.empty() || !m_players[slot].forward.empty()))
+	{
+		PlayerMenu &stale = m_players[slot];
+		std::vector<MenuHandle> menus;
+		for (const std::vector<HistoryEntry> *stack : {&stale.back, &stale.forward})
+		{
+			for (const HistoryEntry &entry : *stack)
+			{
+				menus.push_back(entry.handle);
+			}
+		}
+		stale.back.clear();
+		stale.forward.clear();
+		EndMenus(slot, menus, menu, MenuEndReason::Cancelled);
+		def = Find(menu);
+		if (!def || m_players[slot].externalBusy || m_players[slot].active)
+		{
+			return false;
+		}
+	}
+
 	// Replace any existing menu first (fires its end callback).
 	if (m_players[slot].active)
 	{
@@ -1451,6 +1587,8 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 
 	PlayerMenu &pm = m_players[slot];
 	pm.active = true;
+	pm.suspended = false;
+	pm.collapsed = false;
 	pm.handle = menu;
 	// Resolve the render type for this viewer (forced menu, else their preference, then HTML availability).
 	// Fixed for the life of this display.
@@ -1464,11 +1602,95 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	pm.nextHtmlRender = 0.0f;
 	pm.lastHtml.clear();
 	pm.lastHtmlSend = 0.0f;
-	pm.parents.clear();
+	pm.back.clear();
+	pm.forward.clear();
+	pm.selecting = HistoryEntry {};
 	pm.editItem = -1;
 	pm.editPage = 0;
 
 	Render(slot);
+	return true;
+}
+
+bool MenuManager::PushMenu(MenuHandle menu, int slot, float duration, float curtime)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || !Find(menu))
+	{
+		return false;
+	}
+	if (!OnMainThread())
+	{
+		m_pending.push_back(
+			[this, menu, slot, duration]
+			{
+				if (Find(menu))
+				{
+					PushLocked(menu, slot, duration);
+				}
+			});
+		return true;
+	}
+	m_curtime = curtime;
+	return PushLocked(menu, slot, duration);
+}
+
+bool MenuManager::PushLocked(MenuHandle menu, int slot, float duration)
+{
+	PlayerMenu &pm = m_players[slot];
+	const HistoryEntry from = pm.active ? Here(slot) : pm.selecting;
+	// Nothing to go back to, or not allowed on this slot, is a plain display.
+	if (from.handle == kInvalidMenuHandle || from.handle == menu || !Find(from.handle) || pm.externalBusy)
+	{
+		return DisplayLocked(menu, slot, duration);
+	}
+
+	DropForward(slot);
+	pm.back.push_back(from);
+	pm.selecting = HistoryEntry {};
+	// A CloseOnSelect pick already closed the display, the push reopens it. The timeout carries on.
+	pm.active = true;
+	SwitchMenu(slot, menu);
+	return true;
+}
+
+bool MenuManager::ReplaceMenu(MenuHandle menu, int slot, float duration, float curtime)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || !Find(menu))
+	{
+		return false;
+	}
+	if (!OnMainThread())
+	{
+		m_pending.push_back(
+			[this, menu, slot, duration]
+			{
+				if (Find(menu))
+				{
+					ReplaceLocked(menu, slot, duration);
+				}
+			});
+		return true;
+	}
+	m_curtime = curtime;
+	return ReplaceLocked(menu, slot, duration);
+}
+
+bool MenuManager::ReplaceLocked(MenuHandle menu, int slot, float duration)
+{
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active || pm.externalBusy)
+	{
+		return DisplayLocked(menu, slot, duration);
+	}
+	// Same place in the history, same page where it still exists.
+	HistoryEntry here = Here(slot);
+	const MenuHandle old = here.handle;
+	here.handle = menu;
+	here.cursor = Find(menu)->startItem;
+	SwitchMenu(slot, menu, &here);
+	EndMenus(slot, {old}, menu, MenuEndReason::Cancelled);
 	return true;
 }
 
@@ -1496,6 +1718,53 @@ void MenuManager::CancelMenu(int slot)
 		return;
 	}
 	EndDisplay(slot, MenuEndReason::Cancelled);
+}
+
+void MenuManager::SuspendMenu(int slot)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot))
+	{
+		return;
+	}
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, slot] { SuspendMenu(slot); });
+		return;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active || pm.suspended)
+	{
+		return;
+	}
+	pm.suspended = true;
+	// Tick hides a panorama window, chat pages just stop coming.
+	if (pm.type == MenuType::Html)
+	{
+		center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
+	}
+}
+
+void MenuManager::ResumeMenu(int slot)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot))
+	{
+		return;
+	}
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, slot] { ResumeMenu(slot); });
+		return;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active || !pm.suspended)
+	{
+		return;
+	}
+	pm.suspended = false;
+	pm.lastHtml.clear();
+	Render(slot);
 }
 
 bool MenuManager::HasMenu(int slot) const
@@ -1629,8 +1898,20 @@ void MenuManager::EndDisplay(int slot, MenuEndReason reason)
 
 	MenuHandle handle = pm.handle;
 	pm.active = false;
+	pm.suspended = false;
 	pm.handle = kInvalidMenuHandle;
-	pm.parents.clear();
+
+	// Every menu the display went through ends with it, not only the one on screen, so their owners can free them.
+	std::vector<MenuHandle> menus {handle};
+	for (const std::vector<HistoryEntry> *stack : {&pm.back, &pm.forward})
+	{
+		for (const HistoryEntry &entry : *stack)
+		{
+			menus.push_back(entry.handle);
+		}
+	}
+	pm.back.clear();
+	pm.forward.clear();
 
 	// Clear any HTML panel so it doesn't linger for its remaining duration.
 	if (Find(handle) && pm.type == MenuType::Html)
@@ -1638,14 +1919,29 @@ void MenuManager::EndDisplay(int slot, MenuEndReason reason)
 		center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
 	}
 
-	// Copy the callback before invoking: the handler may DisplayMenu/DestroyMenu.
-	if (MenuDef *def = Find(handle))
+	EndMenus(slot, menus, kInvalidMenuHandle, reason);
+}
+
+void MenuManager::EndMenus(int slot, std::vector<MenuHandle> menus, MenuHandle current, MenuEndReason reason)
+{
+	std::vector<MenuHandle> ended;
+	for (MenuHandle menu : menus)
 	{
-		MenuEndFn onEnd = def->onEnd;
-		DepthGuard guard(m_callbackDepth);
-		if (onEnd && guard.enter())
+		// Once each, and never one the player can still reach.
+		if (menu == current || std::find(ended.begin(), ended.end(), menu) != ended.end() || InHistory(slot, menu))
 		{
-			onEnd(handle, slot, reason);
+			continue;
+		}
+		ended.push_back(menu);
+		// Copy the callback before invoking: the handler may DisplayMenu/DestroyMenu.
+		if (MenuDef *def = Find(menu))
+		{
+			MenuEndFn onEnd = def->onEnd;
+			DepthGuard guard(m_callbackDepth);
+			if (onEnd && guard.enter())
+			{
+				onEnd(menu, slot, reason);
+			}
 		}
 	}
 }
@@ -1681,7 +1977,8 @@ void MenuManager::Select(int slot, int itemIndex)
 	MenuHandle sub = def->items[itemIndex].submenu;
 	if (sub != kInvalidMenuHandle && Find(sub))
 	{
-		pm.parents.push_back(pm.handle);
+		DropForward(slot);
+		pm.back.push_back(Here(slot));
 		SwitchMenu(slot, sub);
 		return;
 	}
@@ -1693,6 +1990,7 @@ void MenuManager::Select(int slot, int itemIndex)
 
 	if (closeOnSelect)
 	{
+		pm.selecting = Here(slot);
 		pm.active = false;
 		pm.handle = kInvalidMenuHandle;
 		if (wasHtml)
@@ -1708,17 +2006,29 @@ void MenuManager::Select(int slot, int itemIndex)
 			}
 		}
 
-		// Skipped when onSelect showed this same menu again, or the End would land on the display it just opened.
+		pm.selecting = HistoryEntry {};
+
+		// Skipped when onSelect showed this same menu again, or pushed it into the history of what it opened.
 		bool reopened = pm.active && pm.handle == handle;
-		MenuDef *ended = reopened ? nullptr : Find(handle);
-		if (ended)
+		if (!pm.active)
 		{
-			MenuEndFn onEnd = ended->onEnd;
-			DepthGuard guard(m_callbackDepth);
-			if (onEnd && guard.enter())
+			// The pick ended the display, and the history ends with it.
+			std::vector<MenuHandle> menus;
+			for (const std::vector<HistoryEntry> *stack : {&pm.back, &pm.forward})
 			{
-				onEnd(handle, slot, MenuEndReason::Selected);
+				for (const HistoryEntry &entry : *stack)
+				{
+					menus.push_back(entry.handle);
+				}
 			}
+			pm.back.clear();
+			pm.forward.clear();
+			menus.push_back(handle);
+			EndMenus(slot, menus, kInvalidMenuHandle, MenuEndReason::Selected);
+		}
+		else if (!reopened)
+		{
+			EndMenus(slot, {handle}, pm.handle, MenuEndReason::Selected);
 		}
 	}
 	else
@@ -1738,7 +2048,7 @@ void MenuManager::Select(int slot, int itemIndex)
 	}
 }
 
-void MenuManager::SwitchMenu(int slot, MenuHandle handle)
+void MenuManager::SwitchMenu(int slot, MenuHandle handle, const HistoryEntry *restore)
 {
 	PlayerMenu &pm = m_players[slot];
 	const MenuDef *newDef = Find(handle);
@@ -1746,6 +2056,7 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle)
 	{
 		return;
 	}
+	pm.suspended = false;
 
 	// Re-resolve the render type for the menu we're switching to (a submenu may be forced to a different type than the parent).
 	// Clear the HTML panel only when leaving HTML,
@@ -1759,8 +2070,8 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle)
 	}
 
 	pm.handle = handle;
-	pm.cursor = newDef->startItem;
-	pm.page = PageOf(*newDef, pm.type, newDef->startItem);
+	pm.cursor = restore ? restore->cursor : newDef->startItem;
+	pm.page = restore ? restore->page : PageOf(*newDef, pm.type, newDef->startItem);
 	// Re-baseline buttons so the key that triggered the switch doesn't act again in the new menu.
 	pm.prevButtons = 0;
 	pm.buttonsPrimed = false;
@@ -1773,32 +2084,121 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle)
 	Render(slot);
 }
 
+MenuManager::HistoryEntry MenuManager::Here(int slot) const
+{
+	const PlayerMenu &pm = m_players[slot];
+	return HistoryEntry {pm.handle, pm.page, pm.cursor};
+}
+
+bool MenuManager::InHistory(int slot, MenuHandle menu) const
+{
+	const PlayerMenu &pm = m_players[slot];
+	if (pm.active && pm.handle == menu)
+	{
+		return true;
+	}
+	for (const std::vector<HistoryEntry> *stack : {&pm.back, &pm.forward})
+	{
+		for (const HistoryEntry &entry : *stack)
+		{
+			if (entry.handle == menu)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool MenuManager::StepBack(int slot, int steps)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || !OnMainThread())
+	{
+		return false;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active || pm.suspended)
+	{
+		return false;
+	}
+	pm.editItem = -1;
+	bool moved = false;
+	for (int i = 0; i < steps && StepBack(slot); i++)
+	{
+		moved = true;
+	}
+	return moved;
+}
+
 bool MenuManager::StepBack(int slot)
 {
 	PlayerMenu &pm = m_players[slot];
-	while (!pm.parents.empty())
+	while (!pm.back.empty())
 	{
-		MenuHandle parent = pm.parents.back();
-		pm.parents.pop_back();
-		if (Find(parent))
+		HistoryEntry entry = pm.back.back();
+		pm.back.pop_back();
+		if (Find(entry.handle))
 		{
-			SwitchMenu(slot, parent);
+			pm.forward.push_back(Here(slot));
+			SwitchMenu(slot, entry.handle, &entry);
 			return true;
 		}
 	}
 	return false;
 }
 
-bool MenuManager::HasParent(int slot) const
+bool MenuManager::StepForward(int slot)
 {
-	for (MenuHandle parent : m_players[slot].parents)
+	PlayerMenu &pm = m_players[slot];
+	while (!pm.forward.empty())
 	{
-		if (Find(parent))
+		HistoryEntry entry = pm.forward.back();
+		pm.forward.pop_back();
+		if (Find(entry.handle))
+		{
+			pm.back.push_back(Here(slot));
+			SwitchMenu(slot, entry.handle, &entry);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool MenuManager::HasBack(int slot) const
+{
+	for (const HistoryEntry &entry : m_players[slot].back)
+	{
+		if (Find(entry.handle))
 		{
 			return true;
 		}
 	}
 	return false;
+}
+
+bool MenuManager::HasForward(int slot) const
+{
+	for (const HistoryEntry &entry : m_players[slot].forward)
+	{
+		if (Find(entry.handle))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void MenuManager::DropForward(int slot)
+{
+	PlayerMenu &pm = m_players[slot];
+	std::vector<MenuHandle> menus;
+	for (const HistoryEntry &entry : pm.forward)
+	{
+		menus.push_back(entry.handle);
+	}
+	pm.forward.clear();
+	EndMenus(slot, menus, kInvalidMenuHandle, MenuEndReason::Cancelled);
 }
 
 bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
@@ -1810,7 +2210,7 @@ bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
 	}
 
 	PlayerMenu &pm = m_players[slot];
-	if (!pm.active)
+	if (!pm.active || pm.suspended)
 	{
 		return false;
 	}
@@ -1939,7 +2339,7 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, uint64_t pressedBu
 		return;
 	}
 	PlayerMenu &pm = m_players[slot];
-	if (!pm.active)
+	if (!pm.active || pm.suspended)
 	{
 		return;
 	}
@@ -2039,7 +2439,7 @@ void MenuManager::CommandNav(int slot, MenuNavAction action, float curtime)
 		return;
 	}
 	PlayerMenu &pm = m_players[slot];
-	if (!pm.active)
+	if (!pm.active || pm.suspended)
 	{
 		return;
 	}
@@ -2087,7 +2487,7 @@ void MenuManager::CommandSelectNumber(int slot, int number, float curtime)
 		return;
 	}
 	PlayerMenu &pm = m_players[slot];
-	if (!pm.active)
+	if (!pm.active || pm.suspended)
 	{
 		return;
 	}
@@ -2171,7 +2571,7 @@ void MenuManager::Tick(float curtime)
 		}
 		// HTML messages decay, refresh periodically.
 		const MenuDef *def = Find(pm.handle);
-		if (def && pm.type == MenuType::Html && curtime >= pm.nextHtmlRender)
+		if (def && !pm.suspended && pm.type == MenuType::Html && curtime >= pm.nextHtmlRender)
 		{
 			RenderHtml(i);
 		}
@@ -2182,7 +2582,7 @@ void MenuManager::Tick(float curtime)
 	for (int i = 0; i < MAXPLAYERS; i++)
 	{
 		const PlayerMenu &pm = m_players[i];
-		if (!pm.active || pm.type != MenuType::Panorama)
+		if (!pm.active || pm.suspended || pm.type != MenuType::Panorama)
 		{
 			panorama_hud::Hide(i);
 		}
@@ -2397,7 +2797,8 @@ void MenuManager::RunOnMainThread(std::function<void()> fn)
 void MenuManager::Render(int slot)
 {
 	const MenuDef *def = Find(m_players[slot].handle);
-	if (!def)
+	// Changes to a suspended menu show once it resumes.
+	if (!def || m_players[slot].suspended)
 	{
 		return;
 	}
@@ -2965,17 +3366,34 @@ void MenuManager::RenderPanorama(int slot)
 	const std::string &disabledColor = pick(st.disabledColor, m_settings.panoramaDisabledColor);
 	panorama_hud::View view;
 	view.layout = PanoramaLayout(*def);
+	view.tiles = TileSize(*def);
+	view.collapsed = pm.collapsed;
+	view.image = def->image;
 	view.fontClass = m_settings.panoramaFontClass;
 	view.sounds = m_settings.panoramaSounds;
 	// The layout only takes plain text, so raw markup shows as typed.
 	view.title = panorama_hud::StripColors(def->title);
 	view.titleColor = titleColor;
 	view.navColor = itemColor;
-	// In a submenu it steps back to the parent, see NavClose.
-	view.closeButton = def->exitButton || HasParent(slot);
+	view.closeButton = def->exitButton;
+	view.backButton = HasBack(slot);
+	view.forwardButton = HasForward(slot);
+	view.refreshButton = static_cast<bool>(def->onRefresh);
 
+	const int pinned = PinnedItem(*def, pm.type);
+	if (pinned >= 0)
+	{
+		const MenuItem &item = def->items[pinned];
+		view.action = panorama_hud::StripColors(item.text);
+		view.actionColor = item.disabled ? disabledColor : itemColor;
+		view.actionDisabled = item.disabled;
+	}
 	for (int i = current.first; i < current.end; i++)
 	{
+		if (i == pinned)
+		{
+			continue;
+		}
 		const MenuItem &item = def->items[i];
 		panorama_hud::View::Row row;
 		row.segments = panorama_hud::SplitColors(item.text, item.disabled ? disabledColor : itemColor);
@@ -3060,12 +3478,12 @@ void MenuManager::RenderPanorama(int slot)
 	auto sectionLabel = [&](int section, int n)
 	{ return section >= 0 ? panorama_hud::StripColors(def->sections[section]) : FillTemplate(pageFormat, {{"n", std::to_string(n)}}); };
 
-	if (view.layout == panorama_hud::Layout::Grid)
+	if (view.layout != panorama_hud::Layout::List)
 	{
 		// Tabs: one per section, opening its first page.
 		if (!def->sections.empty())
 		{
-			for (int page = 0; page < pageCount && static_cast<int>(view.nav.size()) < panorama_hud::kGridTabs; page++)
+			for (int page = 0; page < pageCount && static_cast<int>(view.nav.size()) < panorama_hud::NavSlots(view.layout); page++)
 			{
 				if (page == 0 || pages[page].section != pages[page - 1].section)
 				{
@@ -3164,7 +3582,7 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 		return;
 	}
 	PlayerMenu &pm = m_players[slot];
-	if (!pm.active || pm.type != MenuType::Panorama || !Find(pm.handle))
+	if (!pm.active || pm.suspended || pm.type != MenuType::Panorama || !Find(pm.handle))
 	{
 		return;
 	}
@@ -3173,10 +3591,42 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 	switch (click)
 	{
 		case panorama_hud::Click::Close:
-			// The window's own X, so an open popup doesn't swallow it.
+		{
+			// The window's own X closes the whole display, history included. Back has its own button here.
 			pm.editItem = -1;
-			NavClose(slot);
+			const MenuDef *shown = Find(pm.handle);
+			if (shown && shown->exitButton)
+			{
+				EndDisplay(slot, MenuEndReason::Exit);
+			}
 			break;
+		}
+		case panorama_hud::Click::Back:
+			pm.editItem = -1;
+			StepBack(slot);
+			break;
+		case panorama_hud::Click::Forward:
+			pm.editItem = -1;
+			StepForward(slot);
+			break;
+		case panorama_hud::Click::Collapse:
+			pm.editItem = -1;
+			pm.collapsed = !pm.collapsed;
+			Render(slot);
+			break;
+		case panorama_hud::Click::Refresh:
+		{
+			pm.editItem = -1;
+			// The owner rebuilds the page, usually through ReplaceMenu.
+			const MenuDef *shown = Find(pm.handle);
+			MenuRefreshFn onRefresh = shown ? shown->onRefresh : nullptr;
+			DepthGuard guard(m_callbackDepth);
+			if (onRefresh && guard.enter())
+			{
+				onRefresh(pm.handle, slot);
+			}
+			break;
+		}
 		case panorama_hud::Click::PopupClose:
 			StopEdit(slot);
 			break;
@@ -3225,11 +3675,22 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 			break;
 		case panorama_hud::Click::Item:
 		{
-			const std::vector<Page> pages = Pages(*Find(pm.handle), pm.type);
-			if (pm.page < static_cast<int>(pages.size()) && index >= 0 && pages[pm.page].first + index < pages[pm.page].end)
+			const MenuDef &shown = *Find(pm.handle);
+			const std::vector<Page> pages = Pages(shown, pm.type);
+			const int item = pm.page < static_cast<int>(pages.size()) ? PageItem(shown, pm.type, pages[pm.page], index) : -1;
+			if (item >= 0)
 			{
 				// Select re-renders on a disabled row.
-				Select(slot, pages[pm.page].first + index);
+				Select(slot, item);
+			}
+			break;
+		}
+		case panorama_hud::Click::Action:
+		{
+			const int pinned = PinnedItem(*Find(pm.handle), pm.type);
+			if (pinned >= 0)
+			{
+				Select(slot, pinned);
 			}
 			break;
 		}

@@ -127,6 +127,7 @@ public:
 	void SetExitButton(MenuHandle menu, bool enabled);
 	void SetCloseOnSelect(MenuHandle menu, bool enabled);
 	void SetMenuEndCallback(MenuHandle menu, MenuEndFn onEnd);
+	void SetMenuRefreshCallback(MenuHandle menu, MenuRefreshFn onRefresh);
 	void SetMenuKey(MenuHandle menu, MenuNavAction action, MenuButton button);
 	void SetExitItem(MenuHandle menu, bool enabled);
 	void SetMenuLabel(MenuHandle menu, MenuLabel label, const char *text);
@@ -176,6 +177,12 @@ public:
 	int GetItemSection(MenuHandle menu, int item) const;
 	void SetMenuLayout(MenuHandle menu, MenuLayout layout);
 	MenuLayout GetMenuLayout(MenuHandle menu) const;
+	void SetMenuTileSize(MenuHandle menu, MenuTileSize size);
+	MenuTileSize GetMenuTileSize(MenuHandle menu) const;
+	void SetMenuImage(MenuHandle menu, const char *image);
+	const char *GetMenuImage(MenuHandle menu) const;
+	void SetMenuPinnedItem(MenuHandle menu, int item);
+	int GetMenuPinnedItem(MenuHandle menu) const;
 	void SetItemImage(MenuHandle menu, int item, const char *image);
 	const char *GetItemImage(MenuHandle menu, int item) const;
 	void SetItemSubtext(MenuHandle menu, int item, const char *subtext);
@@ -191,7 +198,12 @@ public:
 	MenuButton GetMenuKey(MenuHandle menu, MenuNavAction action) const;
 
 	bool DisplayMenu(MenuHandle menu, int slot, float duration, float curtime);
+	bool PushMenu(MenuHandle menu, int slot, float duration, float curtime);
+	bool ReplaceMenu(MenuHandle menu, int slot, float duration, float curtime);
 	void CancelMenu(int slot);
+	void SuspendMenu(int slot);
+	void ResumeMenu(int slot);
+	bool StepBack(int slot, int steps);
 	bool HasMenu(int slot) const;
 	MenuHandle GetActiveMenu(int slot) const;
 	MenuType GetActiveMenuType(int slot) const;
@@ -364,8 +376,12 @@ private:
 		MenuItemSelectFn onSelect;
 		MenuEndFn onEnd;
 		MenuItemChangeFn onChange;
+		MenuRefreshFn onRefresh;
 		std::vector<std::string> sections;
 		MenuLayout layout = MenuLayout::List;
+		MenuTileSize tileSize = MenuTileSize::Small;
+		std::string image;
+		int pinned = -1;
 		bool exitButton = true;
 		bool closeOnSelect = true;
 		bool exitItem = false; // HTML: show a selectable "Exit" row in the list
@@ -383,9 +399,21 @@ private:
 		NavOverride nav[4];                // by MenuNavAction; mask 0 = no preference
 	};
 
+	// A menu in a display's history, and where the player was in it.
+	struct HistoryEntry
+	{
+		MenuHandle handle = kInvalidMenuHandle;
+		int page = 0;
+		int cursor = 0;
+	};
+
 	struct PlayerMenu
 	{
 		bool active = false;
+		// Active but hidden and deaf to input, see SuspendMenu.
+		bool suspended = false;
+		// Panorama shows only the header. Kept while the display moves through its history.
+		bool collapsed = false;
 		MenuHandle handle = kInvalidMenuHandle;
 		// Resolved render type for this display (see ResolveType). Set in DisplayLocked.
 		MenuType type = MenuType::Chat;
@@ -407,9 +435,12 @@ private:
 		int editItem = -1;
 		// Chat and panorama page through a Choice's options.
 		int editPage = 0;
-		// Menus this display came through to reach the current submenu, so Back retraces the player's own path.
+		// Menus behind and ahead of the current one, like a browser's history. Back retraces the player's own path.
 		// Per display rather than per menu, since one menu can be reached from several parents or shown directly.
-		std::vector<MenuHandle> parents;
+		std::vector<HistoryEntry> back;
+		std::vector<HistoryEntry> forward;
+		// The menu whose OnSelect is running after CloseOnSelect already closed it, so a PushMenu from there still stacks it.
+		HistoryEntry selecting;
 	};
 
 	MenuDef *Find(MenuHandle menu);
@@ -461,12 +492,26 @@ private:
 	void ApplyEditNumber(int slot, const MenuItem &item, int num);
 
 	// Swap the slot's displayed menu to `handle` without firing end callbacks.
-	// Used for submenu navigation (into a child, or Back to a parent).
-	void SwitchMenu(int slot, MenuHandle handle);
+	// Used for history navigation. `restore` puts the player back where they were, else the menu's start item.
+	void SwitchMenu(int slot, MenuHandle handle, const HistoryEntry *restore = nullptr);
 
-	// Switch back to the menu this submenu display was opened from. False when there is none left to return to.
+	bool PushLocked(MenuHandle menu, int slot, float duration);
+	bool ReplaceLocked(MenuHandle menu, int slot, float duration);
+
+	// Where the player is in the displayed menu.
+	HistoryEntry Here(int slot) const;
+	bool InHistory(int slot, MenuHandle menu) const;
+
+	// Step through the history. False when there is nothing that way.
 	bool StepBack(int slot);
-	bool HasParent(int slot) const;
+	bool StepForward(int slot);
+	bool HasBack(int slot) const;
+	bool HasForward(int slot) const;
+
+	// Ends the forward history, as opening something new does in a browser.
+	void DropForward(int slot);
+	// Fires MenuEnd for every history menu that isn't `current` or still in the history, then forgets them.
+	void EndMenus(int slot, std::vector<MenuHandle> menus, MenuHandle current, MenuEndReason reason);
 
 	void Render(int slot);         // dispatch by the slot's render type
 	void RenderPage(int slot);     // chat
@@ -485,6 +530,14 @@ private:
 	int PageOf(const MenuDef &def, MenuType type, int item) const;
 	// The grid when the menu asks for it and the addon has it.
 	panorama_hud::Layout PanoramaLayout(const MenuDef &def) const;
+	// The item a showcase draws under its image instead of on its page, -1 when this viewer gets none.
+	int PinnedItem(const MenuDef &def, MenuType type) const;
+	// The item behind the `index`th row of `page`, skipping the pinned one. -1 past the end.
+	int PageItem(const MenuDef &def, MenuType type, const Page &page, int index) const;
+	// The biggest size every section fits one page of, at least the menu's own.
+	static panorama_hud::TileSize TileSize(const MenuDef &def);
+	// Runs `change` on a menu's paging while its viewers keep their page's first item.
+	void Repage(MenuHandle menu, MenuDef &def, const std::function<void()> &change);
 	// Shown after an item's text: a value item's value, else its subtext.
 	std::string SuffixText(int slot, const MenuDef &def, const MenuItem &item) const;
 

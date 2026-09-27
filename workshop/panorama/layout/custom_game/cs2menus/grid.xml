@@ -3,12 +3,18 @@
     <include src="file://{resources}/styles/custom_game/cs2menus/fonts.css" />
     <include src="file://{resources}/styles/custom_game/cs2menus/menu.css" />
     <include src="file://{resources}/styles/custom_game/cs2menus/grid.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/econ.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/econ_stickers.css" />
   </styles>
   <Panel class="root" hittest="false">
     <Panel id="cg_root" class="menu hidden">
       <Panel class="menu-box">
         <Panel class="window-header">
           <Label id="cg_title" class="menu-title" text="{s:cg_title}" />
+          <Button id="cg_back" class="hist-btn back-btn disabled" />
+          <Button id="cg_forward" class="hist-btn forward-btn disabled" />
+          <Button id="cg_refresh" class="hist-btn refresh-btn hidden" />
+          <Button id="cg_collapse" class="hist-btn collapse-btn" />
           <Button id="cg_close" class="close-btn" />
         </Panel>
         <Panel id="cg_pages" class="tabs">
@@ -43,7 +49,7 @@
             <Label id="cg_nav_lbl9" class="tab-label" text="{s:cg_nav_lbl9}" />
           </Button>
         </Panel>
-        <Panel class="tiles">
+        <Panel id="cg_tiles" class="tiles">
           <Button id="cg_item0" class="tile hidden">
             <Panel id="cg_img0" class="tile-img" />
             <Label id="cg_name0" class="tile-name" text="{s:cg_name0}" />
@@ -245,6 +251,9 @@
           <Label id="cg_list_page" class="popup-page" text="{s:cg_list_page}" />
           <Button id="cg_list_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
         </Panel>
+      </Panel>
+      <Panel id="cg_preview" class="popup preview-popup hidden">
+        <Panel id="cg_preview_img" class="preview-img" />
       </Panel>
     </Panel>
   </Panel>

@@ -2,12 +2,18 @@
   <styles>
     <include src="file://{resources}/styles/custom_game/cs2menus/fonts.css" />
     <include src="file://{resources}/styles/custom_game/cs2menus/menu.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/econ.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/econ_wear.css" />
   </styles>
   <Panel class="root" hittest="false">
     <Panel id="cm_root" class="menu hidden">
       <Panel class="menu-box">
         <Panel class="window-header">
           <Label id="cm_title" class="menu-title" text="{s:cm_title}" />
+          <Button id="cm_back" class="hist-btn back-btn disabled" />
+          <Button id="cm_forward" class="hist-btn forward-btn disabled" />
+          <Button id="cm_refresh" class="hist-btn refresh-btn hidden" />
+          <Button id="cm_collapse" class="hist-btn collapse-btn" />
           <Button id="cm_close" class="close-btn" />
         </Panel>
         <Panel class="panes">
@@ -1112,6 +1118,9 @@
           <Label id="cm_list_page" class="popup-page" text="{s:cm_list_page}" />
           <Button id="cm_list_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
         </Panel>
+      </Panel>
+      <Panel id="cm_preview" class="popup preview-popup hidden">
+        <Panel id="cm_preview_img" class="preview-img" />
       </Panel>
     </Panel>
   </Panel>

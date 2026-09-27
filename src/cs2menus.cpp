@@ -342,6 +342,56 @@ class CS2MenusAPI : public ICS2Menus
 		return g_MenuManager.DisplayMenu(menu, slot, duration, MenuNow());
 	}
 
+	bool PushMenu(MenuHandle menu, int slot, float duration) override
+	{
+		return g_MenuManager.PushMenu(menu, slot, duration, MenuNow());
+	}
+
+	bool ReplaceMenu(MenuHandle menu, int slot, float duration) override
+	{
+		return g_MenuManager.ReplaceMenu(menu, slot, duration, MenuNow());
+	}
+
+	void SetMenuRefreshCallback(MenuHandle menu, MenuRefreshFn onRefresh) override
+	{
+		g_MenuManager.SetMenuRefreshCallback(menu, std::move(onRefresh));
+	}
+
+	void SetMenuTileSize(MenuHandle menu, MenuTileSize size) override
+	{
+		g_MenuManager.SetMenuTileSize(menu, size);
+	}
+
+	MenuTileSize GetMenuTileSize(MenuHandle menu) override
+	{
+		return g_MenuManager.GetMenuTileSize(menu);
+	}
+
+	void SetMenuImage(MenuHandle menu, const char *image) override
+	{
+		g_MenuManager.SetMenuImage(menu, image);
+	}
+
+	const char *GetMenuImage(MenuHandle menu) override
+	{
+		return g_MenuManager.GetMenuImage(menu);
+	}
+
+	void SetMenuPinnedItem(MenuHandle menu, int item) override
+	{
+		g_MenuManager.SetMenuPinnedItem(menu, item);
+	}
+
+	int GetMenuPinnedItem(MenuHandle menu) override
+	{
+		return g_MenuManager.GetMenuPinnedItem(menu);
+	}
+
+	bool StepBack(int slot, int steps) override
+	{
+		return g_MenuManager.StepBack(slot, steps);
+	}
+
 	void DisplayMenuToAll(MenuHandle menu, float duration) override
 	{
 		// Enumerating players needs main-thread entity access, so run there.
@@ -369,6 +419,16 @@ class CS2MenusAPI : public ICS2Menus
 	void CancelMenu(int slot) override
 	{
 		g_MenuManager.CancelMenu(slot);
+	}
+
+	void SuspendMenu(int slot) override
+	{
+		g_MenuManager.SuspendMenu(slot);
+	}
+
+	void ResumeMenu(int slot) override
+	{
+		g_MenuManager.ResumeMenu(slot);
 	}
 
 	bool HasMenu(int slot) override

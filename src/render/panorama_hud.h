@@ -15,8 +15,9 @@ namespace panorama_hud
 	// Own file and id prefix each, since the client matches ids by name across every custom HUD layout.
 	enum class Layout
 	{
-		List, // menu.xml, "cm_"
-		Grid, // grid.xml, "cg_"
+		List,     // menu.xml, "cm_"
+		Grid,     // grid.xml, "cg_"
+		Showcase, // showcase.xml, "cx_"
 		Count,
 	};
 
@@ -25,9 +26,22 @@ namespace panorama_hud
 	// The list's 30 rows of 27 runs use about 915, the popups about 50 more.
 	constexpr int kItemSlots = 30;
 	constexpr int kNavSlots = 20;
-	// Grid tiles (6 x 4) and section tabs.
+	// Grid tiles (6 x 4 at the smallest size) and section tabs.
 	constexpr int kGridSlots = 24;
 	constexpr int kGridTabs = 10;
+
+	// Grid tile sizes, the grid's cg_tiles gets no class, "size-m", "size-l" or "size-xl".
+	enum class TileSize
+	{
+		Small,  // 6 x 4
+		Medium, // 4 x 3
+		Large,  // 3 x 2
+		Cards,  // 3 x 1
+	};
+	int TileSlots(TileSize size);
+	// Showcase buttons (3 x 6) and section tabs.
+	constexpr int kShowcaseSlots = 18;
+	constexpr int kShowcaseTabs = 10;
 	// Differently colored runs per row.
 	// The layout only takes plain text, so each run is its own label with a palette class.
 	// rtv's longest label is the current map in !nominate with 5+ courses in both modes, 27 runs.
@@ -102,13 +116,26 @@ namespace panorama_hud
 		std::string titleColor;
 		std::string navColor;
 		bool closeButton = true;
+		// History buttons left of the close button. Back and forward are dimmed when unavailable, refresh is hidden.
+		bool backButton = false;
+		bool forwardButton = false;
+		bool refreshButton = false;
+		// Everything but the header hidden, from the collapse button left of close.
+		bool collapsed = false;
 		std::vector<Row> rows; // at most ItemSlots(layout): list rows or grid tiles
-		std::vector<Nav> nav;  // at most NavSlots(layout): the list's left column or the grid's tabs, empty hides them
+		TileSize tiles = TileSize::Small;
+		std::vector<Nav> nav; // at most NavSlots(layout): the list's left column or the grid's tabs, empty hides them
 		// Grid page arrows, empty page hides them.
 		std::string page;
 		bool prev = false;
 		bool next = false;
 		std::string fontClass; // from fonts.css, empty for the layout default
+		// Large beside the menu box like the popups, which hide it while open. Showcase draws it inside. Grid image names.
+		std::string image;
+		// Showcase: the pinned item's button under the image, empty text hides it.
+		std::string action;
+		std::string actionColor;
+		bool actionDisabled = false;
 		bool sounds = true;
 		StepPopup step;
 		ListPopup list;
@@ -118,6 +145,11 @@ namespace panorama_hud
 	{
 		None,
 		Close,
+		Back,
+		Forward,
+		Refresh,
+		Collapse,
+		Action,     // the showcase's pinned item
 		Nav,        // index = left-column slot or grid tab
 		Item,       // index = row or tile on the page
 		PopupClose, // either popup's close button

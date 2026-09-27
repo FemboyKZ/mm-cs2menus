@@ -34,6 +34,7 @@ namespace
 	constexpr LayoutDef kLayouts[kLayoutCount] = {
 		{"panorama/layout/custom_game/cs2menus/menu.vxml_c", "cm_", "list", panorama_hud::kItemSlots, panorama_hud::kNavSlots},
 		{"panorama/layout/custom_game/cs2menus/grid.vxml_c", "cg_", "grid", panorama_hud::kGridSlots, panorama_hud::kGridTabs},
+		{"panorama/layout/custom_game/cs2menus/showcase.vxml_c", "cx_", "showcase", panorama_hud::kShowcaseSlots, panorama_hud::kShowcaseTabs},
 	};
 	// Lets a reloaded plugin find the windows it left behind.
 	constexpr const char *kTargetPrefix = "cs2menus_";
@@ -330,9 +331,17 @@ namespace
 		}
 	}
 
-	void WriteGridTiles(Writer &w, const panorama_hud::View &view)
+	// Grid tiles, or the showcase's buttons, which have no image of their own.
+	void WriteTiles(Writer &w, const panorama_hud::View &view, int slots, bool images)
 	{
-		for (int i = 0; i < panorama_hud::kGridSlots; i++)
+		if (images)
+		{
+			w.Swap(w.Id("tiles"), view.tiles == panorama_hud::TileSize::Cards    ? "size-xl"
+								  : view.tiles == panorama_hud::TileSize::Large  ? "size-l"
+								  : view.tiles == panorama_hud::TileSize::Medium ? "size-m"
+																				 : "");
+		}
+		for (int i = 0; i < slots; i++)
 		{
 			const bool used = i < static_cast<int>(view.rows.size());
 			const std::string panel = w.Id("item%d", i);
@@ -352,7 +361,10 @@ namespace
 				const std::string value = w.Id("val%d", i);
 				w.Var(value, row.value);
 				w.Swap(value, color);
-				w.Swap(w.Id("img%d", i), row.image.empty() ? std::string() : "img-" + row.image);
+				if (images)
+				{
+					w.Swap(w.Id("img%d", i), row.image.empty() ? std::string() : "img-" + row.image);
+				}
 				w.Control(panel, row);
 			}
 			w.Class(panel, "hidden", !used);
@@ -372,7 +384,23 @@ namespace
 
 	void WritePopups(Writer &w, const panorama_hud::View &view)
 	{
-		w.Class(w.Id("root"), "shift", view.step.open || view.list.open);
+		const bool popup = view.step.open || view.list.open;
+		w.Class(w.Id("root"), "shift", popup);
+		// The showcase draws the image inside, the others beside the box.
+		if (view.layout != Layout::Showcase)
+		{
+			const bool preview = !popup && !view.image.empty();
+			w.Class(w.Id("root"), "preview", preview);
+			const std::string previewPanel = w.Id("preview");
+			if (preview || w.Touched(previewPanel, "hidden"))
+			{
+				w.Class(previewPanel, "hidden", !preview);
+			}
+			if (preview)
+			{
+				w.Swap(w.Id("preview_img"), "img-" + view.image);
+			}
+		}
 		const std::string step = w.Id("step");
 		if (view.step.open || w.Touched(step, "hidden"))
 		{
@@ -480,6 +508,11 @@ namespace
 int panorama_hud::ItemSlots(Layout layout)
 {
 	return kLayouts[static_cast<int>(layout)].items;
+}
+
+int panorama_hud::TileSlots(TileSize size)
+{
+	return size == TileSize::Cards ? 3 : size == TileSize::Large ? 6 : size == TileSize::Medium ? 12 : kGridSlots;
 }
 
 int panorama_hud::NavSlots(Layout layout)
@@ -596,6 +629,11 @@ bool panorama_hud::Show(int slot, const View &view)
 	w.Var(title, view.title);
 	w.Swap(title, ColorClass(view.titleColor));
 	w.Class(w.Id("close"), "hidden", !view.closeButton);
+	// Always there, dimmed when there's nowhere to go, so the header doesn't shift around.
+	w.Class(w.Id("back"), "disabled", !view.backButton);
+	w.Class(w.Id("forward"), "disabled", !view.forwardButton);
+	w.Class(w.Id("refresh"), "hidden", !view.refreshButton);
+	w.Class(root, "collapsed", view.collapsed);
 	w.Class(w.Id("pages"), "hidden", view.nav.empty());
 
 	const std::string navClass = ColorClass(view.navColor);
@@ -615,7 +653,21 @@ bool panorama_hud::Show(int slot, const View &view)
 
 	if (view.layout == Layout::Grid)
 	{
-		WriteGridTiles(w, view);
+		WriteTiles(w, view, kGridSlots, true);
+	}
+	else if (view.layout == Layout::Showcase)
+	{
+		WriteTiles(w, view, kShowcaseSlots, false);
+		w.Swap(w.Id("shot"), view.image.empty() ? std::string() : "img-" + view.image);
+		const std::string action = w.Id("action");
+		w.Class(action, "hidden", view.action.empty());
+		if (!view.action.empty())
+		{
+			const std::string label = w.Id("action_lbl");
+			w.Var(label, view.action);
+			w.Swap(label, ColorClass(view.actionColor));
+			w.Class(action, "disabled", view.actionDisabled);
+		}
 	}
 	else
 	{
@@ -749,6 +801,26 @@ panorama_hud::Click panorama_hud::ParseClick(int slot, uint32_t layoutHandle, co
 	if (strcmp(id, "close") == 0)
 	{
 		return Click::Close;
+	}
+	if (strcmp(id, "back") == 0)
+	{
+		return Click::Back;
+	}
+	if (strcmp(id, "forward") == 0)
+	{
+		return Click::Forward;
+	}
+	if (strcmp(id, "refresh") == 0)
+	{
+		return Click::Refresh;
+	}
+	if (strcmp(id, "collapse") == 0)
+	{
+		return Click::Collapse;
+	}
+	if (strcmp(id, "action") == 0)
+	{
+		return Click::Action;
 	}
 	if (strcmp(id, "step_close") == 0 || strcmp(id, "list_close") == 0)
 	{

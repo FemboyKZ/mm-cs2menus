@@ -25,6 +25,11 @@
 	x: -170px;
 }
 
+/* The wider image preview in the same place */
+#cm_root.preview {
+	x: -227px;
+}
+
 /* Sized so all 20 nav buttons fit without scrolling. */
 .menu-box {
 	horizontal-align: center;
@@ -38,7 +43,8 @@
 	background-image: url("s2r://panorama/images/backgrounds/bluedots_large_png.vtex");
 	background-size: 360px 360px;
 	background-img-opacity: 0.01;
-	background-color: rgba(1, 1, 1, 0.95);
+	/* Solid, the collapse button is there for seeing past it */
+	background-color: rgb(12, 13, 15);
 }
 
 .window-header {
@@ -83,6 +89,83 @@
 
 .close-btn.hidden {
 	visibility: collapse;
+}
+
+/* Back, forward and refresh, like a browser's, left of the close button */
+.hist-btn {
+	width: 20px;
+	height: 20px;
+	margin-left: 8px;
+	vertical-align: center;
+	wash-color: #888888;
+	background-size: 16px 16px;
+	background-repeat: no-repeat;
+	background-position: 50% 50%;
+}
+
+.hist-btn:hover {
+	wash-color: #ffffff;
+}
+
+.hist-btn:active {
+	wash-color: #ffffff;
+	background-size: 14px 14px;
+}
+
+.hist-btn.hidden {
+	visibility: collapse;
+}
+
+.collapse-btn {
+	background-image: url("s2r://panorama/images/control_icons/arrow_solid_up_png.vtex");
+}
+
+.collapsed .collapse-btn {
+	background-image: url("s2r://panorama/images/control_icons/arrow_solid_down_png.vtex");
+}
+
+/* Collapsed: only the header, where the box's top edge was, (1080 - 700) / 2 */
+#cm_root.collapsed .menu-box {
+	height: fit-children;
+	vertical-align: top;
+	y: 190px;
+}
+
+#cm_root.collapsed .panes {
+	visibility: collapse;
+}
+
+.collapsed .window-header {
+	margin-bottom: 0px;
+}
+
+.collapsed .popup {
+	visibility: collapse;
+}
+
+/* Nowhere to go back or forward to */
+.hist-btn.disabled {
+	opacity: 0.3;
+}
+
+.hist-btn.disabled:hover {
+	wash-color: #888888;
+}
+
+.hist-btn.disabled:active {
+	background-size: 16px 16px;
+}
+
+.back-btn {
+	background-image: url("s2r://panorama/images/control_icons/arrow_solid_left_png.vtex");
+}
+
+.forward-btn {
+	background-image: url("s2r://panorama/images/control_icons/arrow_solid_right_png.vtex");
+}
+
+.refresh-btn {
+	background-image: url("s2r://panorama/images/icons/ui/refresh.vsvg");
 }
 
 .panes {
@@ -255,7 +338,7 @@ VerticalScrollBar:hover .ScrollThumb {
 	background-image: url("s2r://panorama/images/backgrounds/bluedots_large_png.vtex");
 	background-size: 360px 360px;
 	background-img-opacity: 0.01;
-	background-color: rgba(1, 1, 1, 0.97);
+	background-color: rgb(12, 13, 15);
 }
 
 .popup.hidden {
@@ -265,6 +348,20 @@ VerticalScrollBar:hover .ScrollThumb {
 .step-popup {
 	width: 340px;
 	x: 634px;
+}
+
+/* 4:3 like the econ renders */
+.preview-popup {
+	width: 440px;
+	x: 684px;
+}
+
+.preview-img {
+	width: 100%;
+	height: 306px;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: 50% 50%;
 }
 
 .popup-title {

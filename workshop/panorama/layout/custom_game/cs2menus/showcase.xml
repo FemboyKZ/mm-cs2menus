@@ -1,0 +1,222 @@
+<root>
+  <styles>
+    <include src="file://{resources}/styles/custom_game/cs2menus/fonts.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/menu.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/grid.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/showcase.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/econ.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/econ_wear.css" />
+  </styles>
+  <Panel class="root" hittest="false">
+    <Panel id="cx_root" class="menu hidden">
+      <Panel class="menu-box showcase-box">
+        <Panel class="window-header">
+          <Label id="cx_title" class="menu-title" text="{s:cx_title}" />
+          <Button id="cx_back" class="hist-btn back-btn disabled" />
+          <Button id="cx_forward" class="hist-btn forward-btn disabled" />
+          <Button id="cx_refresh" class="hist-btn refresh-btn hidden" />
+          <Button id="cx_collapse" class="hist-btn collapse-btn" />
+          <Button id="cx_close" class="close-btn" />
+        </Panel>
+        <Panel class="body">
+          <Panel id="cx_pages" class="tabs">
+            <Button id="cx_nav0" class="tab hidden">
+              <Label id="cx_nav_lbl0" class="tab-label" text="{s:cx_nav_lbl0}" />
+            </Button>
+            <Button id="cx_nav1" class="tab hidden">
+              <Label id="cx_nav_lbl1" class="tab-label" text="{s:cx_nav_lbl1}" />
+            </Button>
+            <Button id="cx_nav2" class="tab hidden">
+              <Label id="cx_nav_lbl2" class="tab-label" text="{s:cx_nav_lbl2}" />
+            </Button>
+            <Button id="cx_nav3" class="tab hidden">
+              <Label id="cx_nav_lbl3" class="tab-label" text="{s:cx_nav_lbl3}" />
+            </Button>
+            <Button id="cx_nav4" class="tab hidden">
+              <Label id="cx_nav_lbl4" class="tab-label" text="{s:cx_nav_lbl4}" />
+            </Button>
+            <Button id="cx_nav5" class="tab hidden">
+              <Label id="cx_nav_lbl5" class="tab-label" text="{s:cx_nav_lbl5}" />
+            </Button>
+            <Button id="cx_nav6" class="tab hidden">
+              <Label id="cx_nav_lbl6" class="tab-label" text="{s:cx_nav_lbl6}" />
+            </Button>
+            <Button id="cx_nav7" class="tab hidden">
+              <Label id="cx_nav_lbl7" class="tab-label" text="{s:cx_nav_lbl7}" />
+            </Button>
+            <Button id="cx_nav8" class="tab hidden">
+              <Label id="cx_nav_lbl8" class="tab-label" text="{s:cx_nav_lbl8}" />
+            </Button>
+            <Button id="cx_nav9" class="tab hidden">
+              <Label id="cx_nav_lbl9" class="tab-label" text="{s:cx_nav_lbl9}" />
+            </Button>
+          </Panel>
+          <Panel class="showcase">
+            <Panel class="stage">
+              <Panel id="cx_shot" class="shot" />
+              <Button id="cx_action" class="action-btn hidden">
+                <Label id="cx_action_lbl" class="action-label" text="{s:cx_action_lbl}" />
+              </Button>
+            </Panel>
+            <Panel class="controls">
+              <Panel class="sbtns">
+                <Button id="cx_item0" class="sbtn hidden">
+                  <Label id="cx_name0" class="sbtn-name" text="{s:cx_name0}" />
+                  <Label id="cx_val0" class="sbtn-sub" text="{s:cx_val0}" />
+                </Button>
+                <Button id="cx_item1" class="sbtn hidden">
+                  <Label id="cx_name1" class="sbtn-name" text="{s:cx_name1}" />
+                  <Label id="cx_val1" class="sbtn-sub" text="{s:cx_val1}" />
+                </Button>
+                <Button id="cx_item2" class="sbtn hidden">
+                  <Label id="cx_name2" class="sbtn-name" text="{s:cx_name2}" />
+                  <Label id="cx_val2" class="sbtn-sub" text="{s:cx_val2}" />
+                </Button>
+                <Button id="cx_item3" class="sbtn hidden">
+                  <Label id="cx_name3" class="sbtn-name" text="{s:cx_name3}" />
+                  <Label id="cx_val3" class="sbtn-sub" text="{s:cx_val3}" />
+                </Button>
+                <Button id="cx_item4" class="sbtn hidden">
+                  <Label id="cx_name4" class="sbtn-name" text="{s:cx_name4}" />
+                  <Label id="cx_val4" class="sbtn-sub" text="{s:cx_val4}" />
+                </Button>
+                <Button id="cx_item5" class="sbtn hidden">
+                  <Label id="cx_name5" class="sbtn-name" text="{s:cx_name5}" />
+                  <Label id="cx_val5" class="sbtn-sub" text="{s:cx_val5}" />
+                </Button>
+                <Button id="cx_item6" class="sbtn hidden">
+                  <Label id="cx_name6" class="sbtn-name" text="{s:cx_name6}" />
+                  <Label id="cx_val6" class="sbtn-sub" text="{s:cx_val6}" />
+                </Button>
+                <Button id="cx_item7" class="sbtn hidden">
+                  <Label id="cx_name7" class="sbtn-name" text="{s:cx_name7}" />
+                  <Label id="cx_val7" class="sbtn-sub" text="{s:cx_val7}" />
+                </Button>
+                <Button id="cx_item8" class="sbtn hidden">
+                  <Label id="cx_name8" class="sbtn-name" text="{s:cx_name8}" />
+                  <Label id="cx_val8" class="sbtn-sub" text="{s:cx_val8}" />
+                </Button>
+                <Button id="cx_item9" class="sbtn hidden">
+                  <Label id="cx_name9" class="sbtn-name" text="{s:cx_name9}" />
+                  <Label id="cx_val9" class="sbtn-sub" text="{s:cx_val9}" />
+                </Button>
+                <Button id="cx_item10" class="sbtn hidden">
+                  <Label id="cx_name10" class="sbtn-name" text="{s:cx_name10}" />
+                  <Label id="cx_val10" class="sbtn-sub" text="{s:cx_val10}" />
+                </Button>
+                <Button id="cx_item11" class="sbtn hidden">
+                  <Label id="cx_name11" class="sbtn-name" text="{s:cx_name11}" />
+                  <Label id="cx_val11" class="sbtn-sub" text="{s:cx_val11}" />
+                </Button>
+                <Button id="cx_item12" class="sbtn hidden">
+                  <Label id="cx_name12" class="sbtn-name" text="{s:cx_name12}" />
+                  <Label id="cx_val12" class="sbtn-sub" text="{s:cx_val12}" />
+                </Button>
+                <Button id="cx_item13" class="sbtn hidden">
+                  <Label id="cx_name13" class="sbtn-name" text="{s:cx_name13}" />
+                  <Label id="cx_val13" class="sbtn-sub" text="{s:cx_val13}" />
+                </Button>
+                <Button id="cx_item14" class="sbtn hidden">
+                  <Label id="cx_name14" class="sbtn-name" text="{s:cx_name14}" />
+                  <Label id="cx_val14" class="sbtn-sub" text="{s:cx_val14}" />
+                </Button>
+                <Button id="cx_item15" class="sbtn hidden">
+                  <Label id="cx_name15" class="sbtn-name" text="{s:cx_name15}" />
+                  <Label id="cx_val15" class="sbtn-sub" text="{s:cx_val15}" />
+                </Button>
+                <Button id="cx_item16" class="sbtn hidden">
+                  <Label id="cx_name16" class="sbtn-name" text="{s:cx_name16}" />
+                  <Label id="cx_val16" class="sbtn-sub" text="{s:cx_val16}" />
+                </Button>
+                <Button id="cx_item17" class="sbtn hidden">
+                  <Label id="cx_name17" class="sbtn-name" text="{s:cx_name17}" />
+                  <Label id="cx_val17" class="sbtn-sub" text="{s:cx_val17}" />
+                </Button>
+              </Panel>
+              <Panel id="cx_pager" class="pager hidden">
+                <Button id="cx_prev" class="popup-btn"><Label class="popup-btn-label" text="&lt;" /></Button>
+                <Label id="cx_page" class="popup-page" text="{s:cx_page}" />
+                <Button id="cx_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
+              </Panel>
+            </Panel>
+          </Panel>
+        </Panel>
+      </Panel>
+      <Panel id="cx_step" class="popup step-popup hidden">
+        <Panel class="window-header">
+          <Label id="cx_step_title" class="popup-title" text="{s:cx_step_title}" />
+          <Button id="cx_step_close" class="close-btn" />
+        </Panel>
+        <Panel class="step-row">
+          <Button id="cx_step_b0" class="step-btn"><Label id="cx_step_l0" class="step-btn-label" text="{s:cx_step_l0}" /></Button>
+          <Button id="cx_step_b1" class="step-btn"><Label id="cx_step_l1" class="step-btn-label" text="{s:cx_step_l1}" /></Button>
+          <Label id="cx_step_val" class="step-readout" text="{s:cx_step_val}" />
+          <Button id="cx_step_b2" class="step-btn"><Label id="cx_step_l2" class="step-btn-label" text="{s:cx_step_l2}" /></Button>
+          <Button id="cx_step_b3" class="step-btn"><Label id="cx_step_l3" class="step-btn-label" text="{s:cx_step_l3}" /></Button>
+        </Panel>
+      </Panel>
+
+      <Panel id="cx_list" class="popup list-popup hidden">
+        <Panel class="window-header">
+          <Label id="cx_list_title" class="popup-title" text="{s:cx_list_title}" />
+          <Button id="cx_list_close" class="close-btn" />
+        </Panel>
+        <Panel class="list-rows">
+          <Button id="cx_li0" class="li hidden">
+            <Label id="cx_li_lbl0" class="li-label" text="{s:cx_li_lbl0}" />
+          </Button>
+          <Button id="cx_li1" class="li hidden">
+            <Label id="cx_li_lbl1" class="li-label" text="{s:cx_li_lbl1}" />
+          </Button>
+          <Button id="cx_li2" class="li hidden">
+            <Label id="cx_li_lbl2" class="li-label" text="{s:cx_li_lbl2}" />
+          </Button>
+          <Button id="cx_li3" class="li hidden">
+            <Label id="cx_li_lbl3" class="li-label" text="{s:cx_li_lbl3}" />
+          </Button>
+          <Button id="cx_li4" class="li hidden">
+            <Label id="cx_li_lbl4" class="li-label" text="{s:cx_li_lbl4}" />
+          </Button>
+          <Button id="cx_li5" class="li hidden">
+            <Label id="cx_li_lbl5" class="li-label" text="{s:cx_li_lbl5}" />
+          </Button>
+          <Button id="cx_li6" class="li hidden">
+            <Label id="cx_li_lbl6" class="li-label" text="{s:cx_li_lbl6}" />
+          </Button>
+          <Button id="cx_li7" class="li hidden">
+            <Label id="cx_li_lbl7" class="li-label" text="{s:cx_li_lbl7}" />
+          </Button>
+          <Button id="cx_li8" class="li hidden">
+            <Label id="cx_li_lbl8" class="li-label" text="{s:cx_li_lbl8}" />
+          </Button>
+          <Button id="cx_li9" class="li hidden">
+            <Label id="cx_li_lbl9" class="li-label" text="{s:cx_li_lbl9}" />
+          </Button>
+          <Button id="cx_li10" class="li hidden">
+            <Label id="cx_li_lbl10" class="li-label" text="{s:cx_li_lbl10}" />
+          </Button>
+          <Button id="cx_li11" class="li hidden">
+            <Label id="cx_li_lbl11" class="li-label" text="{s:cx_li_lbl11}" />
+          </Button>
+          <Button id="cx_li12" class="li hidden">
+            <Label id="cx_li_lbl12" class="li-label" text="{s:cx_li_lbl12}" />
+          </Button>
+          <Button id="cx_li13" class="li hidden">
+            <Label id="cx_li_lbl13" class="li-label" text="{s:cx_li_lbl13}" />
+          </Button>
+          <Button id="cx_li14" class="li hidden">
+            <Label id="cx_li_lbl14" class="li-label" text="{s:cx_li_lbl14}" />
+          </Button>
+          <Button id="cx_li15" class="li hidden">
+            <Label id="cx_li_lbl15" class="li-label" text="{s:cx_li_lbl15}" />
+          </Button>
+        </Panel>
+        <Panel class="popup-nav">
+          <Button id="cx_list_prev" class="popup-btn"><Label class="popup-btn-label" text="&lt;" /></Button>
+          <Label id="cx_list_page" class="popup-page" text="{s:cx_list_page}" />
+          <Button id="cx_list_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
+        </Panel>
+      </Panel>
+    </Panel>
+  </Panel>
+</root>
