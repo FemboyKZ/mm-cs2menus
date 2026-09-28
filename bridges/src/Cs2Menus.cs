@@ -22,7 +22,27 @@ public enum MenuLabel { Exit = 0, NextPage = 1, PrevPage = 2, Move = 3, Scroll =
 public enum MenuItemType { Normal = 0, Toggle, Stepper, Choice }
 
 /// <summary>Panorama only. Chat and HTML menus are always lists.</summary>
-public enum MenuLayout { List = 0, Grid }
+public enum MenuLayout
+{
+	List = 0,
+	/// <summary>Image tiles, sections as tabs.</summary>
+	Grid,
+	/// <summary>The menu image on the left, items as 3-column buttons, sections as tabs.</summary>
+	Showcase,
+}
+
+/// <summary>A grid's smallest tiles, it grows them when the items fit.</summary>
+public enum MenuTileSize
+{
+	/// <summary>6 x 4</summary>
+	Small = 0,
+	/// <summary>4 x 3</summary>
+	Medium,
+	/// <summary>3 x 2</summary>
+	Large,
+	/// <summary>3 x 1, full height</summary>
+	Cards,
+}
 
 /// <summary>
 /// Per-menu HTML style fields settable via <see cref="Cs2Menu.SetMenuStyle"/>.
@@ -91,6 +111,12 @@ public sealed partial class Cs2MenusBridge : IDisposable
 	public bool SupportsValueItemsAndGrids => Cs2MenusNative.Supports004;
 
 	/// <summary>
+	/// True if it also has the showcase layout, tile sizes, menu images, menu history and pausing.
+	/// Otherwise those throw <see cref="NotSupportedException"/>.
+	/// </summary>
+	public bool SupportsShowcaseAndHistory => Cs2MenusNative.SupportsHistory;
+
+	/// <summary>
 	/// Resolve the cs2menus binary at an absolute path. Safe to call repeatedly, loads once.
 	/// Prefer the host-specific <c>LoadDefault</c> overload.
 	/// </summary>
@@ -135,6 +161,29 @@ public sealed partial class Cs2MenusBridge : IDisposable
 
 	/// <summary>Abs index of the item the slot has highlighted in an HTML menu, or -1 (no menu / chat menu / Exit row / not loaded).</summary>
 	public static int GetSelectedItem(int slot) => Cs2MenusNative.Loaded ? Cs2MenusNative.GetSelectedItem(slot) : -1;
+
+	/// <summary>Back <paramref name="steps"/> menus in the slot's history. Needs the display open, so not from a close-on-select handler.</summary>
+	public static bool StepBack(int slot, int steps = 1) => Cs2MenusNative.Loaded && Cs2MenusNative.StepBack(slot, steps);
+
+	/// <summary>
+	/// Hide the slot's menu without ending it, like while the player types in chat. No input meanwhile.
+	/// <see cref="Resume"/> brings it back, so does another menu on the slot.
+	/// </summary>
+	public static void Suspend(int slot)
+	{
+		if (Cs2MenusNative.Loaded)
+		{
+			Cs2MenusNative.Suspend(slot);
+		}
+	}
+
+	public static void Resume(int slot)
+	{
+		if (Cs2MenusNative.Loaded)
+		{
+			Cs2MenusNative.Resume(slot);
+		}
+	}
 
 	/// <summary>The menu this bridge created that the slot currently has open, or null (none / created by another bridge / not loaded).</summary>
 	public Cs2Menu? GetActiveMenu(int slot) => Cs2MenusNative.Loaded ? Find(Cs2MenusNative.GetActiveMenu(slot)) : null;
@@ -202,6 +251,39 @@ public sealed class Cs2Menu : IDisposable
 	/// <summary>A value item changed: (menu, slot, item, value), already stored. <see cref="SetItemValue"/> in the handler overrides it.</summary>
 	public event Action<Cs2Menu, int, int, int>? Changed;
 
+	private Action<Cs2Menu, int>? _refreshed;
+
+	/// <summary>
+	/// The player pressed the Panorama refresh button: (menu, slot). Rebuild the items here.
+	/// The button only shows while this has a handler.
+	/// </summary>
+	public event Action<Cs2Menu, int>? Refreshed
+	{
+		add
+		{
+			bool first = _refreshed is null;
+			_refreshed += value;
+			if (first && _refreshed is not null && Handle != 0)
+			{
+				unsafe
+				{
+					Cs2MenusNative.SetRefreshCallback(Handle, (nint)(delegate* unmanaged[Cdecl]<uint, int, void*, void>)&Trampolines.OnRefresh, Token);
+				}
+			}
+		}
+		remove
+		{
+			_refreshed -= value;
+			if (_refreshed is null && Handle != 0)
+			{
+				unsafe
+				{
+					Cs2MenusNative.SetRefreshCallback(Handle, 0, null);
+				}
+			}
+		}
+	}
+
 	public uint Handle { get; private set; }
 	internal unsafe void* Token => (void*)GCHandle.ToIntPtr(_self);
 
@@ -223,6 +305,7 @@ public sealed class Cs2Menu : IDisposable
 
 	internal void RaiseEnded(int slot, MenuEndReason reason) => Ended?.Invoke(this, slot, reason);
 	internal void RaiseChanged(int slot, int item, int value) => Changed?.Invoke(this, slot, item, value);
+	internal void RaiseRefreshed(int slot) => _refreshed?.Invoke(this, slot);
 
 	// --- Menu properties (chainable setters + paired getters) ---
 	public Cs2Menu SetTitle(string title) { Cs2MenusNative.SetTitle(Handle, title); return this; }
@@ -337,9 +420,29 @@ public sealed class Cs2Menu : IDisposable
 	public void SetItemSubtext(int item, string subtext) => Cs2MenusNative.SetItemSubtext(Handle, item, subtext);
 	public string GetItemSubtext(int item) => Cs2MenusNative.GetItemSubtext(Handle, item);
 
+	// --- Panorama layouts ---
+
+	/// <summary>A grid's smallest tiles, default Small. It grows them when the items fit.</summary>
+	public Cs2Menu SetTileSize(MenuTileSize size) { Cs2MenusNative.SetMenuTileSize(Handle, (int)size); return this; }
+	public MenuTileSize TileSize => (MenuTileSize)Cs2MenusNative.GetMenuTileSize(Handle);
+	/// <summary>Shown inside a showcase, beside the box otherwise. An addon image class like <see cref="SetItemImage"/>'s. "" removes it.</summary>
+	public Cs2Menu SetImage(string image) { Cs2MenusNative.SetMenuImage(Handle, image); return this; }
+	public string Image => Cs2MenusNative.GetMenuImage(Handle);
+	/// <summary>Showcase: the item shown as a wide button under the image on every page, -1 for none. Set after adding the items.</summary>
+	public Cs2Menu SetPinnedItem(int item) { Cs2MenusNative.SetMenuPinnedItem(Handle, item); return this; }
+	public int PinnedItem => Cs2MenusNative.GetMenuPinnedItem(Handle);
+
 	// --- Display ---
 	public bool Display(int slot, float duration = 0f) => Cs2MenusNative.Display(Handle, slot, duration);
 	public void DisplayToAll(float duration = 0f) => Cs2MenusNative.DisplayToAll(Handle, duration);
+
+	/// <summary>
+	/// Show on top of the slot's current menu, which the back arrow returns to. Works from a close-on-select handler.
+	/// Clears the forward history and keeps the current display's timeout.
+	/// </summary>
+	public bool Push(int slot, float duration = 0f) => Cs2MenusNative.Push(Handle, slot, duration);
+	/// <summary>Show in place of the slot's current menu, which ends (Cancelled).</summary>
+	public bool Replace(int slot, float duration = 0f) => Cs2MenusNative.Replace(Handle, slot, duration);
 
 	// --- Lifetime ---
 	/// <summary>True while this menu handle is still live in cs2menus.</summary>
@@ -415,6 +518,23 @@ internal static unsafe class Trampolines
 		try
 		{
 			m.RaiseChanged(slot, item, value);
+		}
+		catch
+		{
+		}
+	}
+
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	public static void OnRefresh(uint menu, int slot, void* user)
+	{
+		var m = Resolve(user);
+		if (m is null)
+		{
+			return;
+		}
+		try
+		{
+			m.RaiseRefreshed(slot);
 		}
 		catch
 		{

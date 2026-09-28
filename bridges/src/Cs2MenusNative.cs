@@ -100,10 +100,31 @@ internal static unsafe class Cs2MenusNative
 	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setItemSubtext;
 	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getItemSubtext;
 
+	// Panorama layouts
+	private static delegate* unmanaged[Cdecl]<uint, int, void> _setMenuTileSize;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getMenuTileSize;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, void> _setMenuImage;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, int, int> _getMenuImage;
+	private static delegate* unmanaged[Cdecl]<uint, int, void> _setMenuPinnedItem;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getMenuPinnedItem;
+
+	// History
+	private static delegate* unmanaged[Cdecl]<uint, int, float, int> _push;
+	private static delegate* unmanaged[Cdecl]<uint, int, float, int> _replace;
+	private static delegate* unmanaged[Cdecl]<int, int, int> _stepBack;
+	private static delegate* unmanaged[Cdecl]<uint, nint, void*, void> _setRefreshCallback;
+
+	// Pausing a display
+	private static delegate* unmanaged[Cdecl]<int, void> _suspend;
+	private static delegate* unmanaged[Cdecl]<int, void> _resume;
+
 	public static bool Loaded { get; private set; }
 
 	/// <summary>True when the loaded cs2menus exports the ICS2Menus004 additions (value items, sections, grids).</summary>
 	public static bool Supports004 { get; private set; }
+
+	/// <summary>True when it also exports the later 004 additions: showcase, tile sizes, menu image, history and pausing.</summary>
+	public static bool SupportsHistory { get; private set; }
 
 	/// <summary>
 	/// Resolve every export from the cs2menus binary at <paramref name="binaryPath"/>.
@@ -227,6 +248,36 @@ internal static unsafe class Cs2MenusNative
 			_getItemSubtext = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)getItemSubtext;
 		}
 
+		// Optional as well, newer than the first 004 exports.
+		if (Supports004
+			&& TryGet(lib, "cs2m_set_menu_tile_size", out nint setMenuTileSize)
+			&& TryGet(lib, "cs2m_get_menu_tile_size", out nint getMenuTileSize)
+			&& TryGet(lib, "cs2m_set_menu_image", out nint setMenuImage)
+			&& TryGet(lib, "cs2m_get_menu_image", out nint getMenuImage)
+			&& TryGet(lib, "cs2m_set_menu_pinned_item", out nint setMenuPinnedItem)
+			&& TryGet(lib, "cs2m_get_menu_pinned_item", out nint getMenuPinnedItem)
+			&& TryGet(lib, "cs2m_push", out nint push)
+			&& TryGet(lib, "cs2m_replace", out nint replace)
+			&& TryGet(lib, "cs2m_step_back", out nint stepBack)
+			&& TryGet(lib, "cs2m_set_refresh_callback", out nint setRefreshCallback)
+			&& TryGet(lib, "cs2m_suspend", out nint suspend)
+			&& TryGet(lib, "cs2m_resume", out nint resume))
+		{
+			SupportsHistory = true;
+			_setMenuTileSize = (delegate* unmanaged[Cdecl]<uint, int, void>)setMenuTileSize;
+			_getMenuTileSize = (delegate* unmanaged[Cdecl]<uint, int>)getMenuTileSize;
+			_setMenuImage = (delegate* unmanaged[Cdecl]<uint, byte*, void>)setMenuImage;
+			_getMenuImage = (delegate* unmanaged[Cdecl]<uint, byte*, int, int>)getMenuImage;
+			_setMenuPinnedItem = (delegate* unmanaged[Cdecl]<uint, int, void>)setMenuPinnedItem;
+			_getMenuPinnedItem = (delegate* unmanaged[Cdecl]<uint, int>)getMenuPinnedItem;
+			_push = (delegate* unmanaged[Cdecl]<uint, int, float, int>)push;
+			_replace = (delegate* unmanaged[Cdecl]<uint, int, float, int>)replace;
+			_stepBack = (delegate* unmanaged[Cdecl]<int, int, int>)stepBack;
+			_setRefreshCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)setRefreshCallback;
+			_suspend = (delegate* unmanaged[Cdecl]<int, void>)suspend;
+			_resume = (delegate* unmanaged[Cdecl]<int, void>)resume;
+		}
+
 		Loaded = true;
 		return true;
 	}
@@ -240,6 +291,14 @@ internal static unsafe class Cs2MenusNative
 		if (!Supports004)
 		{
 			throw new NotSupportedException("The loaded cs2menus predates value items, sections and grids (ICS2Menus004). Update cs2menus.");
+		}
+	}
+
+	private static void RequireHistory()
+	{
+		if (!SupportsHistory)
+		{
+			throw new NotSupportedException("The loaded cs2menus predates showcase layouts, menu history and pausing. Update cs2menus.");
 		}
 	}
 
@@ -470,6 +529,72 @@ internal static unsafe class Cs2MenusNative
 	}
 
 	public static string GetItemSubtext(uint menu, int item) => Supports004 ? ReadString(_getItemSubtext, menu, item) : string.Empty;
+
+	// --- Panorama layouts ---
+	public static void SetMenuTileSize(uint menu, int size)
+	{
+		RequireHistory();
+		_setMenuTileSize(menu, size);
+	}
+
+	public static int GetMenuTileSize(uint menu) => SupportsHistory ? _getMenuTileSize(menu) : 0;
+
+	public static void SetMenuImage(uint menu, ReadOnlySpan<char> image)
+	{
+		RequireHistory();
+		fixed (byte* i = Utf8(image)) _setMenuImage(menu, i);
+	}
+
+	public static string GetMenuImage(uint menu) => SupportsHistory ? ReadString(_getMenuImage, menu) : string.Empty;
+
+	public static void SetMenuPinnedItem(uint menu, int item)
+	{
+		RequireHistory();
+		_setMenuPinnedItem(menu, item);
+	}
+
+	public static int GetMenuPinnedItem(uint menu) => SupportsHistory ? _getMenuPinnedItem(menu) : -1;
+
+	// --- History ---
+	public static bool Push(uint menu, int slot, float duration)
+	{
+		RequireHistory();
+		return _push(menu, slot, duration) != 0;
+	}
+
+	public static bool Replace(uint menu, int slot, float duration)
+	{
+		RequireHistory();
+		return _replace(menu, slot, duration) != 0;
+	}
+
+	public static bool StepBack(int slot, int steps)
+	{
+		RequireHistory();
+		return _stepBack(slot, steps) != 0;
+	}
+
+	// No-op on an older cs2menus, which has no refresh button.
+	public static void SetRefreshCallback(uint menu, nint onRefresh, void* user)
+	{
+		if (SupportsHistory)
+		{
+			_setRefreshCallback(menu, onRefresh, user);
+		}
+	}
+
+	// --- Pausing a display ---
+	public static void Suspend(int slot)
+	{
+		RequireHistory();
+		_suspend(slot);
+	}
+
+	public static void Resume(int slot)
+	{
+		RequireHistory();
+		_resume(slot);
+	}
 
 	private static string ReadString(delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> fn, uint menu, int item)
 	{

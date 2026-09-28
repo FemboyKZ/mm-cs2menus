@@ -91,6 +91,29 @@ Individual `Cs2Menu.Dispose()` works too for one-shot menus (e.g. from the `Ende
 
 Threading is not a concern: cs2menus is fully thread-safe and callbacks always arrive on the game main thread.
 
+## Panorama layouts, history and pausing
+
+These need a cs2menus with the matching exports.
+Check `SupportsValueItemsAndGrids` and `SupportsShowcaseAndHistory` first, the calls throw `NotSupportedException` on an older one.
+
+```csharp
+var editor = menus.CreateMenu(MenuType.Panorama, "AK-47 | Redline", (menu, slot, item) => { /* ... */ });
+editor.SetLayout(MenuLayout.Showcase)   // image on the left, 3-column buttons, sections as tabs
+      .SetImage("weapon_ak47_cu_ak47_cobra");
+editor.AddSection("Skin");
+editor.AddItem("Apply", "apply");
+editor.SetPinnedItem(0);                // the wide button under the image, on every tab
+editor.Refreshed += (menu, slot) => { /* rebuild the items, the refresh button shows while this has a handler */ };
+
+picker.SetLayout(MenuLayout.Grid).SetTileSize(MenuTileSize.Medium);
+
+editor.Push(slot);                      // on top of the current menu, the back arrow returns to it
+picker.Replace(slot);                   // in place of it
+Cs2MenusBridge.StepBack(slot, 1);       // back in the history, not from a close-on-select handler
+Cs2MenusBridge.Suspend(slot);           // hide it while the player types in chat
+Cs2MenusBridge.Resume(slot);
+```
+
 ## CounterStrikeSharp usage
 
 Same core, same API. Only path resolution + cleanup wiring differ.

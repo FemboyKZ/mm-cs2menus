@@ -411,3 +411,75 @@ CS2M_API int CS2M_CALL cs2m_get_item_subtext(cs2m_handle menu, int item, char *b
 	// Copy immediately: the returned pointer aliases live menu storage.
 	return CopyOut(API()->GetItemSubtext(menu, item), buf, buflen);
 }
+
+// --- Panorama layouts ---
+
+CS2M_API void CS2M_CALL cs2m_set_menu_tile_size(cs2m_handle menu, int size)
+{
+	API()->SetMenuTileSize(menu, static_cast<MenuTileSize>(size));
+}
+
+CS2M_API int CS2M_CALL cs2m_get_menu_tile_size(cs2m_handle menu)
+{
+	return static_cast<int>(API()->GetMenuTileSize(menu));
+}
+
+CS2M_API void CS2M_CALL cs2m_set_menu_image(cs2m_handle menu, const char *image)
+{
+	API()->SetMenuImage(menu, image ? image : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_menu_image(cs2m_handle menu, char *buf, int buflen)
+{
+	// Copy immediately: the returned pointer aliases live menu storage.
+	return CopyOut(API()->GetMenuImage(menu), buf, buflen);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_menu_pinned_item(cs2m_handle menu, int item)
+{
+	API()->SetMenuPinnedItem(menu, item);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_menu_pinned_item(cs2m_handle menu)
+{
+	return API()->GetMenuPinnedItem(menu);
+}
+
+// --- History ---
+
+CS2M_API int CS2M_CALL cs2m_push(cs2m_handle menu, int slot, float duration)
+{
+	return API()->PushMenu(menu, slot, duration) ? 1 : 0;
+}
+
+CS2M_API int CS2M_CALL cs2m_replace(cs2m_handle menu, int slot, float duration)
+{
+	return API()->ReplaceMenu(menu, slot, duration) ? 1 : 0;
+}
+
+CS2M_API int CS2M_CALL cs2m_step_back(int slot, int steps)
+{
+	return API()->StepBack(slot, steps) ? 1 : 0;
+}
+
+CS2M_API void CS2M_CALL cs2m_set_refresh_callback(cs2m_handle menu, cs2m_refresh_cb on_refresh, void *user)
+{
+	MenuRefreshFn fn;
+	if (on_refresh)
+	{
+		fn = [on_refresh, user](MenuHandle m, int slot) { on_refresh(m, slot, user); };
+	}
+	API()->SetMenuRefreshCallback(menu, std::move(fn));
+}
+
+// --- Pausing a display ---
+
+CS2M_API void CS2M_CALL cs2m_suspend(int slot)
+{
+	API()->SuspendMenu(slot);
+}
+
+CS2M_API void CS2M_CALL cs2m_resume(int slot)
+{
+	API()->ResumeMenu(slot);
+}
