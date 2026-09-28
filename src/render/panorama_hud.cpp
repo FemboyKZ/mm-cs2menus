@@ -629,10 +629,10 @@ bool panorama_hud::Show(int slot, const View &view)
 	w.Var(title, view.title);
 	w.Swap(title, ColorClass(view.titleColor));
 	w.Class(w.Id("close"), "hidden", !view.closeButton);
-	// Always there, dimmed when there's nowhere to go, so the header doesn't shift around.
+	// Always there, dimmed when there's nowhere to go or nothing to refresh, so the header doesn't shift around.
 	w.Class(w.Id("back"), "disabled", !view.backButton);
 	w.Class(w.Id("forward"), "disabled", !view.forwardButton);
-	w.Class(w.Id("refresh"), "hidden", !view.refreshButton);
+	w.Class(w.Id("refresh"), "disabled", !view.refreshButton);
 	w.Class(root, "collapsed", view.collapsed);
 	w.Class(w.Id("pages"), "hidden", view.nav.empty());
 

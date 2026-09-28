@@ -116,7 +116,7 @@ namespace panorama_hud
 		std::string titleColor;
 		std::string navColor;
 		bool closeButton = true;
-		// History buttons left of the close button. Back and forward are dimmed when unavailable, refresh is hidden.
+		// History buttons left of the close button. Dimmed when unavailable.
 		bool backButton = false;
 		bool forwardButton = false;
 		bool refreshButton = false;

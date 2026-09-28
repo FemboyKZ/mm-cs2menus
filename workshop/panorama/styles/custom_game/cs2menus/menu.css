@@ -143,7 +143,7 @@
 	visibility: collapse;
 }
 
-/* Nowhere to go back or forward to */
+/* Nowhere to go back or forward to, or nothing to refresh */
 .hist-btn.disabled {
 	opacity: 0.3;
 }

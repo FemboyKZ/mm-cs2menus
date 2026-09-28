@@ -13,7 +13,7 @@
           <Label id="cg_title" class="menu-title" text="{s:cg_title}" />
           <Button id="cg_back" class="hist-btn back-btn disabled" />
           <Button id="cg_forward" class="hist-btn forward-btn disabled" />
-          <Button id="cg_refresh" class="hist-btn refresh-btn hidden" />
+          <Button id="cg_refresh" class="hist-btn refresh-btn disabled" />
           <Button id="cg_collapse" class="hist-btn collapse-btn" />
           <Button id="cg_close" class="close-btn" />
         </Panel>

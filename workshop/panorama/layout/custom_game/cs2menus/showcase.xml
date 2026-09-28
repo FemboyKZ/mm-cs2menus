@@ -14,7 +14,7 @@
           <Label id="cx_title" class="menu-title" text="{s:cx_title}" />
           <Button id="cx_back" class="hist-btn back-btn disabled" />
           <Button id="cx_forward" class="hist-btn forward-btn disabled" />
-          <Button id="cx_refresh" class="hist-btn refresh-btn hidden" />
+          <Button id="cx_refresh" class="hist-btn refresh-btn disabled" />
           <Button id="cx_collapse" class="hist-btn collapse-btn" />
           <Button id="cx_close" class="close-btn" />
         </Panel>
