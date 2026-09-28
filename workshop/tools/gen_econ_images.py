@@ -12,7 +12,7 @@ Class names are the image file name without its "_png.vtex_c"/".vsvg_c" suffix, 
 - agents: the image_inventory file name, like customplayer_tm_leet_variantg, plus local_agent_t and local_agent_ct
 - base items: econ/weapons/base_weapons, like weapon_knife_karambit or ct_gloves
 - charms: the image_inventory file name, like kc_db_8ball
-- a few UI icons: the team logos t_logo and ct_logo, refresh and votescrambleteams
+- a few UI icons: the team logos t_logo and ct_logo, refresh, votescrambleteams and random
 - stickers, in econ_stickers.css only: "sticker__" and the sticker_material with "/" as "__", like sticker__dreamhack__dh_gologo1
 
 Panorama draws an SVG at its own width and height, mostly 32px, so tiles would blur it.
@@ -61,6 +61,8 @@ EXTRAS = {
     # A circular arrow, and crossing arrows in T yellow and CT blue.
     "refresh": "panorama/images/icons/ui/refresh.vsvg_c",
     "votescrambleteams": "panorama/images/icons/ui/votescrambleteams.vsvg_c",
+    # A die.
+    "random": "panorama/images/icons/ui/random.vsvg_c",
 }
 
 SIZE_ATTR = re.compile(r'\s(width|height)="([\d.]+)(px)?"')
