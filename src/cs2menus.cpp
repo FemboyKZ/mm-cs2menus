@@ -22,6 +22,8 @@
 #include "mmu/log.h"
 #include "mmu/print.h"
 #include "mmu/str_utils.h"
+#include "mmu/command_args.h"
+#include "mmu/target.h"
 
 #include <cctype>
 #include <cstdio>
@@ -953,6 +955,8 @@ CON_COMMAND_F(cs2menus_panorama_diag, "Print panorama menu status: signatures, a
 	}
 }
 
+static bool ParseCommandArgs(int slot, const CCommand &args, const mmu::ArgSpec &keys, mmu::Args &out);
+
 // Every item type, to try each renderer in game.
 CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_demo [chat|html|panorama].", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
@@ -965,8 +969,14 @@ CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_de
 	{
 		return;
 	}
-	const bool forced = args.ArgC() > 1;
-	const MenuType type = forced ? ParseMenuType(args.Arg(1)) : MenuType::Default;
+	mmu::Args parsed;
+	if (!ParseCommandArgs(slot, args, {{{"type"}}, "type"}, parsed))
+	{
+		return;
+	}
+	const std::string *typeName = parsed.Get("type");
+	const bool forced = typeName != nullptr;
+	const MenuType type = forced ? ParseMenuType(*typeName) : MenuType::Default;
 
 	MenuHandle menu = g_MenuManager.CreateMenu(type, "cs2menus demo", [](MenuHandle m, int s, int item)
 											   { MENU_PrintToChat(s, "Selected %s", g_MenuManager.GetItemText(m, item)); });
@@ -1406,8 +1416,12 @@ CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | panora
 	{
 		return;
 	}
-	std::string v = args.Arg(1);
-	str::ToLowerInPlace(v);
+	mmu::Args parsed;
+	if (!ParseCommandArgs(slot, args, {{{"type"}}, "type"}, parsed))
+	{
+		return;
+	}
+	std::string v = str::ToLower(parsed.GetOr("type", ""));
 	if (v == "chat" || v == "html" || v == "panorama")
 	{
 		s_prefs[slot].type = v;
@@ -1427,7 +1441,7 @@ CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | panora
 	MENU_PrintToChat(slot, "Menu style set to %s.", TypeDisplay(s_prefs[slot].type).c_str());
 }
 
-CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|select|back> <key|default|none>.",
+CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|select|back> key=<key|default|none>.",
 			  FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
@@ -1439,19 +1453,22 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 	{
 		return;
 	}
-	if (args.ArgC() < 3)
+	mmu::Args parsed;
+	if (!ParseCommandArgs(slot, args, {{{"action"}, {"key"}}, "action"}, parsed))
 	{
-		MENU_PrintToChat(slot, "Usage: mm_pref_key <up|down|select|back> <key|default|none>");
+		return;
+	}
+	if (!parsed.Has("action") || !parsed.Has("key"))
+	{
+		MENU_PrintToChat(slot, "Usage: mm_pref_key <up|down|select|back> key=<key|default|none>");
 		return;
 	}
 	if (!RequirePrefsDB(slot))
 	{
 		return;
 	}
-	std::string actionName = args.Arg(1);
-	std::string keyName = args.Arg(2);
-	str::ToLowerInPlace(actionName);
-	str::ToLowerInPlace(keyName);
+	std::string actionName = str::ToLower(*parsed.Get("action"));
+	std::string keyName = str::ToLower(*parsed.Get("key"));
 	MenuNavAction action;
 	if (!ParseNavActionName(actionName, action))
 	{
@@ -1504,77 +1521,38 @@ static void ReplyToCaller(int slot, const char *msg)
 	}
 }
 
-// "#<slot>", "$<steamid64>" or a unique partial name. Returns the online slot or -1.
-// A "$" SteamID64 with nobody online still sets xuid, so an offline player's row can be reset.
-static int FindPrefsTarget(const char *pattern, uint64_t &xuid, std::string &error)
+// A console command's key=value args, from ArgS() since the engine tokenizer cuts a SteamID apart at its colons.
+// False after telling the caller what was wrong.
+static bool ParseCommandArgs(int slot, const CCommand &args, const mmu::ArgSpec &keys, mmu::Args &out)
 {
-	xuid = 0;
-	if (pattern[0] == '#')
+	std::string what;
+	const mmu::ArgError error = mmu::ParseArgs(args.ArgS(), keys, out, &what);
+	if (error == mmu::ArgError::None)
 	{
-		char *end = nullptr;
-		long s = strtol(pattern + 1, &end, 10);
-		if (end == pattern + 1 || *end || !ValidSlot(static_cast<int>(s)) || s_prefs[s].xuid == 0)
-		{
-			error = "No player in that slot.";
-			return -1;
-		}
-		xuid = s_prefs[s].xuid;
-		return static_cast<int>(s);
+		return true;
 	}
-	if (pattern[0] == '$')
-	{
-		char *end = nullptr;
-		xuid = strtoull(pattern + 1, &end, 10);
-		if (end == pattern + 1 || *end || xuid == 0)
-		{
-			xuid = 0;
-			error = "Invalid SteamID64.";
-			return -1;
-		}
-		for (int s = 0; s < MAXPLAYERS; s++)
-		{
-			if (s_prefs[s].xuid == xuid)
-			{
-				return s;
-			}
-		}
-		return -1;
-	}
-
-	std::string needle = str::ToLower(pattern);
-	int found = -1;
-	for (int s = 0; s < MAXPLAYERS; s++)
-	{
-		CCSPlayerController *controller = s_prefs[s].xuid ? CCSPlayerController::FromSlot(s) : nullptr;
-		if (!controller || str::ToLower(controller->GetPlayerName()).find(needle) == std::string::npos)
-		{
-			continue;
-		}
-		if (found != -1)
-		{
-			error = "More than one player matches, use #slot or $steamid64.";
-			return -1;
-		}
-		found = s;
-	}
-	if (found == -1)
-	{
-		error = "No player matches.";
-		return -1;
-	}
-	xuid = s_prefs[found].xuid;
-	return found;
+	std::string msg = error == mmu::ArgError::UnknownKey  ? "Unknown key " + what + "=."
+					  : error == mmu::ArgError::StrayText ? "Put " + what + " after a key, like key=value."
+														  : "A quote is left open.";
+	ReplyToCaller(slot, msg.c_str());
+	return false;
 }
 
 // Self and target resets use separate override keys so each can be gated.
-CON_COMMAND_F(mm_pref_reset, "Reset menu style and keys to server defaults: mm_pref_reset [#slot|$steamid64|name].",
+CON_COMMAND_F(mm_pref_reset, "Reset menu style and keys to server defaults: mm_pref_reset [#slot|steamid|name].",
 			  FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	bool self = args.ArgC() < 2;
+	mmu::Args parsed;
+	if (!ParseCommandArgs(slot, args, {{{"player", "target"}}, "player"}, parsed))
+	{
+		return;
+	}
+	const std::string *player = parsed.Get("player");
+	bool self = !player;
 	if (self && !ValidSlot(slot))
 	{
-		MMU_LOG_INFO("Usage: mm_pref_reset <#slot|$steamid64|name>\n");
+		MMU_LOG_INFO("Usage: mm_pref_reset <#slot|steamid|name>\n");
 		return;
 	}
 	if (!MENU_AdminBridge_CanUseCommand(slot, self ? "pref_reset" : "pref_reset_other", self ? 0 : CS2ADMIN_FLAG_GENERIC))
@@ -1595,9 +1573,17 @@ CON_COMMAND_F(mm_pref_reset, "Reset menu style and keys to server defaults: mm_p
 		return;
 	}
 
-	uint64_t xuid;
-	std::string error;
-	int target = FindPrefsTarget(args.Arg(1), xuid, error);
+	// A SteamID with nobody online still resolves, so an offline player's row can be reset.
+	mmu::TargetResult found = mmu::FindTargets(
+		slot, *player,
+		[](int s, mmu::TargetCandidate &who)
+		{
+			who = {s_prefs[s].xuid, false};
+			return s_prefs[s].xuid != 0;
+		},
+		mmu::TargetMode::OneOrOffline);
+	const int target = found.slots.empty() ? -1 : found.slots[0];
+	const uint64_t xuid = found.offlineSteamid64;
 	char msg[256];
 	if (target != -1)
 	{
@@ -1627,7 +1613,7 @@ CON_COMMAND_F(mm_pref_reset, "Reset menu style and keys to server defaults: mm_p
 	}
 	else
 	{
-		ReplyToCaller(slot, error.c_str());
+		ReplyToCaller(slot, found.error.c_str());
 		return;
 	}
 	ReplyToCaller(slot, msg);
@@ -2035,10 +2021,15 @@ CON_COMMAND_F(mm_menu_select, "Select a menu item: no arg = highlighted row, a n
 	{
 		return;
 	}
-	float curtime = MenuNow();
-	if (args.ArgC() > 1)
+	mmu::Args parsed;
+	if (!ParseCommandArgs(slot, args, {{{"item"}}, "item"}, parsed))
 	{
-		g_MenuManager.CommandSelectNumber(slot, atoi(args.Arg(1)), curtime);
+		return;
+	}
+	float curtime = MenuNow();
+	if (const std::string *item = parsed.Get("item"))
+	{
+		g_MenuManager.CommandSelectNumber(slot, atoi(item->c_str()), curtime);
 	}
 	else
 	{

@@ -5,6 +5,8 @@ cs2menus is a menu-rendering library.
 - Its own commands are personal UI and navigation, plus two server-op commands.
 - Most are also reachable via chat aliases.
 - The server console always has full access.
+- Arguments are `key=value` pairs.
+  A command's first argument can go without its key, so `mm_pref_key up key=f` is `mm_pref_key action=up key=f`.
 
 ## Permissions
 
@@ -29,10 +31,10 @@ cs2menus is a menu-rendering library.
 | `cs2menus_demo [type]`   | -                               | `z` root     | Open a demo menu with every item type (chat/html/panorama) |
 | `mm_menu_prefs`          | `!menu`, `!prefs`, `!menuprefs` | open         | Open your personal menu-preferences menu                   |
 | `mm_pref_type`           | -                               | open         | Set menu style: chat/html/panorama/default                 |
-| `mm_pref_key`            | -                               | open         | Set a navigation key                                       |
+| `mm_pref_key`            | -                               | open         | Set a navigation key: `<action> key=<key>`                 |
 | `mm_pref_show`           | -                               | open         | Show your current preferences                              |
 | `mm_pref_reset`          | -                               | open         | Reset your menu style and keys to server defaults          |
-| `mm_pref_reset <target>` | -                               | `b` generic  | Reset another player's prefs (`#slot`, `$steamid64`, name) |
+| `mm_pref_reset <target>` | -                               | `b` generic  | Reset another player's prefs (`#slot`, SteamID, name)      |
 | `mm_menu_up`             | `!menu_up`                      | open         | Move the open menu's cursor up                             |
 | `mm_menu_down`           | `!menu_down`                    | open         | Move the open menu's cursor down                           |
 | `mm_menu_select`         | `!menu_select`, bare number     | open         | Select the highlighted / numbered item                     |
