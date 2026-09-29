@@ -12,6 +12,8 @@ Class names are the image file name without its "_png.vtex_c"/".vsvg_c" suffix, 
 - agents: the image_inventory file name, like customplayer_tm_leet_variantg, plus local_agent_t and local_agent_ct
 - base items: econ/weapons/base_weapons, like weapon_knife_karambit or ct_gloves
 - charms: the image_inventory file name, like kc_db_8ball
+- music kits: "music__" and the image_inventory file name, like music__valve_cs2_01
+- pins, coins, medals and trophies: "coin__" and the image_inventory file name, like coin__5yearcoin
 - a few UI icons: the team logos t_logo and ct_logo, refresh, votescrambleteams and random
 - stickers, in econ_stickers.css only: "sticker__" and the sticker_material with "/" as "__", like sticker__dreamhack__dh_gologo1
 
@@ -39,6 +41,12 @@ OUT_STICKERS = os.path.join(
 STICKER_FOLDER = "panorama/images/econ/stickers/"
 STICKER_VARIANT = re.compile(r"(_\d+_\d+|_large)$")
 CHARM_FOLDER = "panorama/images/econ/keychains/"
+# (folder, class prefix): music kits, and the collectibles a scoreboard shows, pins, coins, medals and trophies.
+PREFIXED_FOLDERS = [
+    ("panorama/images/econ/music_kits/", "music__"),
+    ("panorama/images/econ/status_icons/", "coin__"),
+    ("panorama/images/econ/premier_seasons/", "coin__"),
+]
 SVG_FOLDER = "panorama/images/custom_game/cs2menus/"
 SVG_DIR = os.path.join(ROOT, "images", "custom_game", "cs2menus")
 # Sharp on a large tile at 4K.
@@ -158,6 +166,16 @@ def main():
                 stickers["sticker__" + material.replace("/", "__")] = path[:-2]
         elif path.startswith(CHARM_FOLDER):
             classes.setdefault(os.path.basename(path)[: -len("_png.vtex_c")], path[:-2])
+        else:
+            for folder, prefix in PREFIXED_FOLDERS:
+                name = path[len(folder) : -len("_png.vtex_c")]
+                # The "_small" renders are the scoreboard's own copies.
+                if (
+                    path.startswith(folder)
+                    and "/" not in name
+                    and not name.endswith("_small")
+                ):
+                    classes.setdefault(prefix + name.lower(), path[:-2])
 
     write_css(OUT, classes)
     write_css(OUT_WEAR, worn)
