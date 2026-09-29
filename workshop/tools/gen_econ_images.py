@@ -15,6 +15,7 @@ Class names are the image file name without its "_png.vtex_c"/".vsvg_c" suffix, 
 - music kits: "music__" and the image_inventory file name, like music__valve_cs2_01
 - pins, coins, medals and trophies: "coin__" and the image_inventory file name, like coin__5yearcoin
 - a few UI icons: the team logos t_logo and ct_logo, refresh, votescrambleteams, random and stattrak
+- agent patches: "patch__" and the patch_material with "/" as "__", like patch__case01__patch_banana
 - stickers, in econ_stickers.css only: "sticker__" and the sticker_material with "/" as "__", like sticker__dreamhack__dh_gologo1
 
 Panorama draws an SVG at its own width and height, mostly 32px, so tiles would blur it.
@@ -40,6 +41,7 @@ OUT_STICKERS = os.path.join(
 )
 STICKER_FOLDER = "panorama/images/econ/stickers/"
 STICKER_VARIANT = re.compile(r"(_\d+_\d+|_large)$")
+PATCH_FOLDER = "panorama/images/econ/patches/"
 CHARM_FOLDER = "panorama/images/econ/keychains/"
 # (folder, class prefix): music kits, and the collectibles a scoreboard shows, pins, coins, medals and trophies.
 PREFIXED_FOLDERS = [
@@ -166,6 +168,10 @@ def main():
             # The 1355_37 strips and the large renders are other uses of the same sticker.
             if not STICKER_VARIANT.search(material):
                 stickers["sticker__" + material.replace("/", "__")] = path[:-2]
+        elif path.startswith(PATCH_FOLDER):
+            material = path[len(PATCH_FOLDER) : -len("_png.vtex_c")]
+            if not STICKER_VARIANT.search(material):
+                classes.setdefault("patch__" + material.replace("/", "__"), path[:-2])
         elif path.startswith(CHARM_FOLDER):
             classes.setdefault(os.path.basename(path)[: -len("_png.vtex_c")], path[:-2])
         else:
