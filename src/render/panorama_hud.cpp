@@ -42,16 +42,182 @@ namespace
 	using CreateEntityByName_t = CEntityInstance *(*)(const char *className, int forcedIndex);
 	using DispatchSpawn_t = void (*)(CEntityInstance *entity, CEntityKeyValues *keyValues);
 	using RemoveEntity_t = void (*)(CEntityInstance *entity);
-	using SetHasClass_t = void (*)(CCSCustomHudLayout *layout, CUtlString *panelId, CUtlString *className, uint32_t status);
-	using SetDialogVariableString_t = void (*)(CCSCustomHudLayout *layout, CUtlString *panelId, CUtlString *name, CUtlString *value);
-	using SetInputCaptureEnabled_t = void (*)(CCSCustomHudLayout *layout, int slot, bool enabled);
 
 	CreateEntityByName_t s_createEntity = nullptr;
 	DispatchSpawn_t s_dispatchSpawn = nullptr;
 	RemoveEntity_t s_removeEntity = nullptr;
-	SetHasClass_t s_setHasClass = nullptr;
-	SetDialogVariableString_t s_setDialogVariableString = nullptr;
-	SetInputCaptureEnabled_t s_setInputCaptureEnabled = nullptr;
+
+	// CCSCustomHudLayout's networked state, written directly the way cs2kz-metamod does, so no game functions to sigscan.
+	// Names go into the layout's string lists once, the state's entries point at them by index.
+	struct HudOffsets
+	{
+		int32_t globalState = -1;   // CCSCustomHudLayout::m_globalLayoutState, embedded. Menus go there, see panorama_hud.h.
+		int32_t panelIds = -1;      // CCSCustomHudLayout::m_vecPanelIds, CUtlString
+		int32_t classNames = -1;    // CCSCustomHudLayout::m_vecClassNames, CUtlString
+		int32_t variableNames = -1; // CCSCustomHudLayout::m_vecDialogVariableNames, CUtlString
+		int32_t hasClasses = -1;    // CCSCustomHudLayoutState::m_vecHasClasses, HUDPanelHasClass_t
+		int32_t variables = -1;     // CCSCustomHudLayoutState::m_vecDialogVariableStrings, HUDPanelDialogVariableString_t
+		int32_t inputCapture = -1;  // CCSCustomHudLayoutState::m_bInputCaptureEnabled
+		int32_t classPanel = -1, className = -1, classStatus = -1;                           // HUDPanelHasClass_t
+		int32_t variablePanel = -1, variableName = -1, variableValue = -1, variableSet = -1; // HUDPanelDialogVariableString_t
+		SchemaCollectionManipulatorFn_t panelIdsFn = nullptr, classNamesFn = nullptr, variableNamesFn = nullptr;
+		SchemaCollectionManipulatorFn_t hasClassesFn = nullptr, variablesFn = nullptr;
+
+		bool Ready() const
+		{
+			for (int32_t offset : {globalState, panelIds, classNames, variableNames, hasClasses, variables, inputCapture, classPanel, className,
+								   classStatus, variablePanel, variableName, variableValue, variableSet})
+			{
+				if (offset < 0)
+				{
+					return false;
+				}
+			}
+			return panelIdsFn && classNamesFn && variableNamesFn && hasClassesFn && variablesFn;
+		}
+
+		bool Resolve()
+		{
+			if (Ready())
+			{
+				return true;
+			}
+			// A struct's first field sits at 0, so FindOffset, which tells it from a missing one.
+			auto field = [](const char *cls, const char *name) { return schema::FindOffset(cls, FNV1a(cls), name, FNV1a(name)); };
+			auto list = [](const char *cls, const char *name) { return schema::GetCollectionManipulator(cls, FNV1a(cls), name, FNV1a(name)); };
+			globalState = field("CCSCustomHudLayout", "m_globalLayoutState");
+			panelIds = field("CCSCustomHudLayout", "m_vecPanelIds");
+			classNames = field("CCSCustomHudLayout", "m_vecClassNames");
+			variableNames = field("CCSCustomHudLayout", "m_vecDialogVariableNames");
+			hasClasses = field("CCSCustomHudLayoutState", "m_vecHasClasses");
+			variables = field("CCSCustomHudLayoutState", "m_vecDialogVariableStrings");
+			inputCapture = field("CCSCustomHudLayoutState", "m_bInputCaptureEnabled");
+			classPanel = field("HUDPanelHasClass_t", "m_nPanelIdIndex");
+			className = field("HUDPanelHasClass_t", "m_nClassNameIndex");
+			classStatus = field("HUDPanelHasClass_t", "m_eClassStatus");
+			variablePanel = field("HUDPanelDialogVariableString_t", "m_nPanelIdIndex");
+			variableName = field("HUDPanelDialogVariableString_t", "m_nDialogVariableIndex");
+			variableValue = field("HUDPanelDialogVariableString_t", "m_sValue");
+			variableSet = field("HUDPanelDialogVariableString_t", "m_bIsSet");
+			panelIdsFn = list("CCSCustomHudLayout", "m_vecPanelIds");
+			classNamesFn = list("CCSCustomHudLayout", "m_vecClassNames");
+			variableNamesFn = list("CCSCustomHudLayout", "m_vecDialogVariableNames");
+			hasClassesFn = list("CCSCustomHudLayoutState", "m_vecHasClasses");
+			variablesFn = list("CCSCustomHudLayoutState", "m_vecDialogVariableStrings");
+			return Ready();
+		}
+	} s_hud;
+
+	// The game refuses to intern past this many names per list, and warns.
+	constexpr int kMaxInterned = 1024;
+
+	template<typename T>
+	T &FieldAt(void *base, int32_t offset)
+	{
+		return *reinterpret_cast<T *>(reinterpret_cast<uintptr_t>(base) + offset);
+	}
+
+	CCSCustomHudLayoutState *GlobalState(CCSCustomHudLayout *layout)
+	{
+		return &FieldAt<CCSCustomHudLayoutState>(layout, s_hud.globalState);
+	}
+
+	// The name's index in one of the layout's string lists, appended when new. -1 once the list is full.
+	int Intern(CCSCustomHudLayout *layout, int32_t offset, SchemaCollectionManipulatorFn_t manipulator, const char *text)
+	{
+		schema::Collection<CUtlString> strings(&FieldAt<uint8_t>(layout, offset), manipulator);
+		const int count = strings.Count();
+		for (int i = 0; i < count; i++)
+		{
+			const char *entry = strings.At(i)->Get();
+			if (entry && strcmp(entry, text) == 0)
+			{
+				return i;
+			}
+		}
+		if (count >= kMaxInterned)
+		{
+			MMU_LOG_WARN("Panorama menu: can't add '%s', the layout already has %d names.\n", text, count);
+			return -1;
+		}
+		CUtlString *added = strings.Append();
+		if (!added)
+		{
+			return -1;
+		}
+		*added = text;
+		layout->NetworkStateChanged(NetworkStateChangedData(true));
+		return count;
+	}
+
+	// status 1 has the class, 0 hasn't.
+	bool SetHasClass(CCSCustomHudLayout *layout, const char *panelId, const char *className, uint32_t status)
+	{
+		const int panel = Intern(layout, s_hud.panelIds, s_hud.panelIdsFn, panelId);
+		const int name = Intern(layout, s_hud.classNames, s_hud.classNamesFn, className);
+		if (panel < 0 || name < 0)
+		{
+			return false;
+		}
+		CCSCustomHudLayoutState *state = GlobalState(layout);
+		schema::Collection<uint8_t> entries(&FieldAt<uint8_t>(state, s_hud.hasClasses), s_hud.hasClassesFn);
+		const int count = entries.Count();
+		for (int i = 0; i < count; i++)
+		{
+			uint8_t *entry = entries.At(i);
+			if (FieldAt<uint16_t>(entry, s_hud.classPanel) == panel && FieldAt<uint16_t>(entry, s_hud.className) == name)
+			{
+				FieldAt<uint32_t>(entry, s_hud.classStatus) = status;
+				state->Notify(NetworkStateChangedData(static_cast<uint32>(s_hud.hasClasses), i));
+				return true;
+			}
+		}
+		uint8_t *added = entries.Append();
+		if (!added)
+		{
+			return false;
+		}
+		FieldAt<uint16_t>(added, s_hud.classPanel) = static_cast<uint16_t>(panel);
+		FieldAt<uint16_t>(added, s_hud.className) = static_cast<uint16_t>(name);
+		FieldAt<uint32_t>(added, s_hud.classStatus) = status;
+		state->MarkChanged();
+		return true;
+	}
+
+	bool SetDialogVariable(CCSCustomHudLayout *layout, const char *panelId, const char *variable, const char *value)
+	{
+		const int panel = Intern(layout, s_hud.panelIds, s_hud.panelIdsFn, panelId);
+		const int name = Intern(layout, s_hud.variableNames, s_hud.variableNamesFn, variable);
+		if (panel < 0 || name < 0)
+		{
+			return false;
+		}
+		CCSCustomHudLayoutState *state = GlobalState(layout);
+		schema::Collection<uint8_t> entries(&FieldAt<uint8_t>(state, s_hud.variables), s_hud.variablesFn);
+		const int count = entries.Count();
+		for (int i = 0; i < count; i++)
+		{
+			uint8_t *entry = entries.At(i);
+			if (FieldAt<uint16_t>(entry, s_hud.variablePanel) == panel && FieldAt<uint16_t>(entry, s_hud.variableName) == name)
+			{
+				FieldAt<CUtlString>(entry, s_hud.variableValue) = value;
+				FieldAt<bool>(entry, s_hud.variableSet) = true;
+				state->Notify(NetworkStateChangedData(static_cast<uint32>(s_hud.variables), i));
+				return true;
+			}
+		}
+		uint8_t *added = entries.Append();
+		if (!added)
+		{
+			return false;
+		}
+		FieldAt<uint16_t>(added, s_hud.variablePanel) = static_cast<uint16_t>(panel);
+		FieldAt<uint16_t>(added, s_hud.variableName) = static_cast<uint16_t>(name);
+		FieldAt<CUtlString>(added, s_hud.variableValue) = value;
+		FieldAt<bool>(added, s_hud.variableSet) = true;
+		state->MarkChanged();
+		return true;
+	}
 
 	bool s_mounted[kLayoutCount] = {};
 	// Clicks decoded from any layout, so the diagnostic can tell a dead click hook from an unclicked menu.
@@ -59,7 +225,7 @@ namespace
 
 	bool Resolved()
 	{
-		return s_createEntity && s_dispatchSpawn && s_removeEntity && s_setHasClass && s_setDialogVariableString && s_setInputCaptureEnabled;
+		return s_createEntity && s_dispatchSpawn && s_removeEntity && s_hud.Ready();
 	}
 
 	// The layout rejects markup, so colors are classes. Keep in step with the cm-col rules in menu.css.
@@ -194,14 +360,19 @@ namespace
 		{
 			return false;
 		}
-		// Entries start stamped with slot 0 and the game's setter doesn't restamp them.
+		// Entries start stamped with slot 0, the game only resolves a state's capture past slot 0 once it's restamped.
 		CPlayerSlot &stamped = *reinterpret_cast<CPlayerSlot *>(reinterpret_cast<uintptr_t>(state) + slotOffset);
 		if (stamped.Get() != slot)
 		{
 			stamped = CPlayerSlot(slot);
 			state->MarkChanged();
 		}
-		s_setInputCaptureEnabled(layout, slot, enabled);
+		bool &capture = FieldAt<bool>(state, s_hud.inputCapture);
+		if (capture != enabled)
+		{
+			capture = enabled;
+			state->Notify(NetworkStateChangedData(static_cast<uint32>(s_hud.inputCapture)));
+		}
 		window.capture = enabled;
 		return true;
 	}
@@ -232,7 +403,6 @@ namespace
 			return prefix + std::string(suffix);
 		}
 
-		// The game interns the names and flags the network change itself.
 		void Class(const std::string &panel, const char *cls, bool present)
 		{
 			const std::string key = panel + ' ' + cls;
@@ -241,9 +411,7 @@ namespace
 			{
 				return;
 			}
-			CUtlString panelId(panel.c_str());
-			CUtlString className(cls);
-			s_setHasClass(entity, &panelId, &className, present ? 1 : 0);
+			SetHasClass(entity, panel.c_str(), cls, present ? 1 : 0);
 			window.classes[key] = present;
 		}
 
@@ -255,11 +423,8 @@ namespace
 			{
 				return;
 			}
-			CUtlString panelId(panel.c_str());
-			CUtlString name(panel.c_str());
 			// A word joiner first, or the client localizes a value starting with '#', like a player named "#1".
-			CUtlString text(("\xE2\x81\xA0" + value).c_str());
-			s_setDialogVariableString(entity, &panelId, &name, &text);
+			SetDialogVariable(entity, panel.c_str(), panel.c_str(), ("\xE2\x81\xA0" + value).c_str());
 			window.vars[key] = value;
 		}
 
@@ -573,11 +738,10 @@ bool panorama_hud::Init()
 	s_createEntity = reinterpret_cast<CreateEntityByName_t>(FindSig(base, size, mmu::gamedata::kCreateEntityByNameSig, "CreateEntityByName"));
 	s_dispatchSpawn = reinterpret_cast<DispatchSpawn_t>(FindSig(base, size, mmu::gamedata::kDispatchSpawnSig, "DispatchSpawn"));
 	s_removeEntity = reinterpret_cast<RemoveEntity_t>(FindSig(base, size, mmu::gamedata::kRemoveEntitySig, "RemoveEntity"));
-	s_setHasClass = reinterpret_cast<SetHasClass_t>(FindSig(base, size, mmu::gamedata::kCustomHudSetHasClassSig, "CCSCustomHudLayout::SetHasClass"));
-	s_setDialogVariableString = reinterpret_cast<SetDialogVariableString_t>(
-		FindSig(base, size, mmu::gamedata::kCustomHudSetDialogVariableStringSig, "CCSCustomHudLayout::SetDialogVariableString"));
-	s_setInputCaptureEnabled = reinterpret_cast<SetInputCaptureEnabled_t>(
-		FindSig(base, size, mmu::gamedata::kCustomHudSetInputCaptureEnabledSig, "CCSCustomHudLayout::SetInputCaptureEnabled"));
+	if (!s_hud.Resolve())
+	{
+		MMU_LOG_WARN("CCSCustomHudLayout schema fields not found - panorama menus disabled.\n");
+	}
 	return Resolved();
 }
 
@@ -915,8 +1079,7 @@ std::string panorama_hud::Describe()
 	snprintf(line, sizeof(line), "signatures: CreateEntityByName %s, DispatchSpawn %s, RemoveEntity %s\n", state(s_createEntity != nullptr),
 			 state(s_dispatchSpawn != nullptr), state(s_removeEntity != nullptr));
 	out += line;
-	snprintf(line, sizeof(line), "signatures: SetHasClass %s, SetDialogVariableString %s, SetInputCaptureEnabled %s\n",
-			 state(s_setHasClass != nullptr), state(s_setDialogVariableString != nullptr), state(s_setInputCaptureEnabled != nullptr));
+	snprintf(line, sizeof(line), "schema: CCSCustomHudLayout state fields %s\n", state(s_hud.Ready()));
 	out += line;
 	for (const LayoutDef &def : kLayouts)
 	{

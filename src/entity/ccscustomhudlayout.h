@@ -4,8 +4,8 @@
 #include "mmu/entity/cbaseentity.h"
 #include "mmu/schema.h"
 
-// Classes and dialog variables go through the game's own setters (see panorama_hud.cpp),
-// only the per-player slot stamp is written here.
+// The layout's state is written directly (see panorama_hud.cpp),
+// like cs2kz-metamod's sdk/entity/ccscustomhudlayout.h.
 class CCSCustomHudLayoutState
 {
 public:
@@ -14,11 +14,15 @@ public:
 	SCHEMA_FIELD_OFFSET_FN(m_playerSlot)
 
 	// Not an entity, so it notifies through its own NetworkStateChanged, the second virtual.
-	void MarkChanged()
+	void Notify(const NetworkStateChangedData &data)
 	{
 		using NetworkStateChangedFn = void (*)(CCSCustomHudLayoutState *, const NetworkStateChangedData &);
-		NetworkStateChangedData data(true);
 		(*reinterpret_cast<NetworkStateChangedFn **>(this))[1](this, data);
+	}
+
+	void MarkChanged()
+	{
+		Notify(NetworkStateChangedData(true));
 	}
 };
 
