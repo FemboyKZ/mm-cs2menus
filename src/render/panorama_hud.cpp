@@ -257,7 +257,8 @@ namespace
 			}
 			CUtlString panelId(panel.c_str());
 			CUtlString name(panel.c_str());
-			CUtlString text(value.c_str());
+			// A word joiner first, or the client localizes a value starting with '#', like a player named "#1".
+			CUtlString text(("\xE2\x81\xA0" + value).c_str());
 			s_setDialogVariableString(entity, &panelId, &name, &text);
 			window.vars[key] = value;
 		}
