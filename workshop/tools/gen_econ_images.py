@@ -14,7 +14,7 @@ Class names are the image file name without its "_png.vtex_c"/".vsvg_c" suffix, 
 - charms: the image_inventory file name, like kc_db_8ball
 - music kits: "music__" and the image_inventory file name, like music__valve_cs2_01
 - pins, coins, medals and trophies: "coin__" and the image_inventory file name, like coin__5yearcoin
-- a few UI icons: the team logos t_logo and ct_logo, refresh, votescrambleteams, random and stattrak
+- a few UI icons: the team logos t_logo and ct_logo, refresh, votescrambleteams, random, stattrak, music_kit and collectible
 - agent patches: "patch__" and the patch_material with "/" as "__", like patch__case01__patch_banana
 - stickers, in econ_stickers.css only: "sticker__" and the sticker_material with "/" as "__", like sticker__dreamhack__dh_gologo1
 
@@ -24,18 +24,17 @@ Every SVG is copied into panorama/images/custom_game/cs2menus with its size rais
 
 import os
 import re
-import shutil
 import sys
 
 import vpk
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "panorama")
 OUT = os.path.join(ROOT, "styles", "custom_game", "cs2menus", "econ.css")
-# Only menu.xml loads it, since it doubles the class count and only the preview uses it.
+# Only menu.xml and showcase.xml load it, since it doubles the class count and only they show one item's image large.
 OUT_WEAR = os.path.join(ROOT, "styles", "custom_game", "cs2menus", "econ_wear.css")
 SKIN_FOLDER = "panorama/images/econ/default_generated/"
 WEAR_SUFFIXES = ("_medium", "_heavy")
-# Only grid.xml loads it, the sticker pickers are grids.
+# Every layout but the list loads it.
 OUT_STICKERS = os.path.join(
     ROOT, "styles", "custom_game", "cs2menus", "econ_stickers.css"
 )
@@ -73,6 +72,9 @@ EXTRAS = {
     "votescrambleteams": "panorama/images/icons/ui/votescrambleteams.vsvg_c",
     # A die.
     "random": "panorama/images/icons/ui/random.vsvg_c",
+    # For a slot with nothing picked: a music kit's disc and a coin.
+    "music_kit": "panorama/images/icons/ui/music_kit.vsvg_c",
+    "collectible": "panorama/images/icons/ui/major_coin.vsvg_c",
     # The StatTrak swap tool, its orange counter.
     "stattrak": "panorama/images/econ/tools/stattrak_swap_tool_png.vtex_c",
 }
@@ -135,8 +137,11 @@ def main():
         if path in files:
             paths.setdefault(name, path)
 
-    shutil.rmtree(SVG_DIR, ignore_errors=True)
-    os.makedirs(SVG_DIR)
+    # The badge_ icons there are drawn by hand, the rest is this script's.
+    os.makedirs(SVG_DIR, exist_ok=True)
+    for old in os.listdir(SVG_DIR):
+        if not old.startswith("badge_"):
+            os.remove(os.path.join(SVG_DIR, old))
     classes = {}
     for name, path in paths.items():
         svg = (

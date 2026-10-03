@@ -1,4 +1,4 @@
-// Test consumer for the CS2Menus C++ interface (ICS2Menus003).
+// Test consumer for the CS2Menus C++ interface.
 //
 // Acquires the interface via Metamod's factory, then drives the API from chat.
 // Demonstrates the acquire/re-resolve dance, submenus, select/end callbacks,
@@ -15,10 +15,10 @@
 //   !cs2info   - dump the getter API for the caller's state to the console
 //   !cs2busy   - toggle SetExternalBusy for the caller
 //
-// Between them the commands touch every ICS2Menus003 method,
+// Between them the commands touch every method ICS2Menus003 had,
 // so this doubles as a smoke test for the interface surface.
 //
-// Build: wired in as an extra target by examples/mm_consumer/AMBuilder,
+// Build: wired in as an extra target by examples/metamod/AMBuilder,
 // reusing the cs2menus SDK setup. Not shipped in releases (PackageScript ignores it).
 
 #include <ISmmPlugin.h>
@@ -427,7 +427,7 @@ void ConsumerPlugin::BuildThemeMenu()
 }
 
 // Isolated icon diagnostics, one variable per row, so it's clear what (if anything) renders.
-// SetItemIcon emits a bare <img src> with no width/height (see menu_manager.cpp),
+// SetItemIcon emits a bare <img src> with no width/height (see menu/manager.cpp),
 // so the raw-with-size rows are the control: if those show and the SetItemIcon rows don't,
 // the missing size is the cause, not the URL or the format.
 void ConsumerPlugin::BuildIconMenu()

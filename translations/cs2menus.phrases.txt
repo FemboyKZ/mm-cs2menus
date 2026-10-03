@@ -14,6 +14,38 @@
 	{
 		"en"	"Previous Page"
 	}
+	"Edited"
+	{
+		"en"	"Edited"
+	}
+	"Discard your edits?"
+	{
+		"en"	"Discard your edits?"
+	}
+	"{title} has changes that aren't applied."
+	{
+		"en"	"{title} has changes that aren't applied."
+	}
+	"Keep editing"
+	{
+		"en"	"Keep editing"
+	}
+	"Discard"
+	{
+		"en"	"Discard"
+	}
+	"Turn the view"
+	{
+		"en"	"Turn the view"
+	}
+	"Stop turning"
+	{
+		"en"	"Stop turning"
+	}
+	"Keys"
+	{
+		"en"	"Keys"
+	}
 	"Page {n}"
 	{
 		"en"	"Page {n}"

@@ -1,0 +1,253 @@
+/* columns.xml. The window, tabs, chips and popups come from menu.css and grid.css, the badges from badges.css.
+   Slot counts match panorama_hud.h. */
+
+#cl_root {
+	width: 100%;
+	height: 100%;
+	color: #ffffff;
+	transition-property: position;
+	transition-duration: 0.1s;
+	transition-timing-function: ease-in-out;
+}
+
+#cl_root.hidden {
+	visibility: collapse;
+}
+
+#cl_root.shift {
+	x: -188px;
+}
+
+/* As the grid's: the columns have a height of their own, the window is at least the list's 624. */
+#cl_root .menu-box {
+	height: fit-children;
+	min-height: 624px;
+}
+
+#cl_root.notabs .menu-box {
+	min-height: 580px;
+}
+
+#cl_root.collapsed .menu-box {
+	min-height: 0px;
+}
+
+#cl_root.collapsed .tabrow,
+#cl_root.collapsed .cols {
+	visibility: collapse;
+}
+
+/* The chips at the tab row's end, as the tabs' actions. */
+.tabrow .chips {
+	width: fit-children;
+	margin-bottom: 6px;
+	vertical-align: bottom;
+}
+
+/* --- columns, one per section, each scrolling on its own: 4 of 216. Each ends in 6px for its scroll bar, so the
+   box's last 6 go before the first, and the tiles sit as far from either edge --- */
+
+.cols {
+	width: 100%;
+	height: 508px;
+	padding-left: 6px;
+	flow-children: right;
+}
+
+.col {
+	width: 216px;
+	height: 100%;
+	flow-children: down;
+}
+
+.col.hidden,
+.col-tile.hidden {
+	visibility: collapse;
+}
+
+.col-head {
+	width: 100%;
+	height: 20px;
+	padding: 0px 12px 0px 2px;
+}
+
+.col-head-name {
+	horizontal-align: left;
+	font-size: 11px;
+	font-weight: bold;
+	letter-spacing: 1.2px;
+	text-transform: uppercase;
+	color: #ffffffa3;
+}
+
+.col-head-count {
+	horizontal-align: right;
+	font-size: 11px;
+	font-weight: bold;
+	color: #ffffff5c;
+}
+
+/* 6px at the right for the scroll bar: 210 left, one tile or two halves with their margins. */
+.col-scroll {
+	width: 100%;
+	height: fill-parent-flow(1);
+	padding-right: 6px;
+	flow-children: right-wrap;
+	overflow: squish scroll;
+}
+
+/* In those 6px, past the tiles' edge. The menus' own bar sits 7px in, under their close button. */
+#cl_root VerticalScrollBar {
+	width: 4px;
+	margin: 2px 0px;
+}
+
+/* A tile: the image, then its name over what's on it. Span 1 is half a row, the image over the name.
+   81 a row with its margins: 6 rows are 486 of the 488 under the column's head. Filled to the pixel, a column
+   that holds no more than fits still gets its scroll bar.
+   No border: where a scrolling column cuts a tile, the game cuts its fill but draws its border on, over the window's
+   padding. The rarity is a stripe under the image for the same reason. */
+.col-tile {
+	width: 204px;
+	height: 75px;
+	margin: 3px;
+	padding: 6px 9px 6px 6px;
+	flow-children: right;
+	border-radius: 3px;
+	background-color: #ffffff0f;
+	transition-property: background-color;
+	transition-duration: 0.05s;
+}
+
+.col-tile:hover {
+	background-color: #ffffff21;
+}
+
+.col-tile.disabled {
+	opacity: 0.4;
+}
+
+.col-tile-pic {
+	width: 76px;
+	height: 100%;
+	flow-children: down;
+}
+
+.col-tile-img {
+	width: 100%;
+	height: fill-parent-flow(1);
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: 50% 50%;
+}
+
+.col-tile-text {
+	width: fill-parent-flow(1);
+	margin-left: 8px;
+	vertical-align: center;
+	flow-children: down;
+}
+
+.col-tile-name {
+	width: 100%;
+	max-height: 36px;
+	font-size: 15px;
+	font-weight: bold;
+	text-overflow: ellipsis;
+}
+
+.col-tile-sub {
+	width: 100%;
+	margin-top: 2px;
+	font-size: 13px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	opacity: 0.7;
+}
+
+.col-tile.half {
+	width: 98px;
+	padding: 6px;
+	flow-children: down;
+}
+
+.col-tile.half .col-tile-pic {
+	width: 100%;
+	height: fill-parent-flow(1);
+}
+
+.col-tile.half .col-tile-text {
+	width: 100%;
+	margin-left: 0px;
+}
+
+.col-tile.half .col-tile-name {
+	max-height: 18px;
+	font-size: 13px;
+	text-align: center;
+	white-space: nowrap;
+}
+
+.col-tile.half .col-tile-sub {
+	visibility: collapse;
+}
+
+/* A Heading item: a sub-heading inside the column. */
+.col-tile.heading {
+	height: 18px;
+	margin: 6px 3px 0px 3px;
+	padding: 0px 2px;
+	background-color: #00000000;
+}
+
+/* Headings are disabled, which keeps the hover and its sound off them. */
+.col-tile.heading.disabled {
+	opacity: 1;
+}
+
+.col-tile.heading:hover {
+	background-color: #00000000;
+}
+
+.col-tile.heading .col-tile-pic,
+.col-tile.heading .col-tile-sub {
+	visibility: collapse;
+}
+
+.col-tile.heading .col-tile-text {
+	margin-left: 0px;
+}
+
+.col-tile.heading .col-tile-name {
+	font-size: 11px;
+	letter-spacing: 1.2px;
+	text-transform: uppercase;
+	color: #ffffff5c;
+}
+
+/* The rarity stripe, badges.css', under the image. */
+.col-tile .tile-rarity {
+	margin-top: 2px;
+}
+
+.col-tile .tile-corner {
+	vertical-align: top;
+	margin: -2px -5px 0px 0px;
+}
+
+.snd .col-tile:not(.disabled):hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .col-tile:not(.disabled):active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+/* A tag's outline would run on like a tile's border, see .col-tile. */
+.col-tile .tile-tag.tag-orange {
+	border: 0px solid #00000000;
+}
+
+.col-tile .tile-tag.tag-gold {
+	border: 0px solid #00000000;
+}

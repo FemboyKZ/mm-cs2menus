@@ -1,4 +1,4 @@
-#include "prefs_db.h"
+#include "prefs.h"
 #include "mmu/log.h"
 
 #include "src/common.h"

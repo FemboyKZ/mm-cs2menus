@@ -1,4 +1,4 @@
-/* showcase.xml: one item's image large on the left, its options as buttons on the right.
+/* showcase.xml: one item's image with its details on the left, its options as buttons on the right.
    Tabs and pager come from grid.css, the window, popups and palette from menu.css. Slot counts match panorama_hud.h. */
 
 #cx_root {
@@ -14,29 +14,23 @@
 	visibility: collapse;
 }
 
-/* 1060 wide: a popup right of it slides both left, (1060 + 14 + 340) / 2 - 530 */
 #cx_root.shift {
-	x: -177px;
+	x: -188px;
 }
 
-#cx_root .popup {
-	x: 694px;
-}
-
-#cx_root .step-popup {
-	x: 714px;
-}
-
-.showcase-box {
-	width: 1060px;
-	height: 640px;
-}
-
-/* Collapsed: only the header, where the box's top edge was, (1080 - 640) / 2 */
-#cx_root.collapsed .showcase-box {
+/* The list's and the grid's window. What's inside has heights of its own, 506 as the grid's tiles,
+   so a chip row or a page with more than fits adds to the window's instead of squeezing anything. */
+#cx_root .menu-box {
 	height: fit-children;
-	vertical-align: top;
-	y: 220px;
+	min-height: 624px;
+}
+
+#cx_root.notabs .menu-box {
+	min-height: 580px;
+}
+
+#cx_root.collapsed .menu-box {
+	min-height: 0px;
 }
 
 #cx_root.collapsed .body {
@@ -45,28 +39,27 @@
 
 .body {
 	width: 100%;
-	height: fill-parent-flow(1);
 	flow-children: down;
 }
 
 .showcase {
 	width: 100%;
-	height: fill-parent-flow(1);
 	flow-children: right;
 }
 
-/* The image with the pinned item's button under it */
+/* The image with the info card under it, 416 wide. 5 before it and 15 after, 18 to the buttons with their margin:
+   434 are left for the buttons' rows of 432, so the image and the last button sit as far from either edge. */
 .stage {
-	width: 560px;
-	height: 100%;
-	margin-right: 16px;
+	width: 416px;
+	margin-left: 5px;
+	margin-right: 15px;
 	flow-children: down;
 }
 
 /* 4:3 like the econ renders */
 .shot {
-	width: 560px;
-	height: 420px;
+	width: 416px;
+	height: 312px;
 	border-radius: 3px;
 	border: 1px solid #ffffff14;
 	background-color: #ffffff08;
@@ -75,8 +68,59 @@
 	background-position: 50% 50%;
 }
 
+/* The pinned item's button under the buttons, as wide as their rows. The secondary item's before it, a column wide. */
+.action-row {
+	width: 426px;
+	margin: 0px 3px;
+	flow-children: right;
+}
+
+.action2-btn {
+	width: 138px;
+	height: 52px;
+	margin: 10px 6px 0px 0px;
+	border-radius: 3px;
+	border: 1px solid #ffffff14;
+	background-color: #ffffff0d;
+	transition-property: background-color, border-color;
+	transition-duration: 0.05s;
+}
+
+.action2-btn:hover {
+	background-color: #ffffff1f;
+	border-color: #ffffff40;
+}
+
+.action2-btn.disabled {
+	opacity: 0.35;
+}
+
+.action2-btn.disabled:hover {
+	background-color: #ffffff0d;
+	border-color: #ffffff14;
+}
+
+.action2-btn.hidden {
+	visibility: collapse;
+}
+
+.action2-label {
+	horizontal-align: center;
+	vertical-align: center;
+	font-size: 16px;
+	white-space: nowrap;
+}
+
+.snd .action2-btn:not(.disabled):hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .action2-btn:not(.disabled):active {
+	sound: "UIPanorama.generic_button_press";
+}
+
 .action-btn {
-	width: 100%;
+	width: fill-parent-flow(1);
 	height: 52px;
 	margin-top: 10px;
 	border-radius: 3px;
@@ -119,18 +163,19 @@
 
 .controls {
 	width: fill-parent-flow(1);
-	height: 100%;
 	flow-children: down;
 }
 
-/* 3 x 6: 144 + 2 x 3 margin = 150px each, 450 of the 452 left of the image */
+/* 3 x 6: 138 + 2 x 3 margin = 144px each, 432 of the 434 right of the image, as a row filled to the pixel wraps early.
+   At least 444 tall, 506 with the action row's 62: the pinned item's button sits at the foot whatever the page holds. */
 .sbtns {
 	width: 100%;
+	min-height: 444px;
 	flow-children: right-wrap;
 }
 
 .sbtn {
-	width: 144px;
+	width: 138px;
 	height: 58px;
 	margin: 3px;
 	padding: 4px 6px;
@@ -191,4 +236,42 @@
 
 .snd .sbtn:not(.disabled):active {
 	sound: "UIPanorama.generic_button_press";
+}
+
+/* Readout: shown, not pressed, its small label over its value. Highlight: the accent. Span: 2 or 3 of the 3 columns. */
+.sbtn.readout {
+	background-color: #00000000;
+	border-color: #ffffff0f;
+}
+
+.sbtn.readout:hover {
+	background-color: #00000000;
+	border-color: #ffffff0f;
+}
+
+.sbtn.readout .sbtn-sub {
+	vertical-align: top;
+	font-size: 11px;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+}
+
+.sbtn.readout .sbtn-name {
+	vertical-align: bottom;
+	margin-bottom: 4px;
+	font-size: 18px;
+	font-weight: bold;
+}
+
+.sbtn.highlight {
+	border-color: #24f09780;
+	background-color: #24f09726;
+}
+
+.sbtn.span2 {
+	width: 282px;
+}
+
+.sbtn.span3 {
+	width: 426px;
 }

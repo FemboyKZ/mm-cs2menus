@@ -87,9 +87,8 @@ struct MenuManagerSettings
 	std::string footerSize = "s";
 	bool showCounter = true;
 	bool showFooter = true;
-	// HTML: submenu-item suffix, footer segment separator, counter brackets, and whether
-	// the cursor row's text is recolored (vs. marked only by the marker).
-	std::string submenuSuffix = " >"; // »
+	// HTML: submenu-item suffix and footer segment separator.
+	std::string submenuSuffix = " >";
 	std::string footerSeparator = " | ";
 	// HTML templates (see FillTemplate).
 	std::string counterFormat = "[{cur}/{total}]";                // {cur}/{total} = position counter numbers
@@ -99,6 +98,7 @@ struct MenuManagerSettings
 	std::string editFormat = "\xE2\x80\xB9 {value} \xE2\x80\xBA"; // ‹ {value} ›, the value being edited
 	std::string sectionFormat = "{section}";                      // header line above a section's items
 	std::string sectionColor = "#9aa0a6";
+	// HTML: the cursor row's text takes the nav color, not only its marker.
 	bool highlightText = true;
 	// HTML: center-panel resend cadence (the message decays, so it's re-sent while open).
 	// keepAlive must stay below durationSecs or the panel can blink.
@@ -114,8 +114,8 @@ struct MenuManagerSettings
 	bool panoramaSounds = true;
 };
 
-// Backing store for the public ICS2Menus API. Holds menus by handle plus
-// per-player display state, renders chat + HTML menus, and routes input.
+// Backing store for the public ICS2Menus API. Holds menus by handle plus per-player display state,
+// renders them as chat, HTML or panorama, and routes input.
 class MenuManager
 {
 public:
@@ -183,10 +183,38 @@ public:
 	const char *GetMenuImage(MenuHandle menu) const;
 	void SetMenuPinnedItem(MenuHandle menu, int item);
 	int GetMenuPinnedItem(MenuHandle menu) const;
+	void SetMenuSecondaryItem(MenuHandle menu, int item);
 	void SetItemImage(MenuHandle menu, int item, const char *image);
 	const char *GetItemImage(MenuHandle menu, int item) const;
+	void SetItemControl(MenuHandle menu, int item, bool control);
+	void SetItemRole(MenuHandle menu, int item, MenuItemRole role);
+	MenuItemRole GetItemRole(MenuHandle menu, int item) const;
+	void SetItemHighlight(MenuHandle menu, int item, bool highlight);
+	void SetItemSpan(MenuHandle menu, int item, int columns);
+	void SetMenuInfo(MenuHandle menu, const char *title, const char *subtitle, const char *subtitleColor);
+	void SetMenuInfoMeter(MenuHandle menu, float value, float rangeMin, float rangeMax, const float *bands, int bandCount, const char *label,
+						  const char *valueText);
+	int AddMenuInfoRow(MenuHandle menu, const char *label, const char *value);
+	void ClearMenuInfo(MenuHandle menu);
 	void SetItemSubtext(MenuHandle menu, int item, const char *subtext);
 	const char *GetItemSubtext(MenuHandle menu, int item) const;
+	void SetItemRarity(MenuHandle menu, int item, const char *rarity);
+	void SetItemImageTint(MenuHandle menu, int item, const char *tint);
+	const char *GetItemRarity(MenuHandle menu, int item) const;
+	void SetItemTag(MenuHandle menu, int item, const char *tag, const char *style);
+	const char *GetItemTag(MenuHandle menu, int item) const;
+	void SetItemTeams(MenuHandle menu, int item, int teams);
+	int GetItemTeams(MenuHandle menu, int item) const;
+	void SetItemLocked(MenuHandle menu, int item, bool locked);
+	bool GetItemLocked(MenuHandle menu, int item) const;
+	void SetItemCorner(MenuHandle menu, int item, MenuCorner corner);
+	MenuCorner GetItemCorner(MenuHandle menu, int item) const;
+	void SetMenuCornerCallback(MenuHandle menu, MenuItemCornerFn onCorner);
+	// `action` for ICS2Menus::AddMenuAction, `selected` then its accent.
+	int AddMenuChip(MenuHandle menu, const char *label, const char *const *options, int optionCount, int selected, bool action);
+	int AddMenuNote(MenuHandle menu, const char *label, const char *value);
+	void SetMenuChipOptionTone(MenuHandle menu, int chip, int option, MenuTone tone);
+	void SetMenuChipCallback(MenuHandle menu, MenuChipFn onChip);
 
 	// Read back per-menu state (create-time default for an unset flag, MenuType::Default / false / etc. for invalid).
 	MenuType GetMenuType(MenuHandle menu) const;
@@ -203,6 +231,25 @@ public:
 	void CancelMenu(int slot);
 	void SuspendMenu(int slot);
 	void ResumeMenu(int slot);
+	MenuType GetSlotMenuType(int slot, MenuType type) const;
+	bool BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel);
+	void EndMenuInput(int slot);
+	void SetMenuInputClearCallback(MenuHandle menu, MenuInputClearFn onClear);
+	bool ShowMenuMessage(int slot, const char *text, MenuTone tone, float seconds);
+	bool ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger, MenuConfirmFn onDone);
+	void SetMenuEdited(MenuHandle menu, bool edited);
+	bool GetMenuEdited(MenuHandle menu) const;
+	void SetMenuScope(MenuHandle menu, const char *label, int teams);
+	void SetMenuScopeCallback(MenuHandle menu, MenuScopeFn onScope);
+	int AddMenuTab(MenuHandle menu, const char *label, bool selected, bool marked, bool pinned);
+	void SetMenuTabCallback(MenuHandle menu, MenuTabFn onTab);
+	void SetMenuEmpty(MenuHandle menu, const char *title, const char *text, bool loading);
+	bool AddMenuHint(int slot, const char *keys, const char *text);
+	void ClearMenuHint(int slot);
+	void HideMenuHint(int slot);
+	bool AddMenuHelp(int slot, const char *keys, const char *text);
+	void ClearMenuHelp(int slot);
+	void SetMenuMirrored(int slot, bool mirrored);
 	bool StepBack(int slot, int steps);
 	bool HasMenu(int slot) const;
 	MenuHandle GetActiveMenu(int slot) const;
@@ -320,6 +367,34 @@ private:
 		int section = -1;
 		std::string image;
 		std::string subtext;
+		// Studio: in the control panel beside the preview rather than on a page.
+		bool control = false;
+		MenuItemRole role = MenuItemRole::Button;
+		bool highlight = false;
+		int span = 1;
+		// Tile badges, see ICS2Menus::SetItemRarity. rarity, tagStyle and imageTint are stored as class-safe tokens.
+		std::string rarity;
+		std::string imageTint;
+		std::string tag;
+		std::string tagStyle;
+		int teams = 0;
+		bool locked = false;
+		MenuCorner corner = MenuCorner::None;
+	};
+
+	// Studio and showcase card, see ICS2Menus::SetMenuInfo.
+	struct MenuInfo
+	{
+		std::string title;
+		std::string subtitle;
+		std::string subtitleColor;
+		float meter = -1.0f;
+		float rangeMin = 0.0f;
+		float rangeMax = 1.0f;
+		std::vector<float> bands;
+		std::string meterLabel;
+		std::string meterValue;
+		std::vector<std::pair<std::string, std::string>> rows;
 	};
 
 	// Per-menu HTML nav-key overrides, indexed by MenuNavAction (Up/Down/Select/Back).
@@ -330,11 +405,11 @@ private:
 		std::string label;
 	};
 
-	// Per-menu HTML style overrides. Empty string / centered<0 means inherit the server default.
+	// Per-menu HTML style overrides. An empty string or -1 inherits the server default.
 	struct StyleOverride
 	{
 		std::string titleColor;
-		std::string titleSize; // size token (s/sm/m/ml/l)
+		std::string titleSize; // size token, see MenuStyle::TitleSize
 		std::string itemSize;
 		std::string navColor;
 		std::string footerColor;
@@ -377,11 +452,54 @@ private:
 		MenuEndFn onEnd;
 		MenuItemChangeFn onChange;
 		MenuRefreshFn onRefresh;
+		MenuItemCornerFn onCorner;
+
+		// The chip row, see ICS2Menus::AddMenuChip. An action keeps nothing, its `selected` is whether it's drawn lit.
+		// A note is its label and `value`, and takes no click.
+		struct Chip
+		{
+			std::string label;
+			std::vector<std::string> options;
+			// By option, Info where the vector ends.
+			std::vector<MenuTone> tones;
+			int selected = -1;
+			bool action = false;
+			bool note = false;
+			std::string value;
+		};
+
+		std::vector<Chip> chips;
+		MenuChipFn onChip;
+		bool edited = false;
+
+		// The plugin's tabs in place of the sections', see ICS2Menus::AddMenuTab.
+		struct Tab
+		{
+			std::string label;
+			bool selected = false;
+			bool marked = false;
+			bool pinned = false;
+		};
+
+		std::vector<Tab> tabs;
+		MenuTabFn onTab;
+		MenuInputClearFn onInputClear;
+		// The item area of a page without items, see ICS2Menus::SetMenuEmpty.
+		std::string emptyTitle;
+		std::string emptyText;
+		bool emptyLoading = false;
+		// The header's chip, see ICS2Menus::SetMenuScope.
+		std::string scope;
+		int scopeTeams = 0;
+		MenuScopeFn onScope;
 		std::vector<std::string> sections;
 		MenuLayout layout = MenuLayout::List;
 		MenuTileSize tileSize = MenuTileSize::Small;
 		std::string image;
 		int pinned = -1;
+		// Beside the pinned item's button, see ICS2Menus::SetMenuSecondaryItem.
+		int secondary = -1;
+		MenuInfo info;
 		bool exitButton = true;
 		bool closeOnSelect = true;
 		bool exitItem = false; // HTML: show a selectable "Exit" row in the list
@@ -414,6 +532,10 @@ private:
 		bool suspended = false;
 		// Panorama shows only the header. Kept while the display moves through its history.
 		bool collapsed = false;
+		// Studio: the cursor is off so the mouse turns the view, until the next attack press.
+		bool turning = false;
+		// Studio: the control panel's tab, by section name so it stays across the menus shown.
+		std::string controlTab;
 		MenuHandle handle = kInvalidMenuHandle;
 		// Resolved render type for this display (see ResolveType). Set in DisplayLocked.
 		MenuType type = MenuType::Chat;
@@ -429,10 +551,47 @@ private:
 		// A host UI (SwiftlyS2 / CS# menu) owns this slot's screen.
 		// While set, we refuse to display so we never fight the host for input or the HTML channel.
 		bool externalBusy = false;
-		// Panorama: the page each left-column button opens.
+		// Panorama: the page each left-column button opens. In a tab row, which of Tabs each button is, kNavMore for "+N".
 		std::vector<int> panoramaNav;
-		// The Stepper or Choice being edited, -1 for none.
+		// Panorama columns, showcase and studio: the item in each tile or button slot, -1 for none. For a Choice drawn in
+		// place, panoramaOptions has the option the slot stands for.
+		std::vector<int> panoramaSlots;
+		std::vector<int> panoramaOptions;
+		// Studio: the same for the control panel's slots.
+		std::vector<int> controlSlots;
+		std::vector<int> controlOptions;
+		// The Stepper or Choice being edited, -1 for none, -2 - n for chip n's options, kEditTabs for the list of every tab.
 		int editItem = -1;
+		// Waiting for chat with the menu up, see BeginMenuInput. Only while inputMenu is still the one shown.
+		MenuHandle inputMenu = kInvalidMenuHandle;
+		std::string inputPrompt;
+		std::string inputHint;
+		MenuInputCancelFn onInputCancel;
+		// The message line, see ShowMenuMessage. Gone at messageUntil.
+		std::string message;
+		MenuTone messageTone = MenuTone::Info;
+		float messageUntil = 0.0f;
+		// The studio's hint pill, keys and text per part, see AddMenuHint. Hidden: no pill at all, see HideMenuHint.
+		std::vector<std::pair<std::string, std::string>> hint;
+		bool hintHidden = false;
+		// The studio's key list, keys and text per row, see AddMenuHelp, and whether the player has it open.
+		std::vector<std::pair<std::string, std::string>> help;
+		bool helpOpen = false;
+		// The studio's box and control panel swapped, see SetMenuMirrored.
+		bool mirrored = false;
+
+		struct Dialog
+		{
+			bool open = false;
+			std::string title;
+			std::string body;
+			std::string cancel;
+			std::string confirm;
+			bool danger = false;
+			MenuConfirmFn onDone;
+		};
+
+		Dialog dialog;
 		// Chat and panorama page through a Choice's options.
 		int editPage = 0;
 		// Menus behind and ahead of the current one, like a browser's history. Back retraces the player's own path.
@@ -475,6 +634,9 @@ private:
 	void ActivateValueItem(int slot, int itemIndex);
 	// The item behind pm.editItem, or nullptr once it's gone, disabled or not a Stepper/Choice.
 	const MenuItem *EditedItem(int slot) const;
+	void PickChip(int slot, int chip, int selected);
+	// Close or Back with unsaved changes: asks first and calls `leave` on Discard. False when nothing is edited.
+	bool GuardLeave(int slot, bool wholeDisplay, std::function<void()> leave);
 	void StopEdit(int slot);
 
 	struct ChatRow
@@ -500,6 +662,8 @@ private:
 
 	// Where the player is in the displayed menu.
 	HistoryEntry Here(int slot) const;
+	// Every menu behind and ahead of it, which the slot's history then forgets.
+	std::vector<MenuHandle> TakeHistory(int slot);
 	bool InHistory(int slot, MenuHandle menu) const;
 
 	// Step through the history. False when there is nothing that way.
@@ -513,10 +677,17 @@ private:
 	// Fires MenuEnd for every history menu that isn't `current` or still in the history, then forgets them.
 	void EndMenus(int slot, std::vector<MenuHandle> menus, MenuHandle current, MenuEndReason reason);
 
+	// The viewer's language key for the built-in phrases, "" for the default one.
+	std::string Lang(int slot) const;
+
 	void Render(int slot);         // dispatch by the slot's render type
 	void RenderPage(int slot);     // chat
 	void RenderHtml(int slot);     // html
 	void RenderPanorama(int slot); // panorama
+	// The slot's panorama window again, when it has one up.
+	void RedrawPanorama(int slot);
+	// The item behind row, tile or button `index` of the page as last drawn, -1 for none.
+	int ClickedItem(int slot, int index) const;
 
 	// Chat and panorama pages, HTML scrolls instead. A new page starts at every section.
 	struct Page
@@ -528,18 +699,52 @@ private:
 
 	std::vector<Page> Pages(const MenuDef &def, MenuType type) const;
 	int PageOf(const MenuDef &def, MenuType type, int item) const;
-	// The grid when the menu asks for it and the addon has it.
+	// A Choice the showcase and the studio draw in place, as that many segments. 0 for any other item.
+	static int Segments(const MenuItem &item);
+	// An option's own text, and the second line it carries after a line break.
+	static std::string OptionLabel(const std::string &option);
+	static std::string OptionSub(const std::string &option);
+
+	// The tab row of every layout but the list: the plugin's own tabs, else one per section. `target` is the plugin's
+	// tab index, or the page a section's tab opens.
+	struct TabEntry
+	{
+		std::string label;
+		bool selected = false;
+		bool marked = false;
+		bool pinned = false;
+		int target = 0;
+	};
+
+	std::vector<TabEntry> Tabs(int slot, const MenuDef &def, const std::vector<Page> &pages, int page) const;
+	// Which of them the row has room for, in order. The rest go behind "+N". `paged`: the page arrows are at the row's end.
+	static std::vector<int> FitTabs(panorama_hud::Layout layout, const std::vector<TabEntry> &tabs,
+									const std::vector<panorama_hud::View::Chip> &chips, bool paged);
+	void PickTab(int slot, int tab);
+	// The layout the menu asks for when the addon has it, else the list.
 	panorama_hud::Layout PanoramaLayout(const MenuDef &def) const;
-	// The item a showcase draws under its image instead of on its page, -1 when this viewer gets none.
+	// The item a showcase draws under its buttons instead of on its page, -1 when this viewer gets none.
 	int PinnedItem(const MenuDef &def, MenuType type) const;
-	// The item behind the `index`th row of `page`, skipping the pinned one. -1 past the end.
+	// The item drawn beside it, -1 when this viewer gets none.
+	int SecondaryItem(const MenuDef &def, MenuType type) const;
+	// Drawn off the pages for this viewer: the pinned item, or a studio's controls.
+	bool OffPage(const MenuDef &def, MenuType type, int item) const;
+	// Whether a showcase or studio section has image tiles among its buttons, an item with an image. Its pages hold fewer.
+	static bool StudioImages(const MenuDef &def, int section);
+	// The control items on the panel's `tab`, or its first tab when the menu has no such section. `tabs` gets every section in order.
+	static std::vector<int> StudioControls(const MenuDef &def, const std::string &tab, std::vector<std::string> &tabs);
+	// The item behind the `index`th row of `page`, skipping those off the pages. -1 past the end.
 	int PageItem(const MenuDef &def, MenuType type, const Page &page, int index) const;
 	// The biggest size every section fits one page of, at least the menu's own.
 	static panorama_hud::TileSize TileSize(const MenuDef &def);
 	// Runs `change` on a menu's paging while its viewers keep their page's first item.
 	void Repage(MenuHandle menu, MenuDef &def, const std::function<void()> &change);
-	// Shown after an item's text: a value item's value, else its subtext.
+	// Shown after an item's text: a value item's value, else its subtext. Nothing for a readout, its subtext leads.
 	std::string SuffixText(int slot, const MenuDef &def, const MenuItem &item) const;
+	// Chat and HTML line text: a readout as "subtext: text".
+	static std::string LineText(const MenuItem &item);
+	// Never picked: disabled, or a readout.
+	static bool Inert(const MenuItem &item);
 
 	// Re-render every player currently viewing `menu` (after a live mutation).
 	// Defers to the next GameFrame if called off the main thread.

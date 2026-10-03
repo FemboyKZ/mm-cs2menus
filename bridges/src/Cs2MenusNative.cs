@@ -13,7 +13,7 @@ namespace Cs2Menus;
 ///
 /// All functions are thread-safe (cs2menus is). Callbacks always arrive on the game main thread.
 ///
-/// Members below mirror the ICS2Menus interface order: Handshake, Lifetime, Menu properties, Items, Display, Host.
+/// Members below follow the ICS2Menus interface's order.
 /// </summary>
 internal static unsafe class Cs2MenusNative
 {
@@ -118,6 +118,54 @@ internal static unsafe class Cs2MenusNative
 	private static delegate* unmanaged[Cdecl]<int, void> _suspend;
 	private static delegate* unmanaged[Cdecl]<int, void> _resume;
 
+	// ICS2Menus005: item presentation, tile badges, the info card, the header, tabs and chips, the item area, the display
+	private static delegate* unmanaged[Cdecl]<int, int, int> _getSlotType;
+	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemRole;
+	private static delegate* unmanaged[Cdecl]<uint, int, int> _getItemRole;
+	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemHighlight;
+	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemSpan;
+	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemControl;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setItemRarity;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getItemRarity;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, byte*, void> _setItemTag;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> _getItemTag;
+	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemTeams;
+	private static delegate* unmanaged[Cdecl]<uint, int, int> _getItemTeams;
+	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemLocked;
+	private static delegate* unmanaged[Cdecl]<uint, int, int> _getItemLocked;
+	private static delegate* unmanaged[Cdecl]<uint, int, int, void> _setItemCorner;
+	private static delegate* unmanaged[Cdecl]<uint, int, int> _getItemCorner;
+	private static delegate* unmanaged[Cdecl]<uint, nint, void*, void> _setCornerCallback;
+	private static delegate* unmanaged[Cdecl]<uint, int, byte*, void> _setItemImageTint;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, byte*, byte*, void> _setMenuInfo;
+	private static delegate* unmanaged[Cdecl]<uint, float, float, float, float*, int, byte*, byte*, void> _setMenuInfoMeter;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, byte*, int> _addMenuInfoRow;
+	private static delegate* unmanaged[Cdecl]<uint, void> _clearMenuInfo;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, int, void> _setMenuScope;
+	private static delegate* unmanaged[Cdecl]<uint, nint, void*, void> _setScopeCallback;
+	private static delegate* unmanaged[Cdecl]<uint, int, void> _setMenuEdited;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getMenuEdited;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, int, int, int, int> _addMenuTab;
+	private static delegate* unmanaged[Cdecl]<uint, nint, void*, void> _setTabCallback;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, nint*, int, int, int> _addMenuChip;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, nint*, int, int, int> _addMenuAction;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, byte*, int> _addMenuNote;
+	private static delegate* unmanaged[Cdecl]<uint, int, int, int, void> _setChipOptionTone;
+	private static delegate* unmanaged[Cdecl]<uint, nint, void*, void> _setChipCallback;
+	private static delegate* unmanaged[Cdecl]<uint, int, void> _setMenuSecondaryItem;
+	private static delegate* unmanaged[Cdecl]<uint, byte*, byte*, int, void> _setMenuEmpty;
+	private static delegate* unmanaged[Cdecl]<int, byte*, byte*, nint, void*, int> _beginInput;
+	private static delegate* unmanaged[Cdecl]<int, void> _endInput;
+	private static delegate* unmanaged[Cdecl]<uint, nint, void*, void> _setInputClearCallback;
+	private static delegate* unmanaged[Cdecl]<int, byte*, int, float, int> _showMessage;
+	private static delegate* unmanaged[Cdecl]<int, byte*, byte*, byte*, byte*, int, nint, void*, int> _showConfirm;
+	private static delegate* unmanaged[Cdecl]<int, byte*, byte*, int> _addHint;
+	private static delegate* unmanaged[Cdecl]<int, void> _clearHint;
+	private static delegate* unmanaged[Cdecl]<int, void> _hideHint;
+	private static delegate* unmanaged[Cdecl]<int, byte*, byte*, int> _addHelp;
+	private static delegate* unmanaged[Cdecl]<int, void> _clearHelp;
+	private static delegate* unmanaged[Cdecl]<int, int, void> _setMirrored;
+
 	public static bool Loaded { get; private set; }
 
 	/// <summary>True when the loaded cs2menus exports the ICS2Menus004 additions (value items, sections, grids).</summary>
@@ -125,6 +173,9 @@ internal static unsafe class Cs2MenusNative
 
 	/// <summary>True when it also exports the later 004 additions: showcase, tile sizes, menu image, history and pausing.</summary>
 	public static bool SupportsHistory { get; private set; }
+
+	/// <summary>True when it exports the ICS2Menus005 additions too: badges, the info card, tabs, chips, dialogs and the studio.</summary>
+	public static bool Supports005 { get; private set; }
 
 	/// <summary>
 	/// Resolve every export from the cs2menus binary at <paramref name="binaryPath"/>.
@@ -278,6 +329,65 @@ internal static unsafe class Cs2MenusNative
 			_resume = (delegate* unmanaged[Cdecl]<int, void>)resume;
 		}
 
+		// And the ICS2Menus005 exports, all of them or none.
+		try
+		{
+			if (!SupportsHistory)
+			{
+				throw new EntryPointNotFoundException();
+			}
+			_getSlotType = (delegate* unmanaged[Cdecl]<int, int, int>)Get(lib, "cs2m_get_slot_type");
+			_setItemRole = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_item_role");
+			_getItemRole = (delegate* unmanaged[Cdecl]<uint, int, int>)Get(lib, "cs2m_get_item_role");
+			_setItemHighlight = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_item_highlight");
+			_setItemSpan = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_item_span");
+			_setItemControl = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_item_control");
+			_setItemRarity = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)Get(lib, "cs2m_set_item_rarity");
+			_getItemRarity = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_item_rarity");
+			_setItemTag = (delegate* unmanaged[Cdecl]<uint, int, byte*, byte*, void>)Get(lib, "cs2m_set_item_tag");
+			_getItemTag = (delegate* unmanaged[Cdecl]<uint, int, byte*, int, int>)Get(lib, "cs2m_get_item_tag");
+			_setItemTeams = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_item_teams");
+			_getItemTeams = (delegate* unmanaged[Cdecl]<uint, int, int>)Get(lib, "cs2m_get_item_teams");
+			_setItemLocked = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_item_locked");
+			_getItemLocked = (delegate* unmanaged[Cdecl]<uint, int, int>)Get(lib, "cs2m_get_item_locked");
+			_setItemCorner = (delegate* unmanaged[Cdecl]<uint, int, int, void>)Get(lib, "cs2m_set_item_corner");
+			_getItemCorner = (delegate* unmanaged[Cdecl]<uint, int, int>)Get(lib, "cs2m_get_item_corner");
+			_setCornerCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)Get(lib, "cs2m_set_corner_callback");
+			_setItemImageTint = (delegate* unmanaged[Cdecl]<uint, int, byte*, void>)Get(lib, "cs2m_set_item_image_tint");
+			_setMenuInfo = (delegate* unmanaged[Cdecl]<uint, byte*, byte*, byte*, void>)Get(lib, "cs2m_set_menu_info");
+			_setMenuInfoMeter = (delegate* unmanaged[Cdecl]<uint, float, float, float, float*, int, byte*, byte*, void>)Get(lib, "cs2m_set_menu_info_meter");
+			_addMenuInfoRow = (delegate* unmanaged[Cdecl]<uint, byte*, byte*, int>)Get(lib, "cs2m_add_menu_info_row");
+			_clearMenuInfo = (delegate* unmanaged[Cdecl]<uint, void>)Get(lib, "cs2m_clear_menu_info");
+			_setMenuScope = (delegate* unmanaged[Cdecl]<uint, byte*, int, void>)Get(lib, "cs2m_set_menu_scope");
+			_setScopeCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)Get(lib, "cs2m_set_scope_callback");
+			_setMenuEdited = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_set_menu_edited");
+			_getMenuEdited = (delegate* unmanaged[Cdecl]<uint, int>)Get(lib, "cs2m_get_menu_edited");
+			_addMenuTab = (delegate* unmanaged[Cdecl]<uint, byte*, int, int, int, int>)Get(lib, "cs2m_add_menu_tab");
+			_setTabCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)Get(lib, "cs2m_set_tab_callback");
+			_addMenuChip = (delegate* unmanaged[Cdecl]<uint, byte*, nint*, int, int, int>)Get(lib, "cs2m_add_menu_chip");
+			_addMenuAction = (delegate* unmanaged[Cdecl]<uint, byte*, nint*, int, int, int>)Get(lib, "cs2m_add_menu_action");
+			_addMenuNote = (delegate* unmanaged[Cdecl]<uint, byte*, byte*, int>)Get(lib, "cs2m_add_menu_note");
+			_setChipOptionTone = (delegate* unmanaged[Cdecl]<uint, int, int, int, void>)Get(lib, "cs2m_set_chip_option_tone");
+			_setChipCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)Get(lib, "cs2m_set_chip_callback");
+			_setMenuSecondaryItem = (delegate* unmanaged[Cdecl]<uint, int, void>)Get(lib, "cs2m_set_menu_secondary_item");
+			_setMenuEmpty = (delegate* unmanaged[Cdecl]<uint, byte*, byte*, int, void>)Get(lib, "cs2m_set_menu_empty");
+			_beginInput = (delegate* unmanaged[Cdecl]<int, byte*, byte*, nint, void*, int>)Get(lib, "cs2m_begin_input");
+			_endInput = (delegate* unmanaged[Cdecl]<int, void>)Get(lib, "cs2m_end_input");
+			_setInputClearCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)Get(lib, "cs2m_set_input_clear_callback");
+			_showMessage = (delegate* unmanaged[Cdecl]<int, byte*, int, float, int>)Get(lib, "cs2m_show_message");
+			_showConfirm = (delegate* unmanaged[Cdecl]<int, byte*, byte*, byte*, byte*, int, nint, void*, int>)Get(lib, "cs2m_show_confirm");
+			_addHint = (delegate* unmanaged[Cdecl]<int, byte*, byte*, int>)Get(lib, "cs2m_add_hint");
+			_clearHint = (delegate* unmanaged[Cdecl]<int, void>)Get(lib, "cs2m_clear_hint");
+			_hideHint = (delegate* unmanaged[Cdecl]<int, void>)Get(lib, "cs2m_hide_hint");
+			_addHelp = (delegate* unmanaged[Cdecl]<int, byte*, byte*, int>)Get(lib, "cs2m_add_help");
+			_clearHelp = (delegate* unmanaged[Cdecl]<int, void>)Get(lib, "cs2m_clear_help");
+			_setMirrored = (delegate* unmanaged[Cdecl]<int, int, void>)Get(lib, "cs2m_set_mirrored");
+			Supports005 = true;
+		}
+		catch (EntryPointNotFoundException)
+		{
+		}
+
 		Loaded = true;
 		return true;
 	}
@@ -299,6 +409,14 @@ internal static unsafe class Cs2MenusNative
 		if (!SupportsHistory)
 		{
 			throw new NotSupportedException("The loaded cs2menus predates showcase layouts, menu history and pausing. Update cs2menus.");
+		}
+	}
+
+	private static void Require005()
+	{
+		if (!Supports005)
+		{
+			throw new NotSupportedException("The loaded cs2menus predates badges, tabs, chips, dialogs and the studio (ICS2Menus005). Update cs2menus.");
 		}
 	}
 
@@ -594,6 +712,355 @@ internal static unsafe class Cs2MenusNative
 	{
 		RequireHistory();
 		_resume(slot);
+	}
+
+	// --- ICS2Menus005 ---
+	// Setters throw on an older cs2menus, getters give the default, callbacks and the display's calls do nothing.
+
+	public static int GetSlotType(int slot, int type) => Supports005 ? _getSlotType(slot, type) : type;
+
+	public static void SetItemRole(uint menu, int item, int role)
+	{
+		Require005();
+		_setItemRole(menu, item, role);
+	}
+
+	public static int GetItemRole(uint menu, int item) => Supports005 ? _getItemRole(menu, item) : 0;
+
+	public static void SetItemHighlight(uint menu, int item, bool v)
+	{
+		Require005();
+		_setItemHighlight(menu, item, v ? 1 : 0);
+	}
+
+	public static void SetItemSpan(uint menu, int item, int columns)
+	{
+		Require005();
+		_setItemSpan(menu, item, columns);
+	}
+
+	public static void SetItemControl(uint menu, int item, bool v)
+	{
+		Require005();
+		_setItemControl(menu, item, v ? 1 : 0);
+	}
+
+	public static void SetItemRarity(uint menu, int item, ReadOnlySpan<char> rarity)
+	{
+		Require005();
+		fixed (byte* r = Utf8(rarity)) _setItemRarity(menu, item, r);
+	}
+
+	public static string GetItemRarity(uint menu, int item) => Supports005 ? ReadString(_getItemRarity, menu, item) : string.Empty;
+
+	public static void SetItemTag(uint menu, int item, ReadOnlySpan<char> tag, ReadOnlySpan<char> style)
+	{
+		Require005();
+		fixed (byte* t = Utf8(tag))
+		fixed (byte* s = Utf8(style))
+		{
+			_setItemTag(menu, item, t, s);
+		}
+	}
+
+	public static string GetItemTag(uint menu, int item) => Supports005 ? ReadString(_getItemTag, menu, item) : string.Empty;
+
+	public static void SetItemTeams(uint menu, int item, int teams)
+	{
+		Require005();
+		_setItemTeams(menu, item, teams);
+	}
+
+	public static int GetItemTeams(uint menu, int item) => Supports005 ? _getItemTeams(menu, item) : 0;
+
+	public static void SetItemLocked(uint menu, int item, bool v)
+	{
+		Require005();
+		_setItemLocked(menu, item, v ? 1 : 0);
+	}
+
+	public static bool GetItemLocked(uint menu, int item) => Supports005 && _getItemLocked(menu, item) != 0;
+
+	public static void SetItemCorner(uint menu, int item, int corner)
+	{
+		Require005();
+		_setItemCorner(menu, item, corner);
+	}
+
+	public static int GetItemCorner(uint menu, int item) => Supports005 ? _getItemCorner(menu, item) : 0;
+
+	public static void SetCornerCallback(uint menu, nint onCorner, void* user)
+	{
+		if (Supports005)
+		{
+			_setCornerCallback(menu, onCorner, user);
+		}
+	}
+
+	public static void SetItemImageTint(uint menu, int item, ReadOnlySpan<char> tint)
+	{
+		Require005();
+		fixed (byte* t = Utf8(tint)) _setItemImageTint(menu, item, t);
+	}
+
+	public static void SetMenuInfo(uint menu, ReadOnlySpan<char> title, ReadOnlySpan<char> subtitle, ReadOnlySpan<char> subtitleColor)
+	{
+		Require005();
+		fixed (byte* t = Utf8(title))
+		fixed (byte* s = Utf8(subtitle))
+		fixed (byte* c = Utf8(subtitleColor))
+		{
+			_setMenuInfo(menu, t, s, c);
+		}
+	}
+
+	public static void SetMenuInfoMeter(uint menu, float value, float rangeMin, float rangeMax, ReadOnlySpan<float> bands, ReadOnlySpan<char> label,
+		ReadOnlySpan<char> valueText)
+	{
+		Require005();
+		fixed (float* b = bands)
+		fixed (byte* l = Utf8(label))
+		fixed (byte* v = Utf8(valueText))
+		{
+			_setMenuInfoMeter(menu, value, rangeMin, rangeMax, b, bands.Length, l, v);
+		}
+	}
+
+	public static int AddMenuInfoRow(uint menu, ReadOnlySpan<char> label, ReadOnlySpan<char> value)
+	{
+		Require005();
+		fixed (byte* l = Utf8(label))
+		fixed (byte* v = Utf8(value))
+		{
+			return _addMenuInfoRow(menu, l, v);
+		}
+	}
+
+	public static void ClearMenuInfo(uint menu)
+	{
+		Require005();
+		_clearMenuInfo(menu);
+	}
+
+	public static void SetMenuScope(uint menu, ReadOnlySpan<char> label, int teams)
+	{
+		Require005();
+		fixed (byte* l = Utf8(label)) _setMenuScope(menu, l, teams);
+	}
+
+	public static void SetScopeCallback(uint menu, nint onScope, void* user)
+	{
+		if (Supports005)
+		{
+			_setScopeCallback(menu, onScope, user);
+		}
+	}
+
+	public static void SetMenuEdited(uint menu, bool v)
+	{
+		Require005();
+		_setMenuEdited(menu, v ? 1 : 0);
+	}
+
+	public static bool GetMenuEdited(uint menu) => Supports005 && _getMenuEdited(menu) != 0;
+
+	public static int AddMenuTab(uint menu, ReadOnlySpan<char> label, bool selected, bool marked, bool pinned)
+	{
+		Require005();
+		fixed (byte* l = Utf8(label))
+		{
+			return _addMenuTab(menu, l, selected ? 1 : 0, marked ? 1 : 0, pinned ? 1 : 0);
+		}
+	}
+
+	public static void SetTabCallback(uint menu, nint onTab, void* user)
+	{
+		if (Supports005)
+		{
+			_setTabCallback(menu, onTab, user);
+		}
+	}
+
+	// A chip, or with `action` a button. `selected` is then whether it's drawn lit.
+	public static int AddMenuChip(uint menu, ReadOnlySpan<char> label, IReadOnlyList<string>? options, int selected, bool action)
+	{
+		Require005();
+		// cs2menus copies the strings, so they only need to outlive the call.
+		nint[] pointers = new nint[options?.Count ?? 0];
+		try
+		{
+			for (int o = 0; o < pointers.Length; o++)
+			{
+				pointers[o] = Marshal.StringToCoTaskMemUTF8(options![o] ?? string.Empty);
+			}
+			fixed (byte* l = Utf8(label))
+			fixed (nint* p = pointers)
+			{
+				return action ? _addMenuAction(menu, l, p, pointers.Length, selected) : _addMenuChip(menu, l, p, pointers.Length, selected);
+			}
+		}
+		finally
+		{
+			foreach (nint pointer in pointers)
+			{
+				Marshal.FreeCoTaskMem(pointer);
+			}
+		}
+	}
+
+	public static int AddMenuNote(uint menu, ReadOnlySpan<char> label, ReadOnlySpan<char> value)
+	{
+		Require005();
+		fixed (byte* l = Utf8(label))
+		fixed (byte* v = Utf8(value))
+		{
+			return _addMenuNote(menu, l, v);
+		}
+	}
+
+	public static void SetChipOptionTone(uint menu, int chip, int option, int tone)
+	{
+		Require005();
+		_setChipOptionTone(menu, chip, option, tone);
+	}
+
+	public static void SetChipCallback(uint menu, nint onChip, void* user)
+	{
+		if (Supports005)
+		{
+			_setChipCallback(menu, onChip, user);
+		}
+	}
+
+	public static void SetMenuSecondaryItem(uint menu, int item)
+	{
+		Require005();
+		_setMenuSecondaryItem(menu, item);
+	}
+
+	public static void SetMenuEmpty(uint menu, ReadOnlySpan<char> title, ReadOnlySpan<char> text, bool loading)
+	{
+		Require005();
+		fixed (byte* t = Utf8(title))
+		fixed (byte* x = Utf8(text))
+		{
+			_setMenuEmpty(menu, t, x, loading ? 1 : 0);
+		}
+	}
+
+	public static bool BeginInput(int slot, ReadOnlySpan<char> prompt, ReadOnlySpan<char> hint, nint onCancel, void* user)
+	{
+		if (!Supports005)
+		{
+			return false;
+		}
+		fixed (byte* p = Utf8(prompt))
+		fixed (byte* h = Utf8(hint))
+		{
+			return _beginInput(slot, p, h, onCancel, user) != 0;
+		}
+	}
+
+	public static void EndInput(int slot)
+	{
+		if (Supports005)
+		{
+			_endInput(slot);
+		}
+	}
+
+	public static void SetInputClearCallback(uint menu, nint onClear, void* user)
+	{
+		if (Supports005)
+		{
+			_setInputClearCallback(menu, onClear, user);
+		}
+	}
+
+	public static bool ShowMessage(int slot, ReadOnlySpan<char> text, int tone, float seconds)
+	{
+		if (!Supports005)
+		{
+			return false;
+		}
+		fixed (byte* t = Utf8(text))
+		{
+			return _showMessage(slot, t, tone, seconds) != 0;
+		}
+	}
+
+	public static bool ShowConfirm(int slot, ReadOnlySpan<char> title, ReadOnlySpan<char> body, ReadOnlySpan<char> cancel, ReadOnlySpan<char> confirm,
+		bool danger, nint onDone, void* user)
+	{
+		if (!Supports005)
+		{
+			return false;
+		}
+		fixed (byte* t = Utf8(title))
+		fixed (byte* b = Utf8(body))
+		fixed (byte* n = Utf8(cancel))
+		fixed (byte* y = Utf8(confirm))
+		{
+			return _showConfirm(slot, t, b, n, y, danger ? 1 : 0, onDone, user) != 0;
+		}
+	}
+
+	public static bool AddHint(int slot, ReadOnlySpan<char> keys, ReadOnlySpan<char> text)
+	{
+		if (!Supports005)
+		{
+			return false;
+		}
+		fixed (byte* k = Utf8(keys))
+		fixed (byte* t = Utf8(text))
+		{
+			return _addHint(slot, k, t) != 0;
+		}
+	}
+
+	public static void ClearHint(int slot)
+	{
+		if (Supports005)
+		{
+			_clearHint(slot);
+		}
+	}
+
+	public static void HideHint(int slot)
+	{
+		if (Supports005)
+		{
+			_hideHint(slot);
+		}
+	}
+
+	public static bool AddHelp(int slot, ReadOnlySpan<char> keys, ReadOnlySpan<char> text)
+	{
+		if (!Supports005)
+		{
+			return false;
+		}
+		fixed (byte* k = Utf8(keys))
+		fixed (byte* t = Utf8(text))
+		{
+			return _addHelp(slot, k, t) != 0;
+		}
+	}
+
+	public static void ClearHelp(int slot)
+	{
+		if (Supports005)
+		{
+			_clearHelp(slot);
+		}
+	}
+
+	public static void SetMirrored(int slot, bool mirrored)
+	{
+		if (Supports005)
+		{
+			_setMirrored(slot, mirrored ? 1 : 0);
+		}
 	}
 
 	private static string ReadString(delegate* unmanaged[Cdecl]<uint, int, byte*, int, int> fn, uint menu, int item)

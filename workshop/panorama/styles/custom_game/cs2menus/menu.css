@@ -1,4 +1,5 @@
-/* Based on cs2kz's menu.css (AGPL-3.0, zer0.k). Slot counts match panorama_hud.h. */
+/*! Based on cs2kz's menu.css (AGPL-3.0, zer0.k). */
+/* Slot counts match panorama_hud.h. */
 
 /* High enough to draw above the crosshair. */
 .root {
@@ -20,31 +21,30 @@
 	visibility: collapse;
 }
 
-/* An open popup sits right of the menu box, so both slide left to stay on a 4:3 screen. */
-#cm_root.shift {
-	x: -170px;
-}
-
-/* The wider image preview in the same place */
+/* An open popup or the image preview sits right of the menu box, so both slide left to stay on a 4:3 screen:
+   half of the 14px gap and the popup's 362. */
+#cm_root.shift,
 #cm_root.preview {
-	x: -227px;
+	x: -188px;
 }
 
-/* Sized so all 20 nav buttons fit without scrolling. */
+/* The list's, the grid's and the columns' window. Its top edge is fixed,
+   so the header and tabs stay put where a layout adds rows to its height. 870 inside its padding and border. */
 .menu-box {
 	horizontal-align: center;
-	vertical-align: middle;
+	vertical-align: top;
+	margin-top: 190px;
 	flow-children: down;
-	width: 900px;
-	height: 700px;
-	padding: 16px;
-	border: 1px solid #5f494926;
+	width: 908px;
+	height: 624px;
+	padding: 18px;
+	border: 1px solid #ffffff17;
 	border-radius: 5px;
 	background-image: url("s2r://panorama/images/backgrounds/bluedots_large_png.vtex");
 	background-size: 360px 360px;
 	background-img-opacity: 0.01;
 	/* Solid, the collapse button is there for seeing past it */
-	background-color: rgb(12, 13, 15);
+	background-color: rgb(13, 15, 18);
 }
 
 .window-header {
@@ -124,11 +124,9 @@
 	background-image: url("s2r://panorama/images/control_icons/arrow_solid_down_png.vtex");
 }
 
-/* Collapsed: only the header, where the box's top edge was, (1080 - 700) / 2 */
+/* Collapsed: only the header */
 #cm_root.collapsed .menu-box {
 	height: fit-children;
-	vertical-align: top;
-	y: 190px;
 }
 
 #cm_root.collapsed .panes {
@@ -190,9 +188,10 @@
 	visibility: collapse;
 }
 
+/* About 26 with its margin, so all 20 fit the window's 551 without scrolling. */
 .nav-btn {
 	width: 100%;
-	padding: 5px 10px;
+	padding: 4px 10px;
 	margin-bottom: 1px;
 	border-radius: 3px;
 	background-color: #00000000;
@@ -221,22 +220,30 @@
 
 /* --- right: items --- */
 
-/* Leaves room for the scroll bar so rows never run under it. */
+/* The list's scroll bar sits in what would be the window's right padding: the box leaves 4 of its 18 there,
+   the header and the rows the other 14, so rows end as far from the window's edge as they start. */
+#cm_root .menu-box {
+	padding-right: 4px;
+}
+
+#cm_root .menu-box .window-header {
+	padding-right: 14px;
+}
+
 .items {
 	flow-children: down;
 	width: fill-parent-flow(1);
 	height: 100%;
-	padding-right: 23px;
+	padding-right: 14px;
 	overflow: squish scroll;
 }
 
-/* margin-right centres the 6px bar under the 20px close button. */
 VerticalScrollBar {
 	width: 6px;
 	height: 100%;
 	horizontal-align: right;
 	layout-position: fixed;
-	margin: 2px 7px;
+	margin: 2px 2px;
 	border-radius: 3px;
 	background-color: #ffffff14;
 }
@@ -302,64 +309,157 @@ VerticalScrollBar:hover .ScrollThumb {
 
 /* --- value items, the server adds type-toggle / type-step / type-choice to the row --- */
 
+/* A Toggle says its value, dim, before a switch: two panels without ids, the knob at the right end while it's on. */
 .item.type-toggle .item-value {
-	padding: 2px 10px;
-	border-radius: 9px;
-	background-color: #ffffff14;
+	opacity: 0.64;
 }
 
-.item.type-toggle.on .item-value {
-	background-color: #24f09733;
+.item-switch {
+	visibility: collapse;
+	width: 40px;
+	height: 22px;
+	margin-left: 10px;
+	vertical-align: middle;
+	border-radius: 11px;
+	background-color: #ffffff1f;
 }
 
+.item.type-toggle .item-switch {
+	visibility: visible;
+}
+
+.item-knob {
+	width: 16px;
+	height: 16px;
+	margin: 3px;
+	border-radius: 50%;
+	background-color: #ffffffb3;
+}
+
+.item.type-toggle.on .item-switch {
+	background-color: #24f0975c;
+}
+
+.item.type-toggle.on .item-knob {
+	horizontal-align: right;
+	background-color: #24f097;
+}
+
+.item.disabled .item-switch {
+	opacity: 0.4;
+}
+
+/* A Stepper and a Choice are worked in place: 
+   the button before the value takes a step off or the option before, the one after it adds one or takes the next.
+   A click on the row still opens the popup, for big steps and the whole list.
+   Both buttons hold both pairs of signs, the row's type shows one. */
 .item.type-step .item-value {
+	min-width: 92px;
+	margin: 0px 4px;
 	padding: 2px 8px;
 	border-radius: 3px;
 	background-color: #ffffff0d;
+	text-align: center;
 }
 
 .item.type-choice .item-value {
+	min-width: 92px;
+	margin: 0px 4px;
 	padding: 2px 8px;
 	border-radius: 3px;
 	background-color: #ffffff0d;
+	text-align: center;
+}
+
+.item-step {
+	visibility: collapse;
+	width: 26px;
+	height: 22px;
+	vertical-align: middle;
+	border-radius: 3px;
+	border: 1px solid #ffffff17;
+	background-color: #ffffff0f;
+	transition-property: background-color, border-color;
+	transition-duration: 0.05s;
+}
+
+.item-step:hover {
+	border-color: #ffffff40;
+	background-color: #ffffff29;
+}
+
+.item.type-step .item-step {
+	visibility: visible;
+}
+
+.item.type-choice .item-step {
+	visibility: visible;
+}
+
+.item.disabled .item-step {
+	opacity: 0.4;
+}
+
+.item-step-label {
+	visibility: collapse;
+	horizontal-align: center;
+	vertical-align: center;
+	font-size: 15px;
+	color: #ffffffa3;
+}
+
+.item.type-step .step-minus {
+	visibility: visible;
+}
+
+.item.type-step .step-plus {
+	visibility: visible;
+}
+
+.item.type-choice .step-prev {
+	visibility: visible;
+}
+
+.item.type-choice .step-next {
+	visibility: visible;
+}
+
+.snd .item:not(.disabled) .item-step:hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .item:not(.disabled) .item-step:active {
+	sound: "UIPanorama.generic_button_press";
 }
 
 /* --- popups beside the menu box, cm_step for a Stepper and cm_list for a Choice --- */
 
-/* Centred like the box, then x moves it right by half the box (450) + a 14px gap + half its own width. */
+/* Level with the box's top. Centred like the box, then x moves it right by half the box (454)
+   + a 14px gap + half its own width. */
 .popup {
 	horizontal-align: center;
-	vertical-align: middle;
-	x: 614px;
-	width: 300px;
+	vertical-align: top;
+	margin-top: 190px;
+	x: 649px;
+	width: 362px;
 	flow-children: down;
-	padding: 16px;
-	border: 1px solid #5f494926;
+	padding: 18px;
+	border: 1px solid #ffffff17;
 	border-radius: 5px;
 	background-image: url("s2r://panorama/images/backgrounds/bluedots_large_png.vtex");
 	background-size: 360px 360px;
 	background-img-opacity: 0.01;
-	background-color: rgb(12, 13, 15);
+	background-color: rgb(13, 15, 18);
 }
 
 .popup.hidden {
 	visibility: collapse;
 }
 
-.step-popup {
-	width: 340px;
-	x: 634px;
-}
-
-/* 4:3 like the econ renders */
-.preview-popup {
-	width: 440px;
-	x: 684px;
-}
-
+/* 4:3 like the econ renders, the popup's 324 wide */
 .preview-img {
 	width: 100%;
-	height: 306px;
+	height: 243px;
 	background-size: contain;
 	background-repeat: no-repeat;
 	background-position: 50% 50%;
@@ -423,6 +523,7 @@ VerticalScrollBar:hover .ScrollThumb {
 
 .li {
 	width: 100%;
+	flow-children: right;
 	padding: 6px 10px;
 	border-radius: 3px;
 	background-color: #00000000;
@@ -447,6 +548,53 @@ VerticalScrollBar:hover .ScrollThumb {
 	font-size: 17px;
 	white-space: nowrap;
 	text-overflow: ellipsis;
+}
+
+/* On the row the plugin marks, like a tab's. */
+.li-dot {
+	visibility: collapse;
+	width: 6px;
+	height: 6px;
+	margin-right: 8px;
+	vertical-align: center;
+	border-radius: 50%;
+	background-color: #24f097;
+}
+
+.li.marked .li-dot {
+	visibility: visible;
+}
+
+.li-text {
+	width: fill-parent-flow(1);
+	flow-children: down;
+}
+
+/* A row's second line, what the option holds. */
+.li-sub {
+	visibility: collapse;
+	width: 100%;
+	margin-top: 1px;
+	font-size: 13px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: #ffffffa3;
+}
+
+.li.two .li-sub {
+	visibility: visible;
+}
+
+.li.tone-ok .li-label {
+	color: #24f097;
+}
+
+.li.tone-warn .li-label {
+	color: #f0b429;
+}
+
+.li.tone-bad .li-label {
+	color: #ff5a4f;
 }
 
 /* The page arrows only show once the server adds "paged". */
@@ -559,4 +707,303 @@ VerticalScrollBar:hover .ScrollThumb {
 
 .snd .step-btn:not(.disabled):active {
 	sound: "UIPanorama.generic_button_press";
+}
+
+/* The message line: a pill under the window, above the studio's hint. The server sets tone-ok, tone-warn or tone-bad. */
+.msg {
+	horizontal-align: center;
+	vertical-align: bottom;
+	margin-bottom: 140px;
+	height: 36px;
+	padding: 0px 16px 0px 14px;
+	flow-children: right;
+	border-radius: 18px;
+	border: 1px solid #ffffff17;
+	background-color: #0d0f12e6;
+}
+
+.msg.hidden {
+	visibility: collapse;
+}
+
+#cs_root .msg {
+	margin-bottom: 190px;
+}
+
+.msg-dot {
+	width: 8px;
+	height: 8px;
+	margin-right: 10px;
+	vertical-align: center;
+	border-radius: 50%;
+	background-color: #ffffffa3;
+}
+
+.msg-text {
+	vertical-align: center;
+	font-size: 15px;
+	white-space: nowrap;
+	color: #ffffff;
+}
+
+.msg.tone-ok {
+	border-color: #24f09755;
+}
+
+.msg.tone-ok .msg-dot {
+	background-color: #24f097;
+}
+
+.msg.tone-warn {
+	border-color: #f0b42955;
+}
+
+.msg.tone-warn .msg-dot {
+	background-color: #f0b429;
+}
+
+.msg.tone-bad {
+	border-color: #ff5a4f55;
+}
+
+.msg.tone-bad .msg-dot {
+	background-color: #ff5a4f;
+}
+
+/* Unsaved changes: after the title while the root has "edited". */
+.edited-mark {
+	visibility: collapse;
+	vertical-align: center;
+	margin: 0px 10px 0px 10px;
+	font-size: 12px;
+	font-weight: bold;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	color: #f0b429;
+}
+
+.edited .edited-mark {
+	visibility: visible;
+}
+
+/* The confirm dialog over the dimmed screen, which answers cancel when clicked. */
+.dlg-scrim {
+	width: 100%;
+	height: 100%;
+	background-color: #0000008c;
+	transition-property: position;
+	transition-duration: 0.1s;
+	transition-timing-function: ease-in-out;
+}
+
+/* The root slides left for a popup or a preview. The scrim slides back as far, to stay over the whole screen. */
+#cm_root.shift .dlg-scrim,
+#cg_root.shift .dlg-scrim,
+#cl_root.shift .dlg-scrim,
+#cx_root.shift .dlg-scrim,
+#cm_root.preview .dlg-scrim,
+#cg_root.preview .dlg-scrim {
+	x: 188px;
+}
+
+.dlg-scrim.hidden {
+	visibility: collapse;
+}
+
+.dlg-box {
+	horizontal-align: center;
+	vertical-align: middle;
+	width: 362px;
+	padding: 18px;
+	flow-children: down;
+	border-radius: 6px;
+	border: 1px solid #ffffff17;
+	background-color: rgb(13, 15, 18);
+}
+
+.dlg-title {
+	width: 100%;
+	font-size: 16px;
+	font-weight: bold;
+	letter-spacing: 1.4px;
+	text-transform: uppercase;
+}
+
+.dlg-body {
+	width: 100%;
+	margin: 12px 0px 18px 0px;
+	font-size: 16px;
+	color: #ffffffa3;
+}
+
+.dlg-btns {
+	width: 100%;
+	flow-children: right;
+}
+
+.dlg-btn {
+	width: 159px;
+	height: 48px;
+	border-radius: 3px;
+	border: 1px solid #ffffff17;
+	background-color: #ffffff0f;
+}
+
+.dlg-btn:hover {
+	border-color: #ffffff38;
+	background-color: #ffffff1c;
+}
+
+.dlg-btn-label {
+	horizontal-align: center;
+	vertical-align: center;
+	font-size: 16px;
+}
+
+/* The confirm is lit, red when it loses something. */
+.dlg-yes {
+	margin-left: 6px;
+	border-color: #24f09785;
+	background-color: #24f09721;
+}
+
+.dlg-yes:hover {
+	border-color: #24f097b3;
+	background-color: #24f09740;
+}
+
+.dlg-yes .dlg-btn-label {
+	color: #24f097;
+}
+
+.danger .dlg-yes {
+	border-color: #ff5a4f85;
+	background-color: #ff5a4f21;
+}
+
+.danger .dlg-yes:hover {
+	border-color: #ff5a4fb3;
+	background-color: #ff5a4f40;
+}
+
+.danger .dlg-yes .dlg-btn-label {
+	color: #ff5a4f;
+}
+
+/* The scope chip after the title: what the picks go to, with the teams' dots. "button" when a click changes it. */
+.scope-chip {
+	flow-children: right;
+	height: 24px;
+	margin: 0px 4px 0px 10px;
+	padding: 0px 10px 0px 8px;
+	vertical-align: center;
+	border-radius: 12px;
+	border: 1px solid #ffffff17;
+	background-color: #ffffff0f;
+}
+
+.scope-chip.hidden {
+	visibility: collapse;
+}
+
+.scope-chip.button {
+	border-color: #ffffff38;
+}
+
+.scope-chip.button:hover {
+	background-color: #ffffff1c;
+	border-color: #ffffff66;
+}
+
+.scope-dot {
+	visibility: collapse;
+	width: 8px;
+	height: 8px;
+	margin-right: 4px;
+	vertical-align: center;
+	border-radius: 50%;
+}
+
+.scope-dot-t {
+	background-color: #e3a73f;
+}
+
+.scope-dot-ct {
+	background-color: #6f9ce6;
+}
+
+.team-t .scope-dot-t,
+.team-ct .scope-dot-ct {
+	visibility: visible;
+}
+
+.scope-label {
+	vertical-align: center;
+	margin-left: 2px;
+	font-size: 12px;
+	font-weight: bold;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+/* A page without items: what the plugin says about it, in the item area. "loading" pulses the title. */
+.empty-state {
+	width: 100%;
+	height: 200px;
+	flow-children: down;
+	border: 1px dashed #ffffff26;
+	border-radius: 3px;
+}
+
+/* The grid's and the list's item areas have a height of their own. The list's scrolls: filled to the pixel it shows
+   its scroll bar with nothing to scroll. */
+#cg_tiles .empty-state {
+	height: 100%;
+}
+
+#cm_items .empty-state {
+	height: 99%;
+}
+
+.empty-state.hidden {
+	visibility: collapse;
+}
+
+.empty-title {
+	horizontal-align: center;
+	margin-top: 60px;
+	font-size: 18px;
+	font-weight: bold;
+	text-align: center;
+}
+
+.empty-text {
+	horizontal-align: center;
+	max-width: 360px;
+	margin-top: 6px;
+	font-size: 15px;
+	text-align: center;
+	color: #ffffffa3;
+}
+
+@keyframes 'empty-pulse' {
+	0% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0.35;
+	}
+
+	100% {
+		opacity: 1;
+	}
+}
+
+.empty-state.loading .empty-title {
+	animation-name: empty-pulse;
+	animation-duration: 1.2s;
+	animation-iteration-count: infinite;
+	animation-timing-function: ease-in-out;
 }

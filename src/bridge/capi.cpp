@@ -1,5 +1,5 @@
-// Flat C ABI over ICS2Menus004 for managed hosts (SwiftlyS2, CounterStrikeSharp).
-// See src/public/cs2menus_capi.h for the contract.
+// Flat C ABI over ICS2Menus005 for managed hosts (SwiftlyS2, CounterStrikeSharp).
+// See mm-utils' interfaces/cs2menus/cs2menus_capi.h for the contract.
 
 #define CS2MENUS_EXPORTS
 #include "interfaces/cs2menus/cs2menus_capi.h"
@@ -7,7 +7,7 @@
 
 #include <cstring>
 
-// Defined in cs2menus.cpp: the singleton ICS2Menus004 implementation.
+// Defined in cs2menus.cpp: the singleton ICS2Menus005 implementation.
 // Routing through it inherits the curtime stamping and off-thread queueing the interface wrapper already does.
 extern ICS2Menus *Cs2Menus_GetLocalAPI();
 
@@ -18,7 +18,7 @@ namespace
 		return Cs2Menus_GetLocalAPI();
 	}
 
-	// Copy a (possibly null) C string into a caller buffer.
+	// Copy a (possibly null) C string into a caller buffer, at once: the getters' pointers alias live menu storage.
 	// Returns bytes needed including the NUL terminator. Always NUL-terminates when buflen > 0.
 	int CopyOut(const char *src, char *buf, int buflen)
 	{
@@ -82,7 +82,6 @@ CS2M_API void CS2M_CALL cs2m_set_title(cs2m_handle menu, const char *title)
 
 CS2M_API int CS2M_CALL cs2m_get_title(cs2m_handle menu, char *buf, int buflen)
 {
-	// Copy immediately: the returned pointer aliases live menu storage.
 	return CopyOut(API()->GetTitle(menu), buf, buflen);
 }
 
@@ -168,7 +167,6 @@ CS2M_API void CS2M_CALL cs2m_set_menu_label(cs2m_handle menu, int label, const c
 
 CS2M_API int CS2M_CALL cs2m_get_menu_label(cs2m_handle menu, int label, char *buf, int buflen)
 {
-	// Copy immediately: the returned pointer aliases live menu storage.
 	return CopyOut(API()->GetMenuLabel(menu, static_cast<MenuLabel>(label)), buf, buflen);
 }
 
@@ -179,7 +177,6 @@ CS2M_API void CS2M_CALL cs2m_set_menu_style(cs2m_handle menu, int field, const c
 
 CS2M_API int CS2M_CALL cs2m_get_menu_style(cs2m_handle menu, int field, char *buf, int buflen)
 {
-	// Copy immediately: the returned pointer aliases live menu storage.
 	return CopyOut(API()->GetMenuStyle(menu, static_cast<MenuStyle>(field)), buf, buflen);
 }
 
@@ -222,7 +219,6 @@ CS2M_API void CS2M_CALL cs2m_set_item_text(cs2m_handle menu, int item, const cha
 
 CS2M_API int CS2M_CALL cs2m_get_item_text(cs2m_handle menu, int item, char *buf, int buflen)
 {
-	// Copy immediately: the returned pointer aliases live menu storage.
 	return CopyOut(API()->GetItemText(menu, item), buf, buflen);
 }
 
@@ -263,7 +259,6 @@ CS2M_API void CS2M_CALL cs2m_set_item_icon(cs2m_handle menu, int item, const cha
 
 CS2M_API int CS2M_CALL cs2m_get_item_icon(cs2m_handle menu, int item, char *buf, int buflen)
 {
-	// Copy immediately: the returned pointer aliases live menu storage.
 	return CopyOut(API()->GetItemIcon(menu, item), buf, buflen);
 }
 
@@ -302,6 +297,11 @@ CS2M_API int CS2M_CALL cs2m_has_menu(int slot)
 CS2M_API cs2m_handle CS2M_CALL cs2m_get_active_menu(int slot)
 {
 	return API()->GetActiveMenu(slot);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_slot_type(int slot, int type)
+{
+	return static_cast<int>(API()->GetSlotMenuType(slot, static_cast<MenuType>(type)));
 }
 
 CS2M_API int CS2M_CALL cs2m_get_active_type(int slot)
@@ -397,7 +397,6 @@ CS2M_API void CS2M_CALL cs2m_set_item_image(cs2m_handle menu, int item, const ch
 
 CS2M_API int CS2M_CALL cs2m_get_item_image(cs2m_handle menu, int item, char *buf, int buflen)
 {
-	// Copy immediately: the returned pointer aliases live menu storage.
 	return CopyOut(API()->GetItemImage(menu, item), buf, buflen);
 }
 
@@ -408,7 +407,6 @@ CS2M_API void CS2M_CALL cs2m_set_item_subtext(cs2m_handle menu, int item, const 
 
 CS2M_API int CS2M_CALL cs2m_get_item_subtext(cs2m_handle menu, int item, char *buf, int buflen)
 {
-	// Copy immediately: the returned pointer aliases live menu storage.
 	return CopyOut(API()->GetItemSubtext(menu, item), buf, buflen);
 }
 
@@ -431,7 +429,6 @@ CS2M_API void CS2M_CALL cs2m_set_menu_image(cs2m_handle menu, const char *image)
 
 CS2M_API int CS2M_CALL cs2m_get_menu_image(cs2m_handle menu, char *buf, int buflen)
 {
-	// Copy immediately: the returned pointer aliases live menu storage.
 	return CopyOut(API()->GetMenuImage(menu), buf, buflen);
 }
 
@@ -482,4 +479,283 @@ CS2M_API void CS2M_CALL cs2m_suspend(int slot)
 CS2M_API void CS2M_CALL cs2m_resume(int slot)
 {
 	API()->ResumeMenu(slot);
+}
+
+// --- Item presentation ---
+
+CS2M_API void CS2M_CALL cs2m_set_item_role(cs2m_handle menu, int item, int role)
+{
+	API()->SetItemRole(menu, item, static_cast<MenuItemRole>(role));
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_role(cs2m_handle menu, int item)
+{
+	return static_cast<int>(API()->GetItemRole(menu, item));
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_highlight(cs2m_handle menu, int item, int highlight)
+{
+	API()->SetItemHighlight(menu, item, highlight != 0);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_span(cs2m_handle menu, int item, int columns)
+{
+	API()->SetItemSpan(menu, item, columns);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_control(cs2m_handle menu, int item, int control)
+{
+	API()->SetItemControl(menu, item, control != 0);
+}
+
+// --- Tile badges ---
+
+CS2M_API void CS2M_CALL cs2m_set_item_rarity(cs2m_handle menu, int item, const char *rarity)
+{
+	API()->SetItemRarity(menu, item, rarity ? rarity : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_rarity(cs2m_handle menu, int item, char *buf, int buflen)
+{
+	return CopyOut(API()->GetItemRarity(menu, item), buf, buflen);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_tag(cs2m_handle menu, int item, const char *tag, const char *style)
+{
+	API()->SetItemTag(menu, item, tag ? tag : "", style ? style : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_tag(cs2m_handle menu, int item, char *buf, int buflen)
+{
+	return CopyOut(API()->GetItemTag(menu, item), buf, buflen);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_teams(cs2m_handle menu, int item, int teams)
+{
+	API()->SetItemTeams(menu, item, teams);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_teams(cs2m_handle menu, int item)
+{
+	return API()->GetItemTeams(menu, item);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_locked(cs2m_handle menu, int item, int locked)
+{
+	API()->SetItemLocked(menu, item, locked != 0);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_locked(cs2m_handle menu, int item)
+{
+	return API()->GetItemLocked(menu, item) ? 1 : 0;
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_corner(cs2m_handle menu, int item, int corner)
+{
+	API()->SetItemCorner(menu, item, static_cast<MenuCorner>(corner));
+}
+
+CS2M_API int CS2M_CALL cs2m_get_item_corner(cs2m_handle menu, int item)
+{
+	return static_cast<int>(API()->GetItemCorner(menu, item));
+}
+
+CS2M_API void CS2M_CALL cs2m_set_corner_callback(cs2m_handle menu, cs2m_corner_cb on_corner, void *user)
+{
+	MenuItemCornerFn fn;
+	if (on_corner)
+	{
+		fn = [on_corner, user](MenuHandle m, int slot, int item) { on_corner(m, slot, item, user); };
+	}
+	API()->SetMenuCornerCallback(menu, std::move(fn));
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_image_tint(cs2m_handle menu, int item, const char *tint)
+{
+	API()->SetItemImageTint(menu, item, tint ? tint : "");
+}
+
+// --- Info card ---
+
+CS2M_API void CS2M_CALL cs2m_set_menu_info(cs2m_handle menu, const char *title, const char *subtitle, const char *subtitle_color)
+{
+	API()->SetMenuInfo(menu, title ? title : "", subtitle ? subtitle : "", subtitle_color ? subtitle_color : "");
+}
+
+CS2M_API void CS2M_CALL cs2m_set_menu_info_meter(cs2m_handle menu, float value, float range_min, float range_max, const float *bands, int count,
+												 const char *label, const char *value_text)
+{
+	API()->SetMenuInfoMeter(menu, value, range_min, range_max, bands, bands ? count : 0, label ? label : "", value_text ? value_text : "");
+}
+
+CS2M_API int CS2M_CALL cs2m_add_menu_info_row(cs2m_handle menu, const char *label, const char *value)
+{
+	return API()->AddMenuInfoRow(menu, label ? label : "", value ? value : "");
+}
+
+CS2M_API void CS2M_CALL cs2m_clear_menu_info(cs2m_handle menu)
+{
+	API()->ClearMenuInfo(menu);
+}
+
+// --- The header ---
+
+CS2M_API void CS2M_CALL cs2m_set_menu_scope(cs2m_handle menu, const char *label, int teams)
+{
+	API()->SetMenuScope(menu, label ? label : "", teams);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_scope_callback(cs2m_handle menu, cs2m_scope_cb on_scope, void *user)
+{
+	MenuScopeFn fn;
+	if (on_scope)
+	{
+		fn = [on_scope, user](MenuHandle m, int slot) { on_scope(m, slot, user); };
+	}
+	API()->SetMenuScopeCallback(menu, std::move(fn));
+}
+
+CS2M_API void CS2M_CALL cs2m_set_menu_edited(cs2m_handle menu, int edited)
+{
+	API()->SetMenuEdited(menu, edited != 0);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_menu_edited(cs2m_handle menu)
+{
+	return API()->GetMenuEdited(menu) ? 1 : 0;
+}
+
+// --- Tabs and chips ---
+
+CS2M_API int CS2M_CALL cs2m_add_menu_tab(cs2m_handle menu, const char *label, int selected, int marked, int pinned)
+{
+	return API()->AddMenuTab(menu, label ? label : "", selected != 0, marked != 0, pinned != 0);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_tab_callback(cs2m_handle menu, cs2m_tab_cb on_tab, void *user)
+{
+	MenuTabFn fn;
+	if (on_tab)
+	{
+		fn = [on_tab, user](MenuHandle m, int slot, int tab) { on_tab(m, slot, tab, user); };
+	}
+	API()->SetMenuTabCallback(menu, std::move(fn));
+}
+
+CS2M_API int CS2M_CALL cs2m_add_menu_chip(cs2m_handle menu, const char *label, const char *const *options, int count, int selected)
+{
+	return API()->AddMenuChip(menu, label ? label : "", options, options ? count : 0, selected);
+}
+
+CS2M_API int CS2M_CALL cs2m_add_menu_action(cs2m_handle menu, const char *label, const char *const *options, int count, int accent)
+{
+	return API()->AddMenuAction(menu, label ? label : "", options, options ? count : 0, accent != 0);
+}
+
+CS2M_API int CS2M_CALL cs2m_add_menu_note(cs2m_handle menu, const char *label, const char *value)
+{
+	return API()->AddMenuNote(menu, label ? label : "", value ? value : "");
+}
+
+CS2M_API void CS2M_CALL cs2m_set_chip_option_tone(cs2m_handle menu, int chip, int option, int tone)
+{
+	API()->SetMenuChipOptionTone(menu, chip, option, static_cast<MenuTone>(tone));
+}
+
+CS2M_API void CS2M_CALL cs2m_set_chip_callback(cs2m_handle menu, cs2m_chip_cb on_chip, void *user)
+{
+	MenuChipFn fn;
+	if (on_chip)
+	{
+		fn = [on_chip, user](MenuHandle m, int slot, int chip, int selected) { on_chip(m, slot, chip, selected, user); };
+	}
+	API()->SetMenuChipCallback(menu, std::move(fn));
+}
+
+// --- The item area ---
+
+CS2M_API void CS2M_CALL cs2m_set_menu_secondary_item(cs2m_handle menu, int item)
+{
+	API()->SetMenuSecondaryItem(menu, item);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_menu_empty(cs2m_handle menu, const char *title, const char *text, int loading)
+{
+	API()->SetMenuEmpty(menu, title ? title : "", text ? text : "", loading != 0);
+}
+
+CS2M_API int CS2M_CALL cs2m_begin_input(int slot, const char *prompt, const char *hint, cs2m_input_cancel_cb on_cancel, void *user)
+{
+	MenuInputCancelFn fn;
+	if (on_cancel)
+	{
+		fn = [on_cancel, user](MenuHandle m, int s) { on_cancel(m, s, user); };
+	}
+	return API()->BeginMenuInput(slot, prompt ? prompt : "", hint ? hint : "", std::move(fn)) ? 1 : 0;
+}
+
+CS2M_API void CS2M_CALL cs2m_end_input(int slot)
+{
+	API()->EndMenuInput(slot);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_input_clear_callback(cs2m_handle menu, cs2m_input_clear_cb on_clear, void *user)
+{
+	MenuInputClearFn fn;
+	if (on_clear)
+	{
+		fn = [on_clear, user](MenuHandle m, int slot) { on_clear(m, slot, user); };
+	}
+	API()->SetMenuInputClearCallback(menu, std::move(fn));
+}
+
+// --- The display ---
+
+CS2M_API int CS2M_CALL cs2m_show_message(int slot, const char *text, int tone, float seconds)
+{
+	return API()->ShowMenuMessage(slot, text ? text : "", static_cast<MenuTone>(tone), seconds) ? 1 : 0;
+}
+
+CS2M_API int CS2M_CALL cs2m_show_confirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, int danger,
+										 cs2m_confirm_cb on_done, void *user)
+{
+	MenuConfirmFn fn;
+	if (on_done)
+	{
+		fn = [on_done, user](int s, bool confirmed) { on_done(s, confirmed ? 1 : 0, user); };
+	}
+	return API()->ShowMenuConfirm(slot, title ? title : "", body ? body : "", cancel ? cancel : "", confirm ? confirm : "", danger != 0,
+								  std::move(fn))
+			   ? 1
+			   : 0;
+}
+
+CS2M_API int CS2M_CALL cs2m_add_hint(int slot, const char *keys, const char *text)
+{
+	return API()->AddMenuHint(slot, keys ? keys : "", text ? text : "") ? 1 : 0;
+}
+
+CS2M_API void CS2M_CALL cs2m_clear_hint(int slot)
+{
+	API()->ClearMenuHint(slot);
+}
+
+CS2M_API void CS2M_CALL cs2m_hide_hint(int slot)
+{
+	API()->HideMenuHint(slot);
+}
+
+CS2M_API int CS2M_CALL cs2m_add_help(int slot, const char *keys, const char *text)
+{
+	return API()->AddMenuHelp(slot, keys ? keys : "", text ? text : "") ? 1 : 0;
+}
+
+CS2M_API void CS2M_CALL cs2m_clear_help(int slot)
+{
+	API()->ClearMenuHelp(slot);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_mirrored(int slot, int mirrored)
+{
+	API()->SetMenuMirrored(slot, mirrored != 0);
 }

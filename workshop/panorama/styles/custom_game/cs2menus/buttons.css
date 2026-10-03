@@ -1,0 +1,239 @@
+/* showcase.xml and studio.xml: what a button is past the plain one, by the classes the server puts on a cx_item<N> or
+   cs_item<N>. Loaded after showcase.css or studio.css, which have the button itself.
+   Widths are for the three columns of 138 with 3px margins that both layouts have, 432 a row. */
+
+/* --- heading: a label over the buttons after it, on a row of its own. Disabled, so no hover and no sound --- */
+
+.sbtn.heading {
+	width: 426px;
+	height: 16px;
+	margin: 9px 3px 1px 3px;
+	padding: 0px 2px;
+	border: 0px solid #00000000;
+	background-color: #00000000;
+	opacity: 1;
+}
+
+.sbtn.heading:hover {
+	background-color: #00000000;
+}
+
+.sbtn.heading .sbtn-name {
+	horizontal-align: left;
+	font-size: 11px;
+	font-weight: bold;
+	letter-spacing: 1.2px;
+	text-transform: uppercase;
+	color: #ffffffa3;
+}
+
+.sbtn.heading .sbtn-sub {
+	visibility: collapse;
+}
+
+/* --- segments: a Choice drawn in place, a button per option joined into one row. seg-n<N> is how many there are,
+   the picked one has "highlight". 4 and 5 don't divide 426, the last takes the rest --- */
+
+.sbtn.seg {
+	margin: 3px 0px;
+	border-radius: 0px;
+	border-left: 0px solid #00000000;
+}
+
+.sbtn.seg-first {
+	margin-left: 3px;
+	border-left: 1px solid #ffffff14;
+	border-radius: 3px 0px 0px 3px;
+}
+
+.sbtn.seg-last {
+	margin-right: 3px;
+	border-radius: 0px 3px 3px 0px;
+}
+
+.sbtn.seg-n2 {
+	width: 213px;
+}
+
+.sbtn.seg-n3 {
+	width: 142px;
+}
+
+.sbtn.seg-n4 {
+	width: 106px;
+}
+
+.sbtn.seg-n4.seg-last {
+	width: 108px;
+}
+
+.sbtn.seg-n5 {
+	width: 85px;
+}
+
+.sbtn.seg-n5.seg-last {
+	width: 86px;
+}
+
+.sbtn.seg .sbtn-name {
+	font-size: 15px;
+	color: #ffffffa3;
+}
+
+/* The button before a row of segments, on a line it doesn't fill: the columns left over as its margin, so the
+   segments start a line of their own. */
+.sbtn.fill1 {
+	margin-right: 147px;
+}
+
+.sbtn.fill2 {
+	margin-right: 291px;
+}
+
+.sbtn.seg .sbtn-sub {
+	visibility: collapse;
+}
+
+.sbtn.seg.highlight {
+	border: 1px solid #24f09785;
+}
+
+.sbtn.seg.highlight .sbtn-name {
+	color: #24f097;
+}
+
+/* --- a tag at the name's end, like a pattern's "98%", in its style's color --- */
+
+.sbtn-tag {
+	visibility: collapse;
+	horizontal-align: right;
+	vertical-align: center;
+	margin-right: 4px;
+	font-size: 14px;
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+.sbtn.tagged .sbtn-tag {
+	visibility: visible;
+}
+
+.sbtn.tagged .sbtn-name {
+	max-width: 68%;
+	horizontal-align: left;
+	margin-left: 6px;
+	font-weight: bold;
+}
+
+.sbtn-tag.tag-orange {
+	color: #e8804a;
+}
+
+.sbtn-tag.tag-gold {
+	color: #ffd24a;
+}
+
+/* --- two lines from the left: a tagged button with a subtext, or one two or three columns wide --- */
+
+.sbtn.two .sbtn-name {
+	horizontal-align: left;
+	vertical-align: top;
+	margin: 7px 0px 0px 6px;
+	font-weight: bold;
+}
+
+.sbtn.two .sbtn-tag {
+	vertical-align: top;
+	margin-top: 8px;
+}
+
+.sbtn.two .sbtn-sub {
+	padding-left: 6px;
+	margin-bottom: 4px;
+	text-align: left;
+}
+
+/* --- a rarity as a stripe down the left edge, the game's colors as on the tiles --- */
+
+.sbtn.stripe-consumer {
+	border-left: 3px solid #b0c3d9;
+}
+
+.sbtn.stripe-industrial {
+	border-left: 3px solid #5e98d9;
+}
+
+.sbtn.stripe-milspec,
+.sbtn.stripe-highgrade {
+	border-left: 3px solid #4b69ff;
+}
+
+.sbtn.stripe-restricted,
+.sbtn.stripe-remarkable {
+	border-left: 3px solid #8847ff;
+}
+
+.sbtn.stripe-classified,
+.sbtn.stripe-exotic {
+	border-left: 3px solid #d32ce6;
+}
+
+.sbtn.stripe-covert,
+.sbtn.stripe-extraordinary {
+	border-left: 3px solid #eb4b4b;
+}
+
+.sbtn.stripe-contraband {
+	border-left: 3px solid #e4ae39;
+}
+
+/* --- an item with an image: its tile in the plain labels' place, 128 tall, and the rest of its row as tall.
+   Only visibility flips, restyling a shown label left it blank until the HUD was laid out again --- */
+
+.sbtn-tile {
+	visibility: collapse;
+	width: 100%;
+	height: 100%;
+	flow-children: down;
+}
+
+.sbtn.pic,
+.sbtn.tall {
+	height: 128px;
+}
+
+.sbtn.pic .sbtn-tile {
+	visibility: visible;
+}
+
+.sbtn.pic .sbtn-name,
+.sbtn.pic .sbtn-sub,
+.sbtn.pic .sbtn-tag {
+	visibility: collapse;
+}
+
+.sbtn-img {
+	width: 100%;
+	height: fill-parent-flow(1);
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: 50% 50%;
+}
+
+.sbtn-iname {
+	max-width: 100%;
+	horizontal-align: center;
+	margin-top: 2px;
+	font-size: 13px;
+	white-space: nowrap;
+	text-overflow: shrink;
+}
+
+.sbtn-isub {
+	width: 100%;
+	font-size: 11px;
+	text-align: center;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	opacity: 0.7;
+}

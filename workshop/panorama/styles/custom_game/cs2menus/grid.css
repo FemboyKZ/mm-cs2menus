@@ -13,21 +13,27 @@
 	visibility: collapse;
 }
 
-#cg_root.shift {
-	x: -170px;
+#cg_root.shift,
+#cg_root.preview {
+	x: -188px;
 }
 
-#cg_root.preview {
-	x: -227px;
+/* The tiles' area has a height of its own, so an input field or a chip row adds to the window's instead of
+   squeezing the tiles. At least the list's 624, less the tab row's 44 without one. */
+#cg_root .menu-box {
+	height: fit-children;
+	min-height: 624px;
+}
+
+#cg_root.notabs .menu-box {
+	min-height: 580px;
 }
 
 #cg_root.collapsed .menu-box {
-	height: fit-children;
-	vertical-align: top;
-	y: 190px;
+	min-height: 0px;
 }
 
-#cg_root.collapsed .tabs {
+#cg_root.collapsed .tabrow {
 	visibility: collapse;
 }
 
@@ -35,24 +41,30 @@
 	visibility: collapse;
 }
 
-#cg_root.collapsed .pager {
-	visibility: collapse;
-}
-
 /* --- tabs, one per menu section --- */
 
-.tabs {
+/* The row: the tabs, and at its end the page arrows, in the columns the chips. The root gets "notabs" when the row
+   would be empty. The tabs' panel stays when only its tabs are gone, it keeps the row's end at the right. */
+.tabrow {
 	flow-children: right;
 	width: 100%;
 	margin-bottom: 10px;
 	border-bottom: 1px solid #ffffff1a;
 }
 
-.tabs.hidden {
+.notabs .tabrow {
 	visibility: collapse;
 }
 
+/* On the row's line, whatever the row's end makes of its height. */
+.tabs {
+	flow-children: right;
+	width: fill-parent-flow(1);
+	vertical-align: bottom;
+}
+
 .tab {
+	flow-children: right;
 	padding: 6px 14px;
 	margin-right: 2px;
 	border-radius: 3px 3px 0px 0px;
@@ -74,22 +86,254 @@
 }
 
 .tab-label {
+	vertical-align: center;
 	font-size: 15px;
 	white-space: nowrap;
 	text-transform: uppercase;
 }
 
-/* --- tiles, 6 x 4: 138 + 2 x 3 margin = 144px each, 864 of the box's 868 --- */
+/* On the tab the plugin marks. */
+.tab-dot {
+	visibility: collapse;
+	width: 6px;
+	height: 6px;
+	margin-right: 7px;
+	vertical-align: center;
+	border-radius: 50%;
+	background-color: #24f097;
+}
+
+.tab.marked .tab-dot {
+	visibility: visible;
+}
+
+/* The tab the ones without room hide behind, "+3": it opens the list popup with every tab. */
+.tab-caret {
+	visibility: collapse;
+	width: 10px;
+	height: 10px;
+	margin-left: 6px;
+	vertical-align: center;
+	background-image: url("s2r://panorama/images/custom_game/cs2menus/badge_caret.vsvg");
+	background-size: 10px 10px;
+	background-repeat: no-repeat;
+	wash-color: #ffffffa3;
+}
+
+.tab.more .tab-caret {
+	visibility: visible;
+}
+
+/* --- the input field above the chips. Chat is the keyboard, the field shows what's asked and what was typed.
+   Without an Input item it only shows while typing, laid over the first row so nothing moves --- */
+
+.input-bar {
+	flow-children: right;
+	width: 100%;
+	height: 38px;
+	margin-bottom: 10px;
+	padding: 0px 12px;
+	border-radius: 3px;
+	border: 1px solid #ffffff1f;
+	background-color: #00000059;
+	transition-property: border-color, background-color;
+	transition-duration: 0.05s;
+}
+
+.input-bar:hover {
+	border-color: #ffffff40;
+}
+
+.input-bar.hidden,
+#cg_root.collapsed .input-bar,
+#cx_root.collapsed .input-bar,
+#cs_root.collapsed .input-bar,
+#cl_root.collapsed .input-bar {
+	visibility: collapse;
+}
+
+.input-bar.overlay {
+	margin-bottom: -38px;
+	z-index: 2;
+	background-color: #0d0f12;
+}
+
+.input-bar.typing {
+	border-color: #24f09785;
+	background-color: #0d0f12;
+}
+
+.input-icon {
+	width: 14px;
+	height: 14px;
+	margin-right: 10px;
+	vertical-align: center;
+	background-image: url("s2r://panorama/images/custom_game/cs2menus/badge_search.vsvg");
+	background-size: 14px 14px;
+	background-repeat: no-repeat;
+	wash-color: #ffffff5c;
+}
+
+.input-bar.typing .input-icon {
+	wash-color: #24f097;
+}
+
+.input-text {
+	width: fill-parent-flow(1);
+	vertical-align: center;
+	font-size: 15px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: #ffffff;
+}
+
+.input-bar.placeholder .input-text {
+	color: #ffffff5c;
+}
+
+.input-hint {
+	vertical-align: center;
+	margin-left: 8px;
+	font-size: 13px;
+	white-space: nowrap;
+	color: #ffffffa3;
+}
+
+.input-x {
+	visibility: collapse;
+	width: 22px;
+	height: 22px;
+	margin-left: 8px;
+	vertical-align: center;
+	border-radius: 3px;
+	background-color: #ffffff14;
+	background-image: url("s2r://panorama/images/control_icons/x_close_png.vtex");
+	background-size: 14px 14px;
+	background-repeat: no-repeat;
+	background-position: 50% 50%;
+	wash-color: #ffffffa3;
+}
+
+.input-x:hover {
+	background-color: #ffffff29;
+	wash-color: #ffffff;
+}
+
+.input-bar.clearable .input-x {
+	visibility: visible;
+}
+
+/* --- filter chips under the tabs: a caret on the ones with options, the selected option beside the label --- */
+
+.chips {
+	flow-children: right;
+	width: 100%;
+	margin-bottom: 8px;
+}
+
+.chips.hidden,
+.chip.hidden,
+#cg_root.collapsed .chips,
+#cx_root.collapsed .chips,
+#cs_root.collapsed .chips {
+	visibility: collapse;
+}
+
+.chip {
+	flow-children: right;
+	height: 26px;
+	padding: 0px 10px 0px 12px;
+	margin-right: 6px;
+	border-radius: 13px;
+	border: 1px solid #ffffff1f;
+	background-color: #ffffff0a;
+	transition-property: background-color, border-color;
+	transition-duration: 0.05s;
+}
+
+.chip:hover {
+	background-color: #ffffff1a;
+	border-color: #ffffff40;
+}
+
+.chip.on {
+	border-color: #24f09780;
+	background-color: #24f09726;
+}
+
+.chip-label {
+	vertical-align: center;
+	font-size: 13px;
+	font-weight: bold;
+	white-space: nowrap;
+	color: #ffffffa3;
+}
+
+.chip.on .chip-label {
+	color: #ffffff;
+}
+
+.chip-value {
+	visibility: collapse;
+	vertical-align: center;
+	margin-left: 6px;
+	font-size: 13px;
+	font-weight: bold;
+	white-space: nowrap;
+	color: #24f097;
+}
+
+.chip.valued .chip-value {
+	visibility: visible;
+}
+
+.chip-caret {
+	visibility: collapse;
+	width: 10px;
+	height: 10px;
+	margin-left: 6px;
+	vertical-align: center;
+	background-image: url("s2r://panorama/images/custom_game/cs2menus/badge_caret.vsvg");
+	background-size: 10px 10px;
+	background-repeat: no-repeat;
+	wash-color: #ffffffa3;
+}
+
+.chip.menu .chip-caret {
+	visibility: visible;
+}
+
+/* A note only says something: dashed, no hover, its value in the text's color. */
+.chip.note {
+	border: 1px dashed #ffffff38;
+	background-color: #00000000;
+}
+
+.chip.note:hover {
+	border-color: #ffffff38;
+	background-color: #00000000;
+}
+
+.chip.note .chip-value {
+	max-width: 180px;
+	text-overflow: ellipsis;
+	color: #ffffff;
+}
+
+/* --- tiles, 6 x 4: 138 + 2 x 3 margin = 144px each, 864 of the box's 870, as a row filled to the pixel
+   wraps early. The 6 to spare are 3 either side. 4 rows of 126 in the area's 506, which under a header and a tab
+   row makes the window 624 --- */
 
 .tiles {
 	flow-children: right-wrap;
 	width: 100%;
-	height: fill-parent-flow(1);
+	height: 506px;
+	padding-left: 3px;
 }
 
 .tile {
 	width: 138px;
-	height: 116px;
+	height: 120px;
 	margin: 3px;
 	padding: 6px;
 	flow-children: down;
@@ -114,7 +358,8 @@
 	border-color: #ffffff14;
 }
 
-.tile.type-toggle.on {
+.tile.type-toggle.on,
+.tile.highlight {
 	border-color: #24f09780;
 	background-color: #24f09726;
 }
@@ -151,11 +396,52 @@
 	opacity: 0.7;
 }
 
-/* 4 x 3: 210 + 6 = 216px each, 864 wide. 3 rows of 170 */
+/* A tile without an image: its text in the middle, as the image's panel and the hover label, both empty, share what
+   height is left. Its tag is a line under the name ("aux"), and a short name, like a number, is large ("big"). */
+.tile-aux {
+	visibility: collapse;
+	width: 100%;
+	margin-top: 2px;
+	font-size: 16px;
+	font-weight: bold;
+	text-align: center;
+	white-space: nowrap;
+}
+
+.tile.aux .tile-aux {
+	visibility: visible;
+}
+
+.tile.noimg .tile-full {
+	visibility: visible;
+	height: fill-parent-flow(1);
+	margin-top: 0px;
+}
+
+.tile.noimg .tile-name {
+	margin-top: 0px;
+}
+
+.tile.big .tile-name {
+	max-height: 30px;
+	font-size: 24px;
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+.tile-aux.tag-orange {
+	color: #e8804a;
+}
+
+.tile-aux.tag-gold {
+	color: #ffd24a;
+}
+
+/* 4 x 3: 210 + 6 = 216px each, 864 wide. 3 rows of 168 */
 
 #cg_tiles.size-m .tile {
 	width: 210px;
-	height: 164px;
+	height: 162px;
 }
 
 #cg_tiles.size-m .tile-name {
@@ -163,11 +449,11 @@
 	font-size: 16px;
 }
 
-/* 3 x 2: 282 + 6 = 288px each, 864 wide. 2 rows of 246 */
+/* 3 x 2: 282 + 6 = 288px each, 864 wide. 2 rows of 252 */
 
 #cg_tiles.size-l .tile {
 	width: 282px;
-	height: 240px;
+	height: 246px;
 	padding: 10px;
 }
 
@@ -181,7 +467,7 @@
 	font-size: 14px;
 }
 
-/* 3 x 1: cards the window's full height, 282 + 6 = 288px each. The image takes what the labels leave */
+/* 3 x 1: cards the area's full height, 282 + 6 = 288px each. The image takes what the labels leave */
 
 #cg_tiles.size-xl .tile {
 	width: 282px;
@@ -202,10 +488,22 @@
 
 /* --- page arrows within a section --- */
 
+/* Clear of the row's line, also where the arrows are all the row has. */
 .pager {
 	flow-children: right;
-	horizontal-align: center;
-	margin-top: 8px;
+	vertical-align: bottom;
+	margin: 0px 0px 6px 8px;
+}
+
+.pager .popup-btn {
+	padding: 2px 9px;
+	margin: 0px 2px;
+}
+
+.pager .popup-page {
+	width: 46px;
+	font-size: 14px;
+	color: #ffffffa3;
 }
 
 .pager.hidden {

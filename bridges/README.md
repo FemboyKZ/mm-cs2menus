@@ -1,12 +1,12 @@
 # CS2Menus bridges
 
-CS2Menus exposes a C++ interface (`ICS2Menus004`) that only sibling Metamod plugins built with the same toolchain can consume.
+CS2Menus exposes a C++ interface (`ICS2Menus005`) that only sibling Metamod plugins built with the same toolchain can consume.
 
 Managed frameworks (SwiftlyS2, CounterStrikeSharp) run a .NET runtime inside the game process and can only call a flat C ABI.
 
 The bridge is two layers:
 
-1. **C ABI** - `src/public/cs2menus_capi.h` + `src/bridge/capi.cpp`, compiled into the cs2menus plugin.
+1. **C ABI** - mm-utils' `interfaces/cs2menus/cs2menus_capi.h` + `src/bridge/capi.cpp`, compiled into the cs2menus plugin.
    Flattens the vtable to `extern "C"` exports, swaps `std::function` for C function pointers + an opaque user token,
    copies strings into caller buffers. Framework-agnostic:
    the **same exports** serve any in-process .NET host.
@@ -94,7 +94,8 @@ Threading is not a concern: cs2menus is fully thread-safe and callbacks always a
 ## Panorama layouts, history and pausing
 
 These need a cs2menus with the matching exports.
-Check `SupportsValueItemsAndGrids` and `SupportsShowcaseAndHistory` first, the calls throw `NotSupportedException` on an older one.
+Check `SupportsValueItemsAndGrids`, `SupportsShowcaseAndHistory` and `SupportsBadgesTabsAndDialogs` first,
+the setters throw `NotSupportedException` on an older one.
 
 ```csharp
 var editor = menus.CreateMenu(MenuType.Panorama, "AK-47 | Redline", (menu, slot, item) => { /* ... */ });
@@ -113,6 +114,40 @@ Cs2MenusBridge.StepBack(slot, 1);       // back in the history, not from a close
 Cs2MenusBridge.Suspend(slot);           // hide it while the player types in chat
 Cs2MenusBridge.Resume(slot);
 ```
+
+## Badges, tabs, chips and dialogs
+
+Panorama only, behind `SupportsBadgesTabsAndDialogs`. Chat and HTML menus list the same items as plain rows.
+
+```csharp
+var picker = menus.CreateMenu(MenuType.Panorama, "Skins", (menu, slot, item) => { /* ... */ });
+picker.SetLayout(MenuLayout.Grid).SetScope("T side", MenuTeams.T);
+picker.AddTab("All", selected: true);
+picker.AddTab("Favourites");
+picker.TabClicked += (menu, slot, tab) => { /* rebuild for the tab, then menu.Replace(slot) */ };
+picker.AddChip("Rarity", new[] { "Covert", "Classified" });   // a filter, its pick arrives in ChipClicked
+picker.AddAction("Reset");                                    // a button in the same row
+picker.ChipClicked += (menu, slot, chip, selected) => { /* ... */ };
+picker.SetEmpty("Nothing here", "No skin matches the filter.");
+
+int tile = picker.ItemCount;
+picker.AddItem("Redline", "282");
+picker.SetItemImage(tile, "weapon_ak47_cu_ak47_cobra");
+picker.SetItemRarity(tile, "classified");
+picker.SetItemTag(tile, "ST", "orange");
+picker.SetItemCorner(tile, MenuCorner.Star);
+picker.CornerClicked += (menu, slot, item) => menu.SetItemCorner(item, MenuCorner.StarOn);
+
+// On the slot's display, each returns false when no panorama window of yours is up:
+Cs2MenusBridge.ShowMessage(slot, "Saved.", MenuTone.Ok);
+menus.ShowConfirm(slot, "Reset?", "Every pick is cleared.", "Cancel", "Reset", danger: true,
+    onDone: (player, confirmed) => { /* ... */ });
+menus.BeginInput(slot, "Search", "type in chat", onCancel: player => { /* ... */ });   // then Cs2MenusBridge.EndInput(slot)
+```
+
+`MenuLayout.Studio` leaves the screen to a 3D preview your plugin puts there, with `SetItemControl` items in a panel beside it,
+`AddHint` and `AddHelp` for its key list and `SetMirrored` for its side. `MenuLayout.Columns` shows up to 4 sections side by side.
+`SetInfo`, `SetInfoMeter` and `AddInfoRow` fill the info card of the showcase and the studio.
 
 ## CounterStrikeSharp usage
 

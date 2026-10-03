@@ -6,6 +6,8 @@
 #include "mmu/log.h"
 #include "mmu/sigscan.h"
 
+#include <algorithm>
+#include <cctype>
 #include <checktransmitinfo.h>
 #include <entity2/entitykeyvalues.h>
 #include <entity2/entitysystem.h>
@@ -35,6 +37,8 @@ namespace
 		{"panorama/layout/custom_game/cs2menus/menu.vxml_c", "cm_", "list", panorama_hud::kItemSlots, panorama_hud::kNavSlots},
 		{"panorama/layout/custom_game/cs2menus/grid.vxml_c", "cg_", "grid", panorama_hud::kGridSlots, panorama_hud::kGridTabs},
 		{"panorama/layout/custom_game/cs2menus/showcase.vxml_c", "cx_", "showcase", panorama_hud::kShowcaseSlots, panorama_hud::kShowcaseTabs},
+		{"panorama/layout/custom_game/cs2menus/studio.vxml_c", "cs_", "studio", panorama_hud::kShowcaseSlots, panorama_hud::kShowcaseTabs},
+		{"panorama/layout/custom_game/cs2menus/columns.vxml_c", "cl_", "columns", panorama_hud::kColumnSlots, panorama_hud::kGridTabs},
 	};
 	// Lets a reloaded plugin find the windows it left behind.
 	constexpr const char *kTargetPrefix = "cs2menus_";
@@ -110,6 +114,8 @@ namespace
 
 	// The game refuses to intern past this many names per list, and warns.
 	constexpr int kMaxInterned = 1024;
+	// More than one draw of the fullest layout adds: its fixed classes and a page of pictures.
+	constexpr int kClassHeadroom = 160;
 
 	template<typename T>
 	T &FieldAt(void *base, int32_t offset)
@@ -428,10 +434,10 @@ namespace
 			window.vars[key] = value;
 		}
 
-		// Replaces the panel's previous class from the same set. Empty removes it.
-		void Swap(const std::string &panel, const std::string &cls)
+		// Replaces the panel's previous class from the same set, a panel's sets named apart. Empty removes it.
+		void Swap(const std::string &panel, const std::string &cls, const char *set = "")
 		{
-			std::string &current = window.swaps[panel];
+			std::string &current = window.swaps[*set ? panel + '#' + set : panel];
 			if (current == cls)
 			{
 				return;
@@ -453,6 +459,29 @@ namespace
 			return window.classes.count(panel + ' ' + cls) != 0;
 		}
 
+		bool VarTouched(const std::string &panel) const
+		{
+			return window.vars.count(panel + ' ' + panel) != 0;
+		}
+
+		// A class only some panels ever get: written once it's there, and from then on.
+		void Flag(const std::string &panel, const char *cls, bool present)
+		{
+			if (present || Touched(panel, cls))
+			{
+				Class(panel, cls, present);
+			}
+		}
+
+		// The same for a label most panels leave empty.
+		void Text(const std::string &panel, const std::string &value)
+		{
+			if (!value.empty() || VarTouched(panel))
+			{
+				Var(panel, value);
+			}
+		}
+
 		void Control(const std::string &panel, const panorama_hud::View::Row &row)
 		{
 			Class(panel, "disabled", row.disabled);
@@ -464,6 +493,54 @@ namespace
 			}
 		}
 	};
+
+	// A tile's name is one label, in the color its text starts with.
+	std::string RowName(const panorama_hud::View::Row &row)
+	{
+		std::string name;
+		for (const panorama_hud::View::Segment &segment : row.segments)
+		{
+			name += segment.text;
+		}
+		return name;
+	}
+
+	// As MenuTone, "" for Info.
+	const char *ToneClass(int tone)
+	{
+		static const char *const kTones[] = {"", "tone-ok", "tone-warn", "tone-bad"};
+		return tone > 0 && tone < 4 ? kTones[tone] : "";
+	}
+
+	// Key caps and what they do: a part of the hint pill, a row of the key list. The ids take the row, and the key in it.
+	void WriteKeys(Writer &w, const panorama_hud::View::HintPart &part, int row, int maxKeys, const char *keyId, const char *textId)
+	{
+		for (int k = 0; k < maxKeys; k++)
+		{
+			const bool key = k < static_cast<int>(part.keys.size());
+			const std::string label = w.Id(keyId, row, k);
+			if (key)
+			{
+				w.Var(label, part.keys[k]);
+			}
+			w.Class(label, "hidden", !key);
+		}
+		w.Var(w.Id(textId, row), part.text);
+	}
+
+	// What a button and a studio control share: a heading, a segment of a Choice, a readout, the accent and the span.
+	template<typename T>
+	void WriteButtonKind(Writer &w, const std::string &panel, const T &button)
+	{
+		w.Flag(panel, "heading", button.heading);
+		w.Flag(panel, "seg", button.segCount > 0);
+		w.Flag(panel, "seg-first", button.segCount > 0 && button.segIndex == 0);
+		w.Flag(panel, "seg-last", button.segCount > 0 && button.segIndex == button.segCount - 1);
+		w.Swap(panel, button.segCount > 0 ? "seg-n" + std::to_string(button.segCount) : std::string(), "segments");
+		w.Class(panel, "readout", button.readout);
+		w.Class(panel, "highlight", button.highlight);
+		w.Swap(panel, button.span >= 3 ? "span3" : button.span == 2 ? "span2" : "", "span");
+	}
 
 	void WriteListRows(Writer &w, const panorama_hud::View &view)
 	{
@@ -497,44 +574,256 @@ namespace
 		}
 	}
 
-	// Grid tiles, or the showcase's buttons, which have no image of their own.
-	void WriteTiles(Writer &w, const panorama_hud::View &view, int slots, bool images)
+	// Classes on the tile's button, its badge panels have no ids. Nothing is written for a tile that never had a badge.
+	// `tag` is the label the tile's tag goes in.
+	void WriteBadges(Writer &w, const std::string &panel, const std::string &tag, const panorama_hud::View::Row &row)
 	{
-		if (images)
+		static const char *const kCorners[] = {"", "corner-star", "corner-star-on", "corner-star-undo", "corner-copy"};
+		w.Swap(panel, row.rarity.empty() ? std::string() : "rar-" + row.rarity, "rarity");
+		w.Flag(panel, "team-t", (row.teams & 1) != 0);
+		w.Flag(panel, "team-ct", (row.teams & 2) != 0);
+		w.Flag(panel, "locked", row.locked);
+		w.Swap(panel, kCorners[static_cast<int>(row.corner)], "corner");
+		w.Flag(panel, "tagged", !row.tag.empty());
+		if (!row.tag.empty() || w.VarTouched(tag))
 		{
-			w.Swap(w.Id("tiles"), view.tiles == panorama_hud::TileSize::Cards    ? "size-xl"
-								  : view.tiles == panorama_hud::TileSize::Large  ? "size-l"
-								  : view.tiles == panorama_hud::TileSize::Medium ? "size-m"
-																				 : "");
+			w.Var(tag, row.tag);
+			w.Swap(tag, row.tagStyle.empty() ? std::string() : "tag-" + row.tagStyle);
 		}
-		for (int i = 0; i < slots; i++)
+	}
+
+	void WriteMessage(Writer &w, const panorama_hud::View &view)
+	{
+		const std::string panel = w.Id("msg");
+		w.Class(panel, "hidden", view.message.empty());
+		if (!view.message.empty())
 		{
-			const bool used = i < static_cast<int>(view.rows.size());
-			const std::string panel = w.Id("item%d", i);
+			w.Var(w.Id("msg_text"), view.message);
+			w.Swap(panel, ToneClass(view.messageTone));
+		}
+	}
+
+	// A whole percentage as its width class.
+	std::string Percent(int value)
+	{
+		return "w-" + std::to_string((std::max)(0, (std::min)(100, value)));
+	}
+
+	void WriteInfo(Writer &w, const panorama_hud::View &view)
+	{
+		const panorama_hud::View::Info &info = view.info;
+		const std::string panel = w.Id("info");
+		w.Class(panel, "hidden", !info.shown);
+		if (!info.shown)
+		{
+			return;
+		}
+		w.Var(w.Id("info_title"), info.title);
+		const std::string sub = w.Id("info_sub");
+		w.Var(sub, info.subtitle);
+		const std::string &color = info.subtitleColor;
+		w.Swap(sub, color.empty() ? std::string() : color[0] == '#' ? std::string(ColorClass(color)) : "rar-" + color);
+		const std::string meter = w.Id("info_meter");
+		w.Class(meter, "hidden", !info.meter);
+		if (info.meter)
+		{
+			w.Class(meter, "plain", info.bands.empty());
+			for (int i = 0; i < panorama_hud::kInfoBands; i++)
+			{
+				const int width = info.bands.empty() ? (i == 0 ? 100 : 0) : i < static_cast<int>(info.bands.size()) ? info.bands[i] : 0;
+				w.Swap(w.Id("info_band%d", i), Percent(width));
+			}
+			w.Swap(w.Id("info_dim_l"), Percent(info.rangeLo));
+			w.Swap(w.Id("info_gap"), Percent(info.rangeHi - info.rangeLo));
+			w.Swap(w.Id("info_dim_r"), Percent(100 - info.rangeHi));
+			w.Swap(w.Id("info_mark_sp"), Percent(info.mark));
+			w.Var(w.Id("info_mlabel"), info.meterLabel);
+			w.Var(w.Id("info_mvalue"), info.meterValue);
+		}
+		// Two short rows to a line. The second one's value ends at the card's edge, "end" says which that is.
+		bool second = false;
+		for (int i = 0; i < panorama_hud::kInfoRows; i++)
+		{
+			const bool used = i < static_cast<int>(info.rows.size());
+			const std::string row = w.Id("info_row%d", i);
 			if (used)
 			{
-				const panorama_hud::View::Row &row = view.rows[i];
-				// A tile's name is one label, in the color its text starts with.
-				std::string name;
-				for (const panorama_hud::View::Segment &segment : row.segments)
-				{
-					name += segment.text;
-				}
-				const char *color = ColorClass(row.segments.empty() ? std::string() : row.segments[0].color);
-				const std::string nameLabel = w.Id("name%d", i);
-				w.Var(nameLabel, name);
-				w.Swap(nameLabel, color);
-				const std::string value = w.Id("val%d", i);
-				w.Var(value, row.value);
-				w.Swap(value, color);
-				if (images)
-				{
-					w.Swap(w.Id("img%d", i), row.image.empty() ? std::string() : "img-" + row.image);
-				}
-				w.Control(panel, row);
+				const bool wide = info.rows[i].wide;
+				w.Var(w.Id("info_rl%d", i), info.rows[i].label);
+				w.Var(w.Id("info_rv%d", i), info.rows[i].value);
+				w.Flag(row, "wide", wide);
+				w.Flag(row, "end", !wide && second);
+				second = !wide && !second;
+			}
+			w.Class(row, "hidden", !used);
+		}
+	}
+
+	void WriteDialog(Writer &w, const panorama_hud::View &view)
+	{
+		const std::string panel = w.Id("dlg");
+		w.Class(panel, "hidden", !view.dialog.open);
+		if (!view.dialog.open)
+		{
+			return;
+		}
+		w.Class(panel, "danger", view.dialog.danger);
+		w.Var(w.Id("dlg_title"), view.dialog.title);
+		w.Var(w.Id("dlg_body"), view.dialog.body);
+		w.Var(w.Id("dlg_no_lbl"), view.dialog.cancel);
+		w.Var(w.Id("dlg_yes_lbl"), view.dialog.confirm);
+	}
+
+	void WriteInput(Writer &w, const panorama_hud::View &view)
+	{
+		const panorama_hud::View::Input &input = view.input;
+		const std::string panel = w.Id("input");
+		w.Class(panel, "hidden", !input.shown);
+		if (!input.shown)
+		{
+			return;
+		}
+		w.Class(panel, "typing", input.typing);
+		w.Class(panel, "overlay", input.overlay);
+		w.Class(panel, "placeholder", input.placeholder);
+		w.Class(panel, "clearable", input.clear && !input.typing);
+		w.Var(w.Id("input_text"), input.text);
+		w.Var(w.Id("input_hint"), input.hint);
+	}
+
+	void WriteColumns(Writer &w, const panorama_hud::View &view)
+	{
+		for (int c = 0; c < panorama_hud::kColumns; c++)
+		{
+			const bool used = c < static_cast<int>(view.columns.size());
+			if (used)
+			{
+				w.Var(w.Id("colh%d", c), view.columns[c].label);
+				w.Var(w.Id("colc%d", c), view.columns[c].count > 0 ? std::to_string(view.columns[c].count) : std::string());
+			}
+			w.Class(w.Id("col%d", c), "hidden", !used);
+		}
+		const panorama_hud::View::Row *slots[panorama_hud::kColumnSlots] = {};
+		for (const panorama_hud::View::Row &row : view.rows)
+		{
+			if (row.slot >= 0 && row.slot < panorama_hud::kColumnSlots)
+			{
+				slots[row.slot] = &row;
+			}
+		}
+		for (int i = 0; i < panorama_hud::kColumnSlots; i++)
+		{
+			const std::string panel = w.Id("item%d", i);
+			if (const panorama_hud::View::Row *row = slots[i])
+			{
+				w.Var(w.Id("name%d", i), RowName(*row));
+				w.Var(w.Id("val%d", i), row->value);
+				const std::string image = w.Id("img%d", i);
+				w.Swap(image, row->image.empty() ? std::string() : "img-" + row->image);
+				w.Swap(image, row->imageTint.empty() ? std::string() : "tint-" + row->imageTint, "tint");
+				WriteBadges(w, panel, w.Id("tag%d", i), *row);
+				w.Class(panel, "half", row->half);
+				w.Class(panel, "heading", row->heading);
+				w.Class(panel, "disabled", row->disabled);
+			}
+			w.Class(panel, "hidden", !slots[i]);
+		}
+	}
+
+	void WriteChips(Writer &w, const panorama_hud::View &view)
+	{
+		w.Class(w.Id("chips"), "hidden", view.chips.empty());
+		for (int i = 0; i < panorama_hud::kChipSlots; i++)
+		{
+			const bool used = i < static_cast<int>(view.chips.size());
+			const std::string panel = w.Id("chip%d", i);
+			if (used)
+			{
+				const panorama_hud::View::Chip &chip = view.chips[i];
+				w.Var(w.Id("chip_lbl%d", i), chip.label);
+				w.Var(w.Id("chip_val%d", i), chip.value);
+				w.Class(panel, "on", chip.on);
+				w.Class(panel, "menu", chip.menu);
+				w.Class(panel, "valued", !chip.value.empty());
+				w.Flag(panel, "note", chip.note);
 			}
 			w.Class(panel, "hidden", !used);
 		}
+	}
+
+	// How many characters a name shows as: code points, without the zero width and soft hyphen ones.
+	size_t ShownLength(const std::string &text)
+	{
+		size_t n = 0;
+		for (size_t i = 0; i < text.size(); i++)
+		{
+			const unsigned char c = static_cast<unsigned char>(text[i]);
+			if ((c & 0xC0) == 0x80)
+			{
+				continue;
+			}
+			const bool zeroWidth = c == 0xE2 && i + 2 < text.size() && static_cast<unsigned char>(text[i + 1]) == 0x80
+								   && (static_cast<unsigned char>(text[i + 2]) & 0xFC) == 0x8C;
+			const bool softHyphen = c == 0xC2 && i + 1 < text.size() && static_cast<unsigned char>(text[i + 1]) == 0xAD;
+			n += zeroWidth || softHyphen ? 0 : 1;
+		}
+		return n;
+	}
+
+	// The whole name on hover, for a tile whose two lines cut it at `fits` characters. Emptied otherwise: a tile without
+	// an image shows the label, for the room it takes.
+	void WriteLongName(Writer &w, const std::string &panel, int i, const std::string &name, bool tile, size_t fits)
+	{
+		const bool cut = tile && ShownLength(name) > fits;
+		w.Flag(panel, "long", cut);
+		w.Text(w.Id("full%d", i), cut ? name : std::string());
+	}
+
+	// Buttons flow three columns to a line and wrap. A heading takes a whole line, and so do a Choice's segments together,
+	// which the layout can't force after a line that isn't full: the button before them takes what's left of it as a margin.
+	struct ButtonFlow
+	{
+		std::vector<int> line; // the line each button lands on
+		std::vector<int> fill; // the columns each leaves empty after it, 0 for most
+	};
+
+	template<typename T>
+	ButtonFlow FlowOf(const std::vector<T> &buttons, int count)
+	{
+		ButtonFlow flow;
+		flow.line.assign(count, 0);
+		flow.fill.assign(count, 0);
+		for (int i = 0, at = 0, used = 0; i < count; i++)
+		{
+			const T &button = buttons[i];
+			const bool segment = button.segCount > 0;
+			const int width = button.heading || segment ? 3 : (std::max)(1, (std::min)(button.span, 3));
+			// A Choice's further segments stay on the line its first began.
+			if (!(segment && button.segIndex > 0) && used > 0 && used + width > 3)
+			{
+				flow.fill[i - 1] = segment ? 3 - used : 0;
+				at++;
+				used = 0;
+			}
+			flow.line[i] = at;
+			used = segment ? 3 : used + width;
+			if (used >= 3 && (!segment || button.segIndex == button.segCount - 1))
+			{
+				at++;
+				used = 0;
+			}
+		}
+		return flow;
+	}
+
+	const char *FillClass(int columns)
+	{
+		return columns >= 2 ? "fill2" : columns == 1 ? "fill1" : "";
+	}
+
+	void WritePager(Writer &w, const panorama_hud::View &view)
+	{
+		// Hidden in the layout, so only written once there's been a page to show.
 		const std::string pager = w.Id("pager");
 		if (!view.page.empty() || w.Touched(pager, "hidden"))
 		{
@@ -548,12 +837,140 @@ namespace
 		}
 	}
 
+	// The grid's tiles. One without an image has its text in the middle, its tag as a line under the name, and a short
+	// name, like a number, large.
+	void WriteTiles(Writer &w, const panorama_hud::View &view)
+	{
+		w.Swap(w.Id("tiles"), view.tiles == panorama_hud::TileSize::Cards    ? "size-xl"
+							  : view.tiles == panorama_hud::TileSize::Large  ? "size-l"
+							  : view.tiles == panorama_hud::TileSize::Medium ? "size-m"
+																			 : "");
+		// What a tile's two lines hold, in characters.
+		const size_t fits = view.tiles == panorama_hud::TileSize::Small ? 28 : view.tiles == panorama_hud::TileSize::Medium ? 44 : 60;
+		for (int i = 0; i < panorama_hud::kGridSlots; i++)
+		{
+			const bool used = i < static_cast<int>(view.rows.size());
+			const std::string panel = w.Id("item%d", i);
+			if (used)
+			{
+				const panorama_hud::View::Row &row = view.rows[i];
+				const std::string name = RowName(row);
+				const char *color = ColorClass(row.segments.empty() ? std::string() : row.segments[0].color);
+				const std::string nameLabel = w.Id("name%d", i);
+				w.Var(nameLabel, name);
+				w.Swap(nameLabel, color);
+				const std::string value = w.Id("val%d", i);
+				w.Var(value, row.value);
+				w.Swap(value, color);
+				const bool plain = row.image.empty();
+				w.Flag(panel, "noimg", plain);
+				w.Flag(panel, "big", plain && panorama_hud::TextCells(name) <= 6);
+				w.Flag(panel, "aux", plain && !row.tag.empty());
+				WriteLongName(w, panel, i, name, !plain, fits);
+				const std::string image = w.Id("img%d", i);
+				w.Swap(image, plain ? std::string() : "img-" + row.image);
+				w.Swap(image, row.imageTint.empty() ? std::string() : "tint-" + row.imageTint, "tint");
+				// The tag's place is the line under the name there, in its style's color.
+				const std::string aux = w.Id("aux%d", i);
+				w.Text(aux, plain ? row.tag : std::string());
+				if (plain)
+				{
+					w.Swap(aux, row.tagStyle.empty() ? std::string() : "tag-" + row.tagStyle);
+					panorama_hud::View::Row untagged = row;
+					untagged.tag.clear();
+					WriteBadges(w, panel, w.Id("tag%d", i), untagged);
+				}
+				else
+				{
+					WriteBadges(w, panel, w.Id("tag%d", i), row);
+				}
+				w.Flag(panel, "highlight", row.highlight);
+				w.Control(panel, row);
+			}
+			w.Class(panel, "hidden", !used);
+		}
+		WritePager(w, view);
+	}
+
+	// The showcase's and the studio's buttons, three columns of them. An item with an image is a tile with every badge and
+	// the rest of its row is as tall, one without takes the tag at its name's end and the rarity down its edge.
+	void WriteButtons(Writer &w, const panorama_hud::View &view)
+	{
+		const int count = (std::min)(static_cast<int>(view.rows.size()), panorama_hud::kShowcaseSlots);
+		auto pictured = [&view](int i)
+		{
+			const panorama_hud::View::Row &row = view.rows[i];
+			return !row.image.empty() && !row.heading && row.segCount == 0;
+		};
+		// A line with a tile on it is as tall as the tile all along.
+		const ButtonFlow flow = FlowOf(view.rows, count);
+		std::vector<bool> tallLine(count, false);
+		for (int i = 0; i < count; i++)
+		{
+			tallLine[flow.line[i]] = tallLine[flow.line[i]] || pictured(i);
+		}
+		for (int i = 0; i < panorama_hud::kShowcaseSlots; i++)
+		{
+			const bool used = i < count;
+			const std::string panel = w.Id("item%d", i);
+			if (used)
+			{
+				const panorama_hud::View::Row &row = view.rows[i];
+				const std::string name = RowName(row);
+				const char *color = ColorClass(row.segments.empty() ? std::string() : row.segments[0].color);
+				// A heading and a segment take their color from the styles.
+				const std::string nameLabel = w.Id("name%d", i);
+				w.Var(nameLabel, name);
+				w.Swap(nameLabel, row.heading || row.segCount > 0 ? "" : color);
+				const std::string value = w.Id("val%d", i);
+				w.Var(value, row.value);
+				w.Swap(value, color);
+				const bool pic = pictured(i);
+				w.Flag(panel, "pic", pic);
+				w.Flag(panel, "tall", !pic && !row.heading && row.segCount == 0 && tallLine[flow.line[i]]);
+				w.Swap(panel, FillClass(flow.fill[i]), "fill");
+				WriteLongName(w, panel, i, name, pic, 36);
+				if (pic)
+				{
+					// The tile's own labels, see buttons.css.
+					const std::string imageName = w.Id("iname%d", i);
+					w.Var(imageName, name);
+					w.Swap(imageName, color);
+					const std::string imageValue = w.Id("ival%d", i);
+					w.Var(imageValue, row.value);
+					w.Swap(imageValue, color);
+				}
+				const std::string image = w.Id("img%d", i);
+				w.Swap(image, pic ? "img-" + row.image : std::string());
+				w.Swap(image, pic && !row.imageTint.empty() ? "tint-" + row.imageTint : std::string(), "tint");
+				if (pic)
+				{
+					WriteBadges(w, panel, w.Id("tag%d", i), row);
+				}
+				else
+				{
+					panorama_hud::View::Row text;
+					text.tag = row.tag;
+					text.tagStyle = row.tagStyle;
+					WriteBadges(w, panel, w.Id("btag%d", i), text);
+				}
+				w.Swap(panel, !pic && !row.rarity.empty() ? "stripe-" + row.rarity : std::string(), "stripe");
+				w.Flag(panel, "two",
+					   !pic && !row.heading && row.segCount == 0 && !row.readout && !row.value.empty() && (row.span > 1 || !row.tag.empty()));
+				WriteButtonKind(w, panel, row);
+				w.Control(panel, row);
+			}
+			w.Class(panel, "hidden", !used);
+		}
+		WritePager(w, view);
+	}
+
 	void WritePopups(Writer &w, const panorama_hud::View &view)
 	{
 		const bool popup = view.step.open || view.list.open;
 		w.Class(w.Id("root"), "shift", popup);
-		// The showcase draws the image inside, the others beside the box.
-		if (view.layout != Layout::Showcase)
+		// The showcase draws the image inside, the studio has none, the others beside the box.
+		if (view.layout != Layout::Showcase && view.layout != Layout::Studio)
 		{
 			const bool preview = !popup && !view.image.empty();
 			w.Class(w.Id("root"), "preview", preview);
@@ -599,8 +1016,17 @@ namespace
 				const std::string panel = w.Id("li%d", i);
 				if (used)
 				{
-					w.Var(w.Id("li_lbl%d", i), view.list.rows[i].label);
-					w.Class(panel, "selected", view.list.rows[i].selected);
+					const panorama_hud::View::ListRow &row = view.list.rows[i];
+					w.Var(w.Id("li_lbl%d", i), row.label);
+					w.Class(panel, "selected", row.selected);
+					w.Flag(panel, "marked", row.marked);
+					w.Swap(panel, ToneClass(row.tone), "tone");
+					// The list layout's rows have no second line.
+					if (view.layout != Layout::List)
+					{
+						w.Text(w.Id("li_sub%d", i), row.sub);
+						w.Flag(panel, "two", !row.sub.empty());
+					}
 				}
 				w.Class(panel, "hidden", !used);
 			}
@@ -700,6 +1126,28 @@ std::string panorama_hud::StripColors(const std::string &text)
 	return out;
 }
 
+int panorama_hud::TextCells(const std::string &text)
+{
+	int cells = 0;
+	for (size_t i = 0; i < text.size();)
+	{
+		const unsigned char lead = static_cast<unsigned char>(text[i]);
+		const int length = lead < 0x80 ? 1 : lead < 0xE0 ? 2 : lead < 0xF0 ? 3 : 4;
+		unsigned int point = lead < 0x80 ? lead : lead & (0xFF >> (length + 1));
+		for (int k = 1; k < length && i + k < text.size(); k++)
+		{
+			point = (point << 6) | (static_cast<unsigned char>(text[i + k]) & 0x3F);
+		}
+		i += length;
+		const bool none = point == 0xAD || (point >= 0x200B && point <= 0x200F) || point == 0x2060 || point == 0xFEFF;
+		const bool wide = (point >= 0x1100 && point <= 0x115F) || (point >= 0x2E80 && point <= 0xA4CF) || (point >= 0xAC00 && point <= 0xD7A3)
+						  || (point >= 0xF900 && point <= 0xFAFF) || (point >= 0xFE30 && point <= 0xFE4F) || (point >= 0xFF00 && point <= 0xFF60)
+						  || (point >= 0xFFE0 && point <= 0xFFE6) || point >= 0x1F300;
+		cells += none ? 0 : wide ? 2 : 1;
+	}
+	return cells;
+}
+
 std::vector<panorama_hud::View::Segment> panorama_hud::SplitColors(const std::string &text, const std::string &baseColor)
 {
 	std::vector<View::Segment> segments;
@@ -779,8 +1227,21 @@ bool panorama_hud::Show(int slot, const View &view)
 	{
 		return false;
 	}
+	// Every class ever written stays interned, an image tile's picture is one each. Near the limit the window starts over
+	// on a new entity, its classes written again from nothing.
+	if (schema::Collection<CUtlString>(&FieldAt<uint8_t>(entity, s_hud.classNames), s_hud.classNamesFn).Count() > kMaxInterned - kClassHeadroom)
+	{
+		s_removeEntity(entity);
+		s_windows[slot][layout] = Window {};
+		entity = EnsureLayout(slot, layout);
+		if (!entity)
+		{
+			return false;
+		}
+	}
 	Window &window = s_windows[slot][layout];
-	if (!window.capture && !SetCapture(slot, window, entity, true))
+	const bool cursor = !view.turning;
+	if (window.capture != cursor && !SetCapture(slot, window, entity, cursor))
 	{
 		MMU_LOG_WARN("custom_hud_layout has no player state for slot %d.\n", slot);
 		return false;
@@ -788,6 +1249,27 @@ bool panorama_hud::Show(int slot, const View &view)
 
 	Writer w {window, entity, kLayouts[layout].prefix};
 	const std::string root = w.Id("root");
+	WriteMessage(w, view);
+	WriteDialog(w, view);
+	const std::string empty = w.Id("empty");
+	w.Class(empty, "hidden", view.emptyTitle.empty());
+	if (!view.emptyTitle.empty())
+	{
+		w.Var(w.Id("empty_title"), view.emptyTitle);
+		w.Var(w.Id("empty_text"), view.emptyText);
+		w.Class(empty, "loading", view.emptyLoading);
+	}
+	w.Class(root, "edited", !view.edited.empty());
+	w.Var(w.Id("edited"), view.edited);
+	const std::string scope = w.Id("scope");
+	w.Class(scope, "hidden", view.scope.empty());
+	if (!view.scope.empty())
+	{
+		w.Var(w.Id("scope_lbl"), view.scope);
+		w.Class(scope, "team-t", (view.scopeTeams & 1) != 0);
+		w.Class(scope, "team-ct", (view.scopeTeams & 2) != 0);
+		w.Class(scope, "button", view.scopeButton);
+	}
 	w.Class(root, "snd", view.sounds);
 	w.Swap(root, view.fontClass);
 	const std::string title = w.Id("title");
@@ -800,6 +1282,11 @@ bool panorama_hud::Show(int slot, const View &view)
 	w.Class(w.Id("refresh"), "disabled", !view.refreshButton);
 	w.Class(root, "collapsed", view.collapsed);
 	w.Class(w.Id("pages"), "hidden", view.nav.empty());
+	// The tab row goes when nothing is in it: no tabs, no page arrows, and in the columns no chips.
+	if (view.layout != Layout::List)
+	{
+		w.Class(root, "notabs", view.nav.empty() && view.page.empty() && (view.layout != Layout::Columns || view.chips.empty()));
+	}
 
 	const std::string navClass = ColorClass(view.navColor);
 	for (int i = 0; i < kLayouts[layout].nav; i++)
@@ -812,18 +1299,111 @@ bool panorama_hud::Show(int slot, const View &view)
 			w.Var(label, view.nav[i].label);
 			w.Swap(label, navClass);
 			w.Class(panel, "selected", view.nav[i].selected);
+			w.Flag(panel, "marked", view.nav[i].marked);
+			w.Flag(panel, "more", i == view.navMore);
 		}
 		w.Class(panel, "hidden", !used);
 	}
 
-	if (view.layout == Layout::Grid)
+	if (view.layout == Layout::Columns)
 	{
-		WriteTiles(w, view, kGridSlots, true);
+		WriteColumns(w, view);
+		WriteChips(w, view);
+		WriteInput(w, view);
 	}
-	else if (view.layout == Layout::Showcase)
+	else if (view.layout == Layout::Grid)
 	{
-		WriteTiles(w, view, kShowcaseSlots, false);
-		w.Swap(w.Id("shot"), view.image.empty() ? std::string() : "img-" + view.image);
+		WriteTiles(w, view);
+		WriteChips(w, view);
+		WriteInput(w, view);
+	}
+	else if (view.layout == Layout::Showcase || view.layout == Layout::Studio)
+	{
+		WriteButtons(w, view);
+		WriteChips(w, view);
+		WriteInput(w, view);
+		WriteInfo(w, view);
+		if (view.layout == Layout::Showcase)
+		{
+			w.Swap(w.Id("shot"), view.image.empty() ? std::string() : "img-" + view.image);
+		}
+		else
+		{
+			w.Class(root, "turning", view.turning);
+			w.Flag(root, "nohint", view.hint.empty());
+			for (int i = 0; i < kHintParts; i++)
+			{
+				const bool used = i < static_cast<int>(view.hint.size());
+				const std::string panel = w.Id("hint%d", i);
+				if (used)
+				{
+					WriteKeys(w, view.hint[i], i, kHintKeys, "hkey%d_%d", "htxt%d");
+					w.Class(panel, "caption", view.hint[i].keys.empty());
+				}
+				w.Class(panel, "hidden", !used);
+			}
+			w.Flag(root, "mirror", view.mirrored);
+			// The key list: its button while there are rows, the card in the info card's place while it's open.
+			const int helpRows = (std::min)(static_cast<int>(view.help.size()), kHelpRows);
+			const bool helpOpen = view.helpOpen && helpRows > 0;
+			w.Flag(root, "help", helpOpen);
+			const std::string helpButton = w.Id("help");
+			if (helpRows > 0 || w.Touched(helpButton, "hidden"))
+			{
+				w.Class(helpButton, "hidden", helpRows == 0);
+			}
+			const std::string helpCard = w.Id("helpcard");
+			if (helpOpen || w.Touched(helpCard, "hidden"))
+			{
+				w.Class(helpCard, "hidden", !helpOpen);
+			}
+			if (helpOpen)
+			{
+				w.Var(w.Id("help_title"), view.helpTitle);
+				for (int i = 0; i < kHelpRows; i++)
+				{
+					const bool used = i < helpRows;
+					const std::string panel = w.Id("hrow%d", i);
+					if (used)
+					{
+						WriteKeys(w, view.help[i], i, kHelpKeys, "hk%d_%d", "ht%d");
+					}
+					w.Class(panel, "hidden", !used);
+				}
+			}
+			w.Class(w.Id("controls"), "hidden", view.controls.empty());
+			const int controlCount = (std::min)(static_cast<int>(view.controls.size()), kStudioControls);
+			const ButtonFlow controlFlow = FlowOf(view.controls, controlCount);
+			for (int i = 0; i < kStudioControls; i++)
+			{
+				const bool used = i < controlCount;
+				const std::string panel = w.Id("ctl%d", i);
+				if (used)
+				{
+					const View::ControlButton &control = view.controls[i];
+					w.Swap(panel, FillClass(controlFlow.fill[i]), "fill");
+					w.Var(w.Id("ctl_lbl%d", i), control.label);
+					w.Var(w.Id("ctl_sub%d", i), control.sub);
+					w.Class(panel, "disabled", control.disabled);
+					WriteButtonKind(w, panel, control);
+				}
+				w.Class(panel, "hidden", !used);
+			}
+			// The row holds the key list's button too, so a lone tab shows beside it.
+			const bool tabs = view.controlTabs.size() > 1 || (helpRows > 0 && !view.controls.empty());
+			w.Class(w.Id("ctabs"), "hidden", !tabs);
+			for (int i = 0; i < kStudioControlTabs; i++)
+			{
+				const bool used = tabs && i < static_cast<int>(view.controlTabs.size());
+				const std::string panel = w.Id("ctab%d", i);
+				if (used)
+				{
+					w.Var(w.Id("ctab_lbl%d", i), view.controlTabs[i].label);
+					w.Class(panel, "selected", view.controlTabs[i].selected);
+				}
+				w.Class(panel, "hidden", !used);
+			}
+		}
 		const std::string action = w.Id("action");
 		w.Class(action, "hidden", view.action.empty());
 		if (!view.action.empty())
@@ -832,6 +1412,16 @@ bool panorama_hud::Show(int slot, const View &view)
 			w.Var(label, view.action);
 			w.Swap(label, ColorClass(view.actionColor));
 			w.Class(action, "disabled", view.actionDisabled);
+		}
+		const std::string action2 = w.Id("action2");
+		if (!view.action2.empty() || w.Touched(action2, "hidden"))
+		{
+			w.Class(action2, "hidden", view.action2.empty());
+		}
+		if (!view.action2.empty())
+		{
+			w.Var(w.Id("action2_lbl"), view.action2);
+			w.Class(action2, "disabled", view.action2Disabled);
 		}
 	}
 	else
@@ -963,65 +1553,64 @@ panorama_hud::Click panorama_hud::ParseClick(int slot, uint32_t layoutHandle, co
 		return Click::None;
 	}
 	const char *id = buttonId + strlen(def->prefix);
-	if (strcmp(id, "close") == 0)
+
+	struct Named
 	{
-		return Click::Close;
+		const char *id;
+		Click click;
+	};
+
+	// "dlg" is the dimmed screen around the dialog's box, the box itself takes clicks without an answer.
+	static constexpr Named kNamed[] = {
+		{"close", Click::Close},
+		{"back", Click::Back},
+		{"forward", Click::Forward},
+		{"refresh", Click::Refresh},
+		{"collapse", Click::Collapse},
+		{"action", Click::Action},
+		{"action2", Click::Action2},
+		{"stage", Click::Stage},
+		{"help", Click::Help},
+		{"step_close", Click::PopupClose},
+		{"list_close", Click::PopupClose},
+		{"list_prev", Click::ListPrev},
+		{"list_next", Click::ListNext},
+		{"prev", Click::PagePrev},
+		{"next", Click::PageNext},
+		{"input", Click::Input},
+		{"input_x", Click::InputClear},
+		{"scope", Click::Scope},
+		{"dlg_yes", Click::DialogYes},
+		{"dlg_no", Click::DialogNo},
+		{"dlg", Click::DialogNo},
+	};
+	for (const Named &named : kNamed)
+	{
+		if (strcmp(id, named.id) == 0)
+		{
+			return named.click;
+		}
 	}
-	if (strcmp(id, "back") == 0)
+
+	struct Slotted
 	{
-		return Click::Back;
-	}
-	if (strcmp(id, "forward") == 0)
+		const char *prefix;
+		int count;
+		Click click;
+	};
+
+	const Slotted slotted[] = {
+		{"step_b", kStepButtons, Click::Step},    {"li", kListSlots, Click::ListRow},  {"ctab", kStudioControlTabs, Click::ControlTab},
+		{"ctl", kStudioControls, Click::Control}, {"nav", def->nav, Click::Nav},       {"item", def->items, Click::Item},
+		{"dec", def->items, Click::ItemDec},      {"inc", def->items, Click::ItemInc}, {"corner", def->items, Click::Corner},
+		{"chip", kChipSlots, Click::Chip},
+	};
+	for (const Slotted &s : slotted)
 	{
-		return Click::Forward;
-	}
-	if (strcmp(id, "refresh") == 0)
-	{
-		return Click::Refresh;
-	}
-	if (strcmp(id, "collapse") == 0)
-	{
-		return Click::Collapse;
-	}
-	if (strcmp(id, "action") == 0)
-	{
-		return Click::Action;
-	}
-	if (strcmp(id, "step_close") == 0 || strcmp(id, "list_close") == 0)
-	{
-		return Click::PopupClose;
-	}
-	if (strcmp(id, "list_prev") == 0)
-	{
-		return Click::ListPrev;
-	}
-	if (strcmp(id, "list_next") == 0)
-	{
-		return Click::ListNext;
-	}
-	if (strcmp(id, "prev") == 0)
-	{
-		return Click::PagePrev;
-	}
-	if (strcmp(id, "next") == 0)
-	{
-		return Click::PageNext;
-	}
-	if (ParseSlotId(id, "step_b", kStepButtons, index))
-	{
-		return Click::Step;
-	}
-	if (ParseSlotId(id, "li", kListSlots, index))
-	{
-		return Click::ListRow;
-	}
-	if (ParseSlotId(id, "nav", def->nav, index))
-	{
-		return Click::Nav;
-	}
-	if (ParseSlotId(id, "item", def->items, index))
-	{
-		return Click::Item;
+		if (ParseSlotId(id, s.prefix, s.count, index))
+		{
+			return s.click;
+		}
 	}
 	return Click::None;
 }

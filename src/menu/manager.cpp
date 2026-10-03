@@ -1,12 +1,14 @@
-#include "menu_manager.h"
+#include "manager.h"
 #include "src/lang/translations.h"
 #include "src/menu/key_table.h"
 #include "src/render/center_html.h"
 #include "src/utils/html_style.h"
-#include "src/utils/print_utils.h"
+#include "src/utils/print.h"
 
+#include <cmath>
 #include <algorithm>
 #include <cctype>
+#include <climits>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -137,6 +139,22 @@ static constexpr int kMaxCallbackDepth = 16;
 
 namespace
 {
+	// PlayerMenu::editItem while the list popup holds every tab, and the "+N" tab among PlayerMenu::panoramaNav.
+	constexpr int kEditTabs = -100;
+	constexpr int kNavMore = -2;
+
+	// What a tab row holds, in pixels as the layouts' styles lay it out. The server can't measure text, so a tab's width
+	// is guessed from its characters, on the wide side: one that would have fit going behind "+N" beats one cut off.
+	constexpr int kTabCell = 10;     // a 15px uppercase character
+	constexpr int kTabPadding = 30;  // a tab's padding and margin
+	constexpr int kTabDot = 13;      // a marked tab's dot
+	constexpr int kTabMore = 76;     // "+N" with its caret
+	constexpr int kTabPager = 130;   // the page arrows at the row's end
+	constexpr int kChipCell = 8;     // a 13px bold character
+	constexpr int kChipPadding = 32; // a chip's padding, border and margin
+	constexpr int kChipCaret = 16;
+	constexpr int kTabRow = 860; // the 908 wide box's inner width
+
 	struct DepthGuard
 	{
 		int &depth;
@@ -406,7 +424,6 @@ void MenuManager::SetMenuLabel(MenuHandle menu, MenuLabel label, const char *tex
 	RefreshMenu(menu);
 }
 
-// Returned pointer aliases internal storage: valid only until the next mutating call, don't cache it.
 const char *MenuManager::GetMenuLabel(MenuHandle menu, MenuLabel label) const
 {
 	ScopedLock lock(m_mutex);
@@ -556,7 +573,6 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 	RefreshMenu(menu);
 }
 
-// Returned pointer aliases internal storage: valid only until the next mutating call, don't cache it.
 const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 {
 	ScopedLock lock(m_mutex);
@@ -699,7 +715,6 @@ void MenuManager::SetItemRaw(MenuHandle menu, int item, bool raw)
 	}
 }
 
-// Returned pointer aliases internal storage: valid only until the next mutating call, don't cache it.
 const char *MenuManager::GetItemIcon(MenuHandle menu, int item) const
 {
 	ScopedLock lock(m_mutex);
@@ -768,7 +783,6 @@ int MenuManager::GetStartItem(MenuHandle menu) const
 	return def ? def->startItem : 0;
 }
 
-// Returned pointer aliases internal storage: valid only until the next mutating call, don't cache it.
 const char *MenuManager::GetTitle(MenuHandle menu) const
 {
 	ScopedLock lock(m_mutex);
@@ -1012,16 +1026,76 @@ int MenuManager::GetMenuPinnedItem(MenuHandle menu) const
 
 int MenuManager::PinnedItem(const MenuDef &def, MenuType type) const
 {
-	const bool showcase = type == MenuType::Panorama && PanoramaLayout(def) == panorama_hud::Layout::Showcase;
+	const panorama_hud::Layout layout = type == MenuType::Panorama ? PanoramaLayout(def) : panorama_hud::Layout::List;
+	const bool showcase = layout == panorama_hud::Layout::Showcase || layout == panorama_hud::Layout::Studio;
 	return showcase && def.pinned >= 0 && def.pinned < static_cast<int>(def.items.size()) ? def.pinned : -1;
+}
+
+void MenuManager::SetMenuSecondaryItem(MenuHandle menu, int item)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		Repage(menu, *def, [&] { def->secondary = item; });
+	}
+}
+
+int MenuManager::SecondaryItem(const MenuDef &def, MenuType type) const
+{
+	const bool valid = def.secondary >= 0 && def.secondary < static_cast<int>(def.items.size()) && def.secondary != def.pinned;
+	return valid && PinnedItem(def, type) >= 0 ? def.secondary : -1;
+}
+
+bool MenuManager::StudioImages(const MenuDef &def, int section)
+{
+	return std::any_of(def.items.begin(), def.items.end(),
+					   [section](const MenuItem &item) { return !item.control && item.section == section && !item.image.empty(); });
+}
+
+std::vector<int> MenuManager::StudioControls(const MenuDef &def, const std::string &tab, std::vector<std::string> &tabs)
+{
+	auto sectionOf = [&def](const MenuItem &item)
+	{ return item.section >= 0 && item.section < static_cast<int>(def.sections.size()) ? def.sections[item.section] : std::string(); };
+	tabs.clear();
+	for (const MenuItem &item : def.items)
+	{
+		if (item.control && std::find(tabs.begin(), tabs.end(), sectionOf(item)) == tabs.end())
+		{
+			tabs.push_back(sectionOf(item));
+		}
+	}
+	const std::string shown = tabs.empty() || std::find(tabs.begin(), tabs.end(), tab) != tabs.end() ? tab : tabs.front();
+	std::vector<int> items;
+	for (int i = 0; i < static_cast<int>(def.items.size()); i++)
+	{
+		if (def.items[i].control && sectionOf(def.items[i]) == shown)
+		{
+			items.push_back(i);
+		}
+	}
+	return items;
+}
+
+bool MenuManager::OffPage(const MenuDef &def, MenuType type, int item) const
+{
+	if (item == PinnedItem(def, type) || item == SecondaryItem(def, type))
+	{
+		return true;
+	}
+	if (type != MenuType::Panorama)
+	{
+		return false;
+	}
+	const panorama_hud::Layout layout = PanoramaLayout(def);
+	return (def.items[item].control && layout == panorama_hud::Layout::Studio)
+		   || (def.items[item].role == MenuItemRole::Input && layout != panorama_hud::Layout::List);
 }
 
 int MenuManager::PageItem(const MenuDef &def, MenuType type, const Page &page, int index) const
 {
-	const int pinned = PinnedItem(def, type);
 	for (int i = page.first; i < page.end && index >= 0; i++)
 	{
-		if (i != pinned && index-- == 0)
+		if (!OffPage(def, type, i) && index-- == 0)
 		{
 			return i;
 		}
@@ -1079,6 +1153,110 @@ void MenuManager::SetItemImage(MenuHandle menu, int item, const char *image)
 	}
 }
 
+void MenuManager::SetItemControl(MenuHandle menu, int item, bool control)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	MenuItem *it = def ? FindItem(menu, item) : nullptr;
+	if (it && it->control != control)
+	{
+		Repage(menu, *def, [&] { it->control = control; });
+	}
+}
+
+void MenuManager::SetItemRole(MenuHandle menu, int item, MenuItemRole role)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuItem *it = FindItem(menu, item))
+	{
+		it->role = role;
+		RefreshMenu(menu);
+	}
+}
+
+MenuItemRole MenuManager::GetItemRole(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->role : MenuItemRole::Button;
+}
+
+void MenuManager::SetItemHighlight(MenuHandle menu, int item, bool highlight)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuItem *it = FindItem(menu, item))
+	{
+		it->highlight = highlight;
+		RefreshMenu(menu);
+	}
+}
+
+void MenuManager::SetItemSpan(MenuHandle menu, int item, int columns)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuItem *it = FindItem(menu, item))
+	{
+		it->span = std::clamp(columns, 1, 3);
+		RefreshMenu(menu);
+	}
+}
+
+void MenuManager::SetMenuInfo(MenuHandle menu, const char *title, const char *subtitle, const char *subtitleColor)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->info.title = title ? title : "";
+		def->info.subtitle = subtitle ? subtitle : "";
+		def->info.subtitleColor = subtitleColor ? subtitleColor : "";
+		RefreshMenu(menu);
+	}
+}
+
+void MenuManager::SetMenuInfoMeter(MenuHandle menu, float value, float rangeMin, float rangeMax, const float *bands, int bandCount, const char *label,
+								   const char *valueText)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		MenuInfo &info = def->info;
+		info.meter = value;
+		info.rangeMin = (std::min)(rangeMin, rangeMax);
+		info.rangeMax = (std::max)(rangeMin, rangeMax);
+		info.bands.clear();
+		if (bands && bandCount > 0)
+		{
+			info.bands.assign(bands, bands + bandCount);
+		}
+		info.meterLabel = label ? label : "";
+		info.meterValue = valueText ? valueText : "";
+		RefreshMenu(menu);
+	}
+}
+
+int MenuManager::AddMenuInfoRow(MenuHandle menu, const char *label, const char *value)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def)
+	{
+		return -1;
+	}
+	def->info.rows.emplace_back(label ? label : "", value ? value : "");
+	RefreshMenu(menu);
+	return static_cast<int>(def->info.rows.size()) - 1;
+}
+
+void MenuManager::ClearMenuInfo(MenuHandle menu)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->info = MenuInfo {};
+		RefreshMenu(menu);
+	}
+}
+
 const char *MenuManager::GetItemImage(MenuHandle menu, int item) const
 {
 	ScopedLock lock(m_mutex);
@@ -1103,33 +1281,281 @@ const char *MenuManager::GetItemSubtext(MenuHandle menu, int item) const
 	return it ? it->subtext.c_str() : "";
 }
 
+namespace
+{
+	// Lowercase letters, digits and dashes, so a rarity or tag can go into a class name.
+	std::string ClassToken(const char *text)
+	{
+		std::string token;
+		for (const char *c = text ? text : ""; *c; c++)
+		{
+			if (std::isalnum(static_cast<unsigned char>(*c)) || *c == '-')
+			{
+				token += static_cast<char>(std::tolower(static_cast<unsigned char>(*c)));
+			}
+		}
+		return token;
+	}
+} // namespace
+
+void MenuManager::SetItemRarity(MenuHandle menu, int item, const char *rarity)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuItem *it = FindItem(menu, item))
+	{
+		it->rarity = ClassToken(rarity);
+		RefreshMenu(menu);
+	}
+}
+
+void MenuManager::SetItemImageTint(MenuHandle menu, int item, const char *tint)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuItem *it = FindItem(menu, item))
+	{
+		it->imageTint = ClassToken(tint);
+		RefreshMenu(menu);
+	}
+}
+
+const char *MenuManager::GetItemRarity(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->rarity.c_str() : "";
+}
+
+void MenuManager::SetItemTag(MenuHandle menu, int item, const char *tag, const char *style)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuItem *it = FindItem(menu, item))
+	{
+		it->tag = tag ? tag : "";
+		it->tagStyle = ClassToken(style);
+		RefreshMenu(menu);
+	}
+}
+
+const char *MenuManager::GetItemTag(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->tag.c_str() : "";
+}
+
+void MenuManager::SetItemTeams(MenuHandle menu, int item, int teams)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuItem *it = FindItem(menu, item))
+	{
+		it->teams = teams & (kMenuTeamT | kMenuTeamCT);
+		RefreshMenu(menu);
+	}
+}
+
+int MenuManager::GetItemTeams(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->teams : 0;
+}
+
+void MenuManager::SetItemLocked(MenuHandle menu, int item, bool locked)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuItem *it = FindItem(menu, item))
+	{
+		it->locked = locked;
+		RefreshMenu(menu);
+	}
+}
+
+bool MenuManager::GetItemLocked(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuItem *it = FindItem(menu, item);
+	return it && it->locked;
+}
+
+void MenuManager::SetItemCorner(MenuHandle menu, int item, MenuCorner corner)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuItem *it = FindItem(menu, item))
+	{
+		it->corner = corner;
+		RefreshMenu(menu);
+	}
+}
+
+MenuCorner MenuManager::GetItemCorner(MenuHandle menu, int item) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuItem *it = FindItem(menu, item);
+	return it ? it->corner : MenuCorner::None;
+}
+
+void MenuManager::SetMenuCornerCallback(MenuHandle menu, MenuItemCornerFn onCorner)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->onCorner = std::move(onCorner);
+	}
+}
+
+int MenuManager::AddMenuChip(MenuHandle menu, const char *label, const char *const *options, int optionCount, int selected, bool action)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def || static_cast<int>(def->chips.size()) >= panorama_hud::kChipSlots)
+	{
+		return -1;
+	}
+	MenuDef::Chip chip;
+	chip.label = label ? label : "";
+	for (int i = 0; options && i < optionCount; i++)
+	{
+		chip.options.push_back(options[i] ? options[i] : "");
+	}
+	chip.action = action;
+	// On or off for an action and a filter without options, else one of the options or none.
+	const int optionsHeld = static_cast<int>(chip.options.size());
+	chip.selected = action || chip.options.empty() ? (selected > 0 ? 1 : 0) : (selected >= 0 && selected < optionsHeld ? selected : -1);
+	def->chips.push_back(std::move(chip));
+	RefreshMenu(menu);
+	return static_cast<int>(def->chips.size()) - 1;
+}
+
+int MenuManager::AddMenuNote(MenuHandle menu, const char *label, const char *value)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def || static_cast<int>(def->chips.size()) >= panorama_hud::kChipSlots)
+	{
+		return -1;
+	}
+	MenuDef::Chip chip;
+	chip.label = label ? label : "";
+	chip.value = value ? value : "";
+	chip.note = true;
+	chip.selected = 0;
+	def->chips.push_back(std::move(chip));
+	RefreshMenu(menu);
+	return static_cast<int>(def->chips.size()) - 1;
+}
+
+void MenuManager::SetMenuChipOptionTone(MenuHandle menu, int chip, int option, MenuTone tone)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def || chip < 0 || chip >= static_cast<int>(def->chips.size()) || option < 0 || option >= static_cast<int>(def->chips[chip].options.size()))
+	{
+		return;
+	}
+	std::vector<MenuTone> &tones = def->chips[chip].tones;
+	if (static_cast<int>(tones.size()) <= option)
+	{
+		tones.resize(option + 1, MenuTone::Info);
+	}
+	tones[option] = tone;
+	RefreshMenu(menu);
+}
+
+void MenuManager::SetMenuChipCallback(MenuHandle menu, MenuChipFn onChip)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->onChip = std::move(onChip);
+	}
+}
+
+// Stores a filter's new selection, then tells the owner, who usually rebuilds the menu. An action only tells.
+void MenuManager::PickChip(int slot, int chip, int selected)
+{
+	PlayerMenu &pm = m_players[slot];
+	const MenuHandle handle = pm.handle;
+	MenuDef *def = Find(handle);
+	if (!def || chip < 0 || chip >= static_cast<int>(def->chips.size()))
+	{
+		return;
+	}
+	if (!def->chips[chip].action)
+	{
+		def->chips[chip].selected = selected;
+	}
+	MenuChipFn onChip = def->onChip;
+	{
+		DepthGuard guard(m_callbackDepth);
+		if (onChip && guard.enter())
+		{
+			onChip(handle, slot, chip, selected);
+		}
+	}
+	if (pm.active && pm.handle == handle)
+	{
+		RenderPanorama(slot);
+	}
+}
+
+int MenuManager::Segments(const MenuItem &item)
+{
+	const int options = static_cast<int>(item.options.size());
+	return item.type == MenuItemType::Choice && options >= 2 && options <= panorama_hud::kSegments ? options : 0;
+}
+
+std::string MenuManager::OptionLabel(const std::string &option)
+{
+	return option.substr(0, option.find('\n'));
+}
+
+std::string MenuManager::OptionSub(const std::string &option)
+{
+	const size_t at = option.find('\n');
+	return at == std::string::npos ? std::string() : option.substr(at + 1);
+}
+
 std::vector<MenuManager::Page> MenuManager::Pages(const MenuDef &def, MenuType type) const
 {
 	// m_itemsPerPage is clamped >= 1 in Configure.
 	int size = m_itemsPerPage;
+	const panorama_hud::Layout layout = type == MenuType::Panorama ? PanoramaLayout(def) : panorama_hud::Layout::List;
+	// Showcase and studio pages are three columns of buttons.
+	const bool buttons = type == MenuType::Panorama && (layout == panorama_hud::Layout::Showcase || layout == panorama_hud::Layout::Studio);
+	const bool columns = type == MenuType::Panorama && layout == panorama_hud::Layout::Columns;
 	if (type == MenuType::Panorama)
 	{
-		const panorama_hud::Layout layout = PanoramaLayout(def);
-		size = layout == panorama_hud::Layout::Grid ? panorama_hud::TileSlots(TileSize(def)) : panorama_hud::ItemSlots(layout);
+		size = layout == panorama_hud::Layout::Grid ? panorama_hud::TileSlots(TileSize(def))
+			   : buttons                            ? panorama_hud::kShowcasePage
+													: panorama_hud::ItemSlots(layout);
 	}
 	std::vector<Page> pages;
 	const int count = static_cast<int>(def.items.size());
-	const int pinned = PinnedItem(def, type);
-	int rows = 0; // on the last page, the pinned item not counted
+	int rows = 0;  // on the last page, those off the pages not counted
+	int slots = 0; // the buttons they take there, a Choice drawn in place one per option
 	for (int i = 0; i < count; i++)
 	{
-		if (i == pinned)
+		if (OffPage(def, type, i))
 		{
 			continue;
 		}
 		const int section = def.items[i].section;
-		if (pages.empty() || rows >= size || pages.back().section != section)
+		// A tab with image tiles holds fewer than one of buttons.
+		if (buttons && (pages.empty() || pages.back().section != section))
+		{
+			size = StudioImages(def, section) ? panorama_hud::kStudioImageSlots : panorama_hud::kShowcasePage;
+		}
+		const int cost = buttons ? (std::max)(1, Segments(def.items[i])) : 1;
+		const bool full = rows >= size || (buttons && slots + cost > panorama_hud::kShowcaseSlots);
+		if (pages.empty() || (!columns && (full || pages.back().section != section)))
 		{
 			pages.push_back({i, i, section});
 			rows = 0;
+			slots = 0;
 		}
 		pages.back().end = i + 1;
 		rows++;
+		slots += cost;
 	}
 	if (pages.empty())
 	{
@@ -1155,13 +1581,29 @@ panorama_hud::Layout MenuManager::PanoramaLayout(const MenuDef &def) const
 {
 	const panorama_hud::Layout wanted = def.layout == MenuLayout::Grid       ? panorama_hud::Layout::Grid
 										: def.layout == MenuLayout::Showcase ? panorama_hud::Layout::Showcase
+										: def.layout == MenuLayout::Studio   ? panorama_hud::Layout::Studio
+										: def.layout == MenuLayout::Columns  ? panorama_hud::Layout::Columns
 																			 : panorama_hud::Layout::List;
 	return panorama_hud::Available(wanted) ? wanted : panorama_hud::Layout::List;
 }
 
 std::string MenuManager::SuffixText(int slot, const MenuDef &def, const MenuItem &item) const
 {
+	if (item.role == MenuItemRole::Readout || item.role == MenuItemRole::Heading)
+	{
+		return std::string();
+	}
 	return item.type != MenuItemType::Normal ? ValueText(slot, def, item) : item.subtext;
+}
+
+std::string MenuManager::LineText(const MenuItem &item)
+{
+	return item.role == MenuItemRole::Readout && !item.subtext.empty() ? item.subtext + ": " + item.text : item.text;
+}
+
+bool MenuManager::Inert(const MenuItem &item)
+{
+	return item.disabled || item.role == MenuItemRole::Readout || item.role == MenuItemRole::Heading;
 }
 
 int MenuManager::ClampValue(const MenuItem &item, int value)
@@ -1188,7 +1630,7 @@ std::string MenuManager::ValueText(int slot, const MenuDef &def, const MenuItem 
 		case MenuItemType::Stepper:
 			return std::to_string(item.value);
 		case MenuItemType::Choice:
-			return item.value < static_cast<int>(item.options.size()) ? item.options[item.value] : std::string();
+			return item.value < static_cast<int>(item.options.size()) ? OptionLabel(item.options[item.value]) : std::string();
 		default:
 			return std::string();
 	}
@@ -1466,6 +1908,14 @@ MenuType MenuManager::ResolveType(const MenuDef &def, int slot) const
 	return result;
 }
 
+MenuType MenuManager::GetSlotMenuType(int slot, MenuType type) const
+{
+	ScopedLock lock(m_mutex);
+	MenuDef def;
+	def.type = type;
+	return ResolveType(def, slot);
+}
+
 const char *MenuManager::DefaultLabelKey(MenuLabel label)
 {
 	// These double as the phrase keys in cs2menus.phrases.txt.
@@ -1495,11 +1945,14 @@ const char *MenuManager::DefaultLabelKey(MenuLabel label)
 	}
 }
 
+std::string MenuManager::Lang(int slot) const
+{
+	return m_langResolver ? m_langResolver(slot) : std::string();
+}
+
 std::string MenuManager::ResolveLabel(int slot, const MenuDef &def, MenuLabel label) const
 {
-	const std::string &key = def.labels[static_cast<int>(label)];
-	std::string lang = m_langResolver ? m_langResolver(slot) : std::string();
-	return g_Translations.Translate(lang, key);
+	return g_Translations.Translate(Lang(slot), def.labels[static_cast<int>(label)]);
 }
 
 bool MenuManager::DisplayMenu(MenuHandle menu, int slot, float duration, float curtime)
@@ -1552,18 +2005,7 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	// A CloseOnSelect pick that shows a fresh menu instead of pushing leaves its history behind.
 	if (!m_players[slot].active && (!m_players[slot].back.empty() || !m_players[slot].forward.empty()))
 	{
-		PlayerMenu &stale = m_players[slot];
-		std::vector<MenuHandle> menus;
-		for (const std::vector<HistoryEntry> *stack : {&stale.back, &stale.forward})
-		{
-			for (const HistoryEntry &entry : *stack)
-			{
-				menus.push_back(entry.handle);
-			}
-		}
-		stale.back.clear();
-		stale.forward.clear();
-		EndMenus(slot, menus, menu, MenuEndReason::Cancelled);
+		EndMenus(slot, TakeHistory(slot), menu, MenuEndReason::Cancelled);
 		def = Find(menu);
 		if (!def || m_players[slot].externalBusy || m_players[slot].active)
 		{
@@ -1589,6 +2031,7 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	pm.active = true;
 	pm.suspended = false;
 	pm.collapsed = false;
+	pm.turning = false;
 	pm.handle = menu;
 	// Resolve the render type for this viewer (forced menu, else their preference, then HTML availability).
 	// Fixed for the life of this display.
@@ -1718,6 +2161,329 @@ void MenuManager::CancelMenu(int slot)
 		return;
 	}
 	EndDisplay(slot, MenuEndReason::Cancelled);
+}
+
+bool MenuManager::BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || !OnMainThread())
+	{
+		return false;
+	}
+	PlayerMenu &pm = m_players[slot];
+	const MenuDef *def = Find(pm.handle);
+	if (!pm.active || pm.suspended || pm.type != MenuType::Panorama || !def || PanoramaLayout(*def) == panorama_hud::Layout::List)
+	{
+		return false;
+	}
+	pm.editItem = -1;
+	pm.inputMenu = pm.handle;
+	pm.inputPrompt = prompt ? prompt : "";
+	pm.inputHint = hint ? hint : "";
+	pm.onInputCancel = std::move(onCancel);
+	RenderPanorama(slot);
+	return true;
+}
+
+void MenuManager::EndMenuInput(int slot)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot))
+	{
+		return;
+	}
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, slot] { EndMenuInput(slot); });
+		return;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (pm.inputMenu == kInvalidMenuHandle)
+	{
+		return;
+	}
+	pm.inputMenu = kInvalidMenuHandle;
+	pm.onInputCancel = nullptr;
+	RedrawPanorama(slot);
+}
+
+bool MenuManager::ShowMenuMessage(int slot, const char *text, MenuTone tone, float seconds)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || !OnMainThread())
+	{
+		return false;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active || pm.suspended || pm.type != MenuType::Panorama || !Find(pm.handle))
+	{
+		return false;
+	}
+	pm.message = panorama_hud::StripColors(text ? text : "");
+	pm.messageTone = tone;
+	pm.messageUntil = m_curtime + (std::max)(seconds, 0.5f);
+	RenderPanorama(slot);
+	return true;
+}
+
+bool MenuManager::ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger,
+								  MenuConfirmFn onDone)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || !OnMainThread())
+	{
+		return false;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active || pm.suspended || pm.type != MenuType::Panorama || !Find(pm.handle))
+	{
+		return false;
+	}
+	// A dialog already up gives way, answered as cancelled.
+	MenuConfirmFn previous = std::move(pm.dialog.onDone);
+	pm.editItem = -1;
+	pm.dialog = {true,
+				 panorama_hud::StripColors(title ? title : ""),
+				 panorama_hud::StripColors(body ? body : ""),
+				 panorama_hud::StripColors(cancel ? cancel : ""),
+				 panorama_hud::StripColors(confirm ? confirm : ""),
+				 danger,
+				 std::move(onDone)};
+	if (previous)
+	{
+		DepthGuard guard(m_callbackDepth);
+		if (guard.enter())
+		{
+			previous(slot, false);
+		}
+	}
+	RedrawPanorama(slot);
+	return true;
+}
+
+void MenuManager::SetMenuEdited(MenuHandle menu, bool edited)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (def && def->edited != edited)
+	{
+		def->edited = edited;
+		RefreshMenu(menu);
+	}
+}
+
+void MenuManager::SetMenuScope(MenuHandle menu, const char *label, int teams)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->scope = label ? label : "";
+		def->scopeTeams = teams & (kMenuTeamT | kMenuTeamCT);
+		RefreshMenu(menu);
+	}
+}
+
+void MenuManager::SetMenuScopeCallback(MenuHandle menu, MenuScopeFn onScope)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->onScope = std::move(onScope);
+		RefreshMenu(menu);
+	}
+}
+
+void MenuManager::SetMenuInputClearCallback(MenuHandle menu, MenuInputClearFn onClear)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->onInputClear = std::move(onClear);
+		RefreshMenu(menu);
+	}
+}
+
+int MenuManager::AddMenuTab(MenuHandle menu, const char *label, bool selected, bool marked, bool pinned)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def || static_cast<int>(def->tabs.size()) >= panorama_hud::kGridTabs)
+	{
+		return -1;
+	}
+	def->tabs.push_back({label ? label : "", selected, marked, pinned});
+	RefreshMenu(menu);
+	return static_cast<int>(def->tabs.size()) - 1;
+}
+
+void MenuManager::SetMenuTabCallback(MenuHandle menu, MenuTabFn onTab)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->onTab = std::move(onTab);
+	}
+}
+
+void MenuManager::SetMenuEmpty(MenuHandle menu, const char *title, const char *text, bool loading)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->emptyTitle = title ? title : "";
+		def->emptyText = text ? text : "";
+		def->emptyLoading = loading;
+		RefreshMenu(menu);
+	}
+}
+
+bool MenuManager::AddMenuHint(int slot, const char *keys, const char *text)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || !OnMainThread())
+	{
+		return false;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active || static_cast<int>(pm.hint.size()) >= panorama_hud::kHintParts)
+	{
+		return false;
+	}
+	pm.hint.emplace_back(keys ? keys : "", text ? text : "");
+	pm.hintHidden = false;
+	RedrawPanorama(slot);
+	return true;
+}
+
+void MenuManager::ClearMenuHint(int slot)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || (m_players[slot].hint.empty() && !m_players[slot].hintHidden))
+	{
+		return;
+	}
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, slot] { ClearMenuHint(slot); });
+		return;
+	}
+	PlayerMenu &pm = m_players[slot];
+	pm.hint.clear();
+	pm.hintHidden = false;
+	RedrawPanorama(slot);
+}
+
+void MenuManager::HideMenuHint(int slot)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || (m_players[slot].hintHidden && m_players[slot].hint.empty()))
+	{
+		return;
+	}
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, slot] { HideMenuHint(slot); });
+		return;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active)
+	{
+		return;
+	}
+	pm.hint.clear();
+	pm.hintHidden = true;
+	RedrawPanorama(slot);
+}
+
+bool MenuManager::AddMenuHelp(int slot, const char *keys, const char *text)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || !OnMainThread())
+	{
+		return false;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active || static_cast<int>(pm.help.size()) >= panorama_hud::kHelpRows)
+	{
+		return false;
+	}
+	pm.help.emplace_back(keys ? keys : "", text ? text : "");
+	RedrawPanorama(slot);
+	return true;
+}
+
+void MenuManager::ClearMenuHelp(int slot)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || m_players[slot].help.empty())
+	{
+		return;
+	}
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, slot] { ClearMenuHelp(slot); });
+		return;
+	}
+	PlayerMenu &pm = m_players[slot];
+	pm.help.clear();
+	RedrawPanorama(slot);
+}
+
+void MenuManager::SetMenuMirrored(int slot, bool mirrored)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || m_players[slot].mirrored == mirrored)
+	{
+		return;
+	}
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, slot, mirrored] { SetMenuMirrored(slot, mirrored); });
+		return;
+	}
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active)
+	{
+		return;
+	}
+	pm.mirrored = mirrored;
+	RedrawPanorama(slot);
+}
+
+bool MenuManager::GetMenuEdited(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def && def->edited;
+}
+
+bool MenuManager::GuardLeave(int slot, bool wholeDisplay, std::function<void()> leave)
+{
+	PlayerMenu &pm = m_players[slot];
+	const MenuDef *shown = Find(pm.handle);
+	bool edited = shown && shown->edited;
+	for (size_t i = 0; wholeDisplay && i < pm.back.size(); i++)
+	{
+		const MenuDef *def = Find(pm.back[i].handle);
+		edited = edited || (def && def->edited);
+	}
+	if (!edited)
+	{
+		return false;
+	}
+	const std::string lang = Lang(slot);
+	const std::string title = panorama_hud::StripColors(shown ? shown->title : std::string());
+	const std::string body = FillTemplate(g_Translations.Translate(lang, "{title} has changes that aren't applied."), {{"title", title}});
+	const MenuHandle handle = pm.handle;
+	return ShowMenuConfirm(slot, g_Translations.Translate(lang, "Discard your edits?").c_str(), body.c_str(),
+						   g_Translations.Translate(lang, "Keep editing").c_str(), g_Translations.Translate(lang, "Discard").c_str(), true,
+						   [this, handle, leave](int s, bool confirmed)
+						   {
+							   if (confirmed && m_players[s].active && m_players[s].handle == handle)
+							   {
+								   leave();
+							   }
+						   });
 }
 
 void MenuManager::SuspendMenu(int slot)
@@ -1872,7 +2638,6 @@ int MenuManager::GetItemCount(MenuHandle menu) const
 	return def ? static_cast<int>(def->items.size()) : 0;
 }
 
-// Returned pointer aliases internal storage: valid only until the next mutating call, don't cache it.
 const char *MenuManager::GetItemText(MenuHandle menu, int item) const
 {
 	ScopedLock lock(m_mutex);
@@ -1880,7 +2645,6 @@ const char *MenuManager::GetItemText(MenuHandle menu, int item) const
 	return it ? it->text.c_str() : "";
 }
 
-// Same aliasing caveat as GetItemText.
 const char *MenuManager::GetItemInfo(MenuHandle menu, int item) const
 {
 	ScopedLock lock(m_mutex);
@@ -1895,6 +2659,17 @@ void MenuManager::EndDisplay(int slot, MenuEndReason reason)
 	{
 		return;
 	}
+	// An open dialog goes with it, unanswered, and so do the typing and the message line.
+	pm.dialog = {};
+	pm.hint.clear();
+	pm.hintHidden = false;
+	pm.help.clear();
+	pm.helpOpen = false;
+	pm.mirrored = false;
+	pm.inputMenu = kInvalidMenuHandle;
+	pm.onInputCancel = nullptr;
+	pm.message.clear();
+	pm.messageUntil = 0.0f;
 
 	MenuHandle handle = pm.handle;
 	pm.active = false;
@@ -1902,16 +2677,8 @@ void MenuManager::EndDisplay(int slot, MenuEndReason reason)
 	pm.handle = kInvalidMenuHandle;
 
 	// Every menu the display went through ends with it, not only the one on screen, so their owners can free them.
-	std::vector<MenuHandle> menus {handle};
-	for (const std::vector<HistoryEntry> *stack : {&pm.back, &pm.forward})
-	{
-		for (const HistoryEntry &entry : *stack)
-		{
-			menus.push_back(entry.handle);
-		}
-	}
-	pm.back.clear();
-	pm.forward.clear();
+	std::vector<MenuHandle> menus = TakeHistory(slot);
+	menus.push_back(handle);
 
 	// Clear any HTML panel so it doesn't linger for its remaining duration.
 	if (Find(handle) && pm.type == MenuType::Html)
@@ -1959,7 +2726,7 @@ void MenuManager::Select(int slot, int itemIndex)
 		return;
 	}
 
-	if (def->items[itemIndex].disabled)
+	if (Inert(def->items[itemIndex]))
 	{
 		Render(slot); // re-render so the player can pick again
 		return;
@@ -2013,16 +2780,7 @@ void MenuManager::Select(int slot, int itemIndex)
 		if (!pm.active)
 		{
 			// The pick ended the display, and the history ends with it.
-			std::vector<MenuHandle> menus;
-			for (const std::vector<HistoryEntry> *stack : {&pm.back, &pm.forward})
-			{
-				for (const HistoryEntry &entry : *stack)
-				{
-					menus.push_back(entry.handle);
-				}
-			}
-			pm.back.clear();
-			pm.forward.clear();
+			std::vector<MenuHandle> menus = TakeHistory(slot);
 			menus.push_back(handle);
 			EndMenus(slot, menus, kInvalidMenuHandle, MenuEndReason::Selected);
 		}
@@ -2082,6 +2840,22 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle, const HistoryEntry *re
 	// expireTime is kept so the whole submenu stack shares one timeout.
 
 	Render(slot);
+}
+
+std::vector<MenuHandle> MenuManager::TakeHistory(int slot)
+{
+	PlayerMenu &pm = m_players[slot];
+	std::vector<MenuHandle> menus;
+	for (const std::vector<HistoryEntry> *stack : {&pm.back, &pm.forward})
+	{
+		for (const HistoryEntry &entry : *stack)
+		{
+			menus.push_back(entry.handle);
+		}
+	}
+	pm.back.clear();
+	pm.forward.clear();
+	return menus;
 }
 
 MenuManager::HistoryEntry MenuManager::Here(int slot) const
@@ -2314,8 +3088,8 @@ bool MenuManager::WantsButtonInput(int slot) const
 	{
 		return false;
 	}
-	// Use the resolved per-viewer type, not the menu's base type.
-	return m_players[slot].type == MenuType::Html;
+	// Use the resolved per-viewer type, not the menu's base type. A turning studio waits for an attack press.
+	return m_players[slot].type == MenuType::Html || m_players[slot].turning;
 }
 
 bool MenuManager::AnyHtmlMenuActive() const
@@ -2344,7 +3118,7 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, uint64_t pressedBu
 		return;
 	}
 	MenuDef *def = Find(pm.handle);
-	if (!def || pm.type != MenuType::Html)
+	if (!def || (pm.type != MenuType::Html && !pm.turning))
 	{
 		return;
 	}
@@ -2366,6 +3140,17 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, uint64_t pressedBu
 	pm.prevButtons = heldButtons;
 	if (newly == 0)
 	{
+		return;
+	}
+
+	// The studio's cursor comes back.
+	if (pm.turning)
+	{
+		if (newly & in_button::Attack)
+		{
+			pm.turning = false;
+			RenderPanorama(slot);
+		}
 		return;
 	}
 
@@ -2568,6 +3353,12 @@ void MenuManager::Tick(float curtime)
 		{
 			EndDisplay(i, MenuEndReason::Timeout);
 			continue;
+		}
+		if (pm.messageUntil > 0.0f && curtime >= pm.messageUntil)
+		{
+			pm.messageUntil = 0.0f;
+			pm.message.clear();
+			RedrawPanorama(i);
 		}
 		// HTML messages decay, refresh periodically.
 		const MenuDef *def = Find(pm.handle);
@@ -2852,8 +3643,8 @@ void MenuManager::RenderPage(int slot)
 	{
 		const MenuItem &item = def->items[i];
 		ChatRow row;
-		row.text = item.text;
-		row.disabled = item.disabled;
+		row.text = LineText(item);
+		row.disabled = Inert(item);
 		const std::string suffix = SuffixText(slot, *def, item);
 		if (!suffix.empty())
 		{
@@ -2961,7 +3752,7 @@ void MenuManager::RenderEditPage(int slot, const MenuDef &def, const MenuItem &i
 	for (int i = first; i < last; i++)
 	{
 		ChatRow row;
-		row.text = item.options[i];
+		row.text = OptionLabel(item.options[i]);
 		row.current = i == item.value;
 		rows.push_back(std::move(row));
 	}
@@ -3172,7 +3963,7 @@ void MenuManager::RenderHtml(int slot)
 			html += "<img src='" + center_html::Escape(item.iconUrl) + "'> ";
 		}
 
-		const char *base = item.disabled ? disabledColor.c_str() : ((selected && highlightText) ? navColor.c_str() : itemColor.c_str());
+		const char *base = Inert(item) ? disabledColor.c_str() : ((selected && highlightText) ? navColor.c_str() : itemColor.c_str());
 		if (item.raw)
 		{
 			// Raw markup: keep the row's size/face/color wrapper but emit the text verbatim,
@@ -3185,7 +3976,7 @@ void MenuManager::RenderHtml(int slot)
 		}
 		else
 		{
-			html += center_html::ColorizeChat(item.text, base, itemCls.c_str());
+			html += center_html::ColorizeChat(LineText(item), base, itemCls.c_str());
 		}
 		if (std::string value = SuffixText(slot, *def, item); !value.empty())
 		{
@@ -3336,6 +4127,155 @@ static std::string IndexLetter(const std::string &text, char delimiter)
 	return letter;
 }
 
+std::vector<MenuManager::TabEntry> MenuManager::Tabs(int slot, const MenuDef &def, const std::vector<Page> &pages, int page) const
+{
+	std::vector<TabEntry> tabs;
+	if (!def.tabs.empty())
+	{
+		for (int i = 0; i < static_cast<int>(def.tabs.size()); i++)
+		{
+			const MenuDef::Tab &tab = def.tabs[i];
+			tabs.push_back({panorama_hud::StripColors(tab.label), tab.selected, tab.marked, tab.pinned, i});
+		}
+		return tabs;
+	}
+	// The columns show every section at once.
+	if (def.sections.empty() || PanoramaLayout(def) == panorama_hud::Layout::Columns)
+	{
+		return tabs;
+	}
+	const int current = pages[page].section;
+	for (int p = 0; p < static_cast<int>(pages.size()); p++)
+	{
+		if (p > 0 && pages[p].section == pages[p - 1].section)
+		{
+			continue;
+		}
+		const int section = pages[p].section;
+		std::string label;
+		if (section >= 0)
+		{
+			label = panorama_hud::StripColors(def.sections[section]);
+		}
+		else
+		{
+			const std::string format = g_Translations.Translate(Lang(slot), "Page {n}");
+			label = FillTemplate(format, {{"n", std::to_string(tabs.size() + 1)}});
+		}
+		tabs.push_back({std::move(label), section == current, false, false, p});
+	}
+	// One tab switches nothing. A studio picker's items also sit under its control panel's last section.
+	if (tabs.size() == 1)
+	{
+		tabs.clear();
+	}
+	return tabs;
+}
+
+std::vector<int> MenuManager::FitTabs(panorama_hud::Layout layout, const std::vector<TabEntry> &tabs,
+									  const std::vector<panorama_hud::View::Chip> &chips, bool paged)
+{
+	const int count = static_cast<int>(tabs.size());
+	const int slots = panorama_hud::NavSlots(layout);
+	// The studio's row wraps, only the buttons run out there. The page arrows share the row, and the columns' chips.
+	int room = layout == panorama_hud::Layout::Studio ? INT_MAX : kTabRow;
+	room -= paged && layout != panorama_hud::Layout::Studio ? kTabPager : 0;
+	for (size_t i = 0; layout == panorama_hud::Layout::Columns && i < chips.size(); i++)
+	{
+		const panorama_hud::View::Chip &chip = chips[i];
+		room -= kChipPadding + (chip.menu ? kChipCaret : 0)
+				+ kChipCell * (panorama_hud::TextCells(chip.label) + (chip.value.empty() ? 0 : panorama_hud::TextCells(chip.value) + 1));
+	}
+	auto width = [&tabs](int i) { return kTabPadding + (tabs[i].marked ? kTabDot : 0) + kTabCell * panorama_hud::TextCells(tabs[i].label); };
+	long long total = 0;
+	for (int i = 0; i < count; i++)
+	{
+		total += width(i);
+	}
+	std::vector<int> fits;
+	if (count <= slots && total <= room)
+	{
+		for (int i = 0; i < count; i++)
+		{
+			fits.push_back(i);
+		}
+		return fits;
+	}
+	// The selected one and the pinned stay whatever happens, the others in order while there's room beside "+N".
+	std::vector<bool> kept(count, false);
+	long long used = kTabMore;
+	int left = slots - 1;
+	for (int i = 0; i < count && left > 0; i++)
+	{
+		if (tabs[i].selected || tabs[i].pinned)
+		{
+			kept[i] = true;
+			used += width(i);
+			left--;
+		}
+	}
+	for (int i = 0; i < count && left > 0; i++)
+	{
+		if (kept[i])
+		{
+			continue;
+		}
+		if (used + width(i) > room)
+		{
+			break;
+		}
+		kept[i] = true;
+		used += width(i);
+		left--;
+	}
+	for (int i = 0; i < count; i++)
+	{
+		if (kept[i])
+		{
+			fits.push_back(i);
+		}
+	}
+	return fits;
+}
+
+void MenuManager::PickTab(int slot, int tab)
+{
+	PlayerMenu &pm = m_players[slot];
+	const MenuHandle handle = pm.handle;
+	const MenuDef *def = Find(handle);
+	if (!def)
+	{
+		return;
+	}
+	const std::vector<Page> pages = Pages(*def, pm.type);
+	const std::vector<TabEntry> tabs = Tabs(slot, *def, pages, (std::max)(0, (std::min)(pm.page, static_cast<int>(pages.size()) - 1)));
+	if (tab < 0 || tab >= static_cast<int>(tabs.size()))
+	{
+		return;
+	}
+	pm.editItem = -1;
+	pm.editPage = 0;
+	if (def->tabs.empty())
+	{
+		pm.page = tabs[tab].target;
+		RenderPanorama(slot);
+		return;
+	}
+	MenuTabFn onTab = def->onTab;
+	{
+		DepthGuard guard(m_callbackDepth);
+		if (onTab && guard.enter())
+		{
+			onTab(handle, slot, tabs[tab].target);
+		}
+	}
+	// The plugin usually shows another menu. When it didn't, the list of tabs still closes.
+	if (pm.active && !pm.suspended && pm.handle == handle && Find(handle))
+	{
+		RenderPanorama(slot);
+	}
+}
+
 void MenuManager::RenderPanorama(int slot)
 {
 	PlayerMenu &pm = m_players[slot];
@@ -3368,6 +4308,85 @@ void MenuManager::RenderPanorama(int slot)
 	view.layout = PanoramaLayout(*def);
 	view.tiles = TileSize(*def);
 	view.collapsed = pm.collapsed;
+	view.turning = pm.turning && view.layout == panorama_hud::Layout::Studio;
+	if (pm.messageUntil > 0.0f)
+	{
+		view.message = pm.message;
+		view.messageTone = static_cast<int>(pm.messageTone);
+	}
+	if (def->edited)
+	{
+		view.edited = g_Translations.Translate(Lang(slot), "Edited");
+	}
+	view.scope = panorama_hud::StripColors(def->scope);
+	view.scopeTeams = def->scopeTeams;
+	view.scopeButton = static_cast<bool>(def->onScope);
+	if (pm.dialog.open)
+	{
+		view.dialog = {true, pm.dialog.title, pm.dialog.body, pm.dialog.cancel, pm.dialog.confirm, pm.dialog.danger};
+	}
+	// The first Input item is the field, typing shows it even without one.
+	if (view.layout != panorama_hud::Layout::List)
+	{
+		int field = -1;
+		for (int i = 0; i < static_cast<int>(def->items.size()) && field < 0; i++)
+		{
+			field = def->items[i].role == MenuItemRole::Input ? i : -1;
+		}
+		const bool typing = pm.inputMenu == pm.handle;
+		if (field >= 0 || typing)
+		{
+			view.input.shown = true;
+			view.input.overlay = field < 0;
+			view.input.typing = typing;
+			if (typing)
+			{
+				view.input.text = panorama_hud::StripColors(pm.inputPrompt);
+				view.input.hint = panorama_hud::StripColors(pm.inputHint);
+			}
+			else
+			{
+				const MenuItem &item = def->items[field];
+				view.input.placeholder = item.text.empty();
+				view.input.text = panorama_hud::StripColors(item.text.empty() ? item.subtext : item.text);
+				view.input.hint = item.text.empty() ? std::string() : panorama_hud::StripColors(item.subtext);
+				view.input.clear = !item.text.empty() && static_cast<bool>(def->onInputClear);
+			}
+		}
+	}
+	if ((view.layout == panorama_hud::Layout::Showcase || view.layout == panorama_hud::Layout::Studio) && !def->info.title.empty())
+	{
+		const MenuInfo &info = def->info;
+		auto percent = [](float value) { return static_cast<int>(std::lround((std::max)(0.0f, (std::min)(1.0f, value)) * 100.0f)); };
+		view.info.shown = true;
+		view.info.title = panorama_hud::StripColors(info.title);
+		view.info.subtitle = panorama_hud::StripColors(info.subtitle);
+		view.info.subtitleColor = info.subtitleColor;
+		view.info.meter = info.meter >= 0.0f;
+		view.info.mark = percent(info.meter);
+		view.info.rangeLo = percent(info.rangeMin);
+		view.info.rangeHi = percent(info.rangeMax);
+		// Each band's width, from its upper end.
+		int from = 0;
+		for (size_t band = 0; band < info.bands.size() && band < static_cast<size_t>(panorama_hud::kInfoBands); band++)
+		{
+			const int to = percent(info.bands[band]);
+			view.info.bands.push_back((std::max)(0, to - from));
+			from = (std::max)(from, to);
+		}
+		view.info.meterLabel = panorama_hud::StripColors(info.meterLabel);
+		view.info.meterValue = panorama_hud::StripColors(info.meterValue);
+		// A pair too long for half the card's line takes a whole one, after the short ones. The studio's card is the narrower.
+		const int half = view.layout == panorama_hud::Layout::Studio ? 17 : 22;
+		std::vector<panorama_hud::View::Info::Row> wide;
+		for (size_t i = 0; i < info.rows.size() && i < static_cast<size_t>(panorama_hud::kInfoRows); i++)
+		{
+			panorama_hud::View::Info::Row row {panorama_hud::StripColors(info.rows[i].first), panorama_hud::StripColors(info.rows[i].second)};
+			row.wide = panorama_hud::TextCells(row.label) + panorama_hud::TextCells(row.value) > half;
+			(row.wide ? wide : view.info.rows).push_back(std::move(row));
+		}
+		view.info.rows.insert(view.info.rows.end(), wide.begin(), wide.end());
+	}
 	view.image = def->image;
 	view.fontClass = m_settings.panoramaFontClass;
 	view.sounds = m_settings.panoramaSounds;
@@ -3388,21 +4407,142 @@ void MenuManager::RenderPanorama(int slot)
 		view.actionColor = item.disabled ? disabledColor : itemColor;
 		view.actionDisabled = item.disabled;
 	}
+	if (const int secondary = SecondaryItem(*def, pm.type); secondary >= 0)
+	{
+		view.action2 = panorama_hud::StripColors(def->items[secondary].text);
+		view.action2Disabled = def->items[secondary].disabled;
+	}
+	if (view.layout == panorama_hud::Layout::Studio)
+	{
+		std::vector<std::string> tabs;
+		const std::vector<int> controls = StudioControls(*def, pm.controlTab, tabs);
+		pm.controlSlots.clear();
+		pm.controlOptions.clear();
+		for (int i : controls)
+		{
+			const MenuItem &item = def->items[i];
+			// A Choice drawn in place takes a slot per option.
+			const int segments = Segments(item);
+			for (int option = 0; option < (std::max)(segments, 1) && static_cast<int>(view.controls.size()) < panorama_hud::kStudioControls; option++)
+			{
+				panorama_hud::View::ControlButton control;
+				if (segments > 0)
+				{
+					control.label = panorama_hud::StripColors(OptionLabel(item.options[option]));
+					control.segCount = segments;
+					control.segIndex = option;
+					control.highlight = option == item.value;
+					control.disabled = item.disabled;
+				}
+				else
+				{
+					control.heading = item.role == MenuItemRole::Heading;
+					control.readout = item.role == MenuItemRole::Readout;
+					control.label = panorama_hud::StripColors(control.readout ? item.text : LineText(item));
+					control.sub = control.readout ? panorama_hud::StripColors(item.subtext) : std::string();
+					control.disabled = control.readout ? item.disabled : Inert(item);
+					control.highlight = item.highlight;
+					control.span = control.heading ? 3 : item.span;
+				}
+				view.controls.push_back(std::move(control));
+				pm.controlSlots.push_back(i);
+				pm.controlOptions.push_back(segments > 0 ? option : -1);
+			}
+		}
+		const bool known = std::find(tabs.begin(), tabs.end(), pm.controlTab) != tabs.end();
+		for (int i = 0; i < static_cast<int>(tabs.size()) && i < panorama_hud::kStudioControlTabs; i++)
+		{
+			view.controlTabs.push_back({panorama_hud::StripColors(tabs[i]), known ? tabs[i] == pm.controlTab : i == 0});
+		}
+		// The pill: how to stop while turning, else the plugin's parts or how to start, or none when the plugin hid it.
+		const std::string lang = Lang(slot);
+		auto part = [](std::vector<panorama_hud::View::HintPart> &parts, const std::string &keys, const std::string &text)
+		{
+			panorama_hud::View::HintPart p;
+			std::string key;
+			for (char c : keys + " ")
+			{
+				if (c != ' ')
+				{
+					key += c;
+				}
+				else if (!key.empty())
+				{
+					p.keys.push_back(std::move(key));
+					key.clear();
+				}
+			}
+			p.text = panorama_hud::StripColors(text);
+			parts.push_back(std::move(p));
+		};
+		if (view.turning)
+		{
+			part(view.hint, "LMB", g_Translations.Translate(lang, "Stop turning"));
+		}
+		else if (pm.hint.empty() && !pm.hintHidden)
+		{
+			part(view.hint, "LMB", g_Translations.Translate(lang, "Turn the view"));
+		}
+		else
+		{
+			for (const auto &[keys, text] : pm.hint)
+			{
+				part(view.hint, keys, text);
+			}
+		}
+		for (const auto &[keys, text] : pm.help)
+		{
+			part(view.help, keys, text);
+		}
+		view.helpOpen = pm.helpOpen;
+		view.helpTitle = g_Translations.Translate(lang, "Keys");
+		view.mirrored = pm.mirrored;
+	}
+	const bool columns = view.layout == panorama_hud::Layout::Columns;
+	const bool buttons = view.layout == panorama_hud::Layout::Showcase || view.layout == panorama_hud::Layout::Studio;
+	int columnUsed[panorama_hud::kColumns] = {};
+	pm.panoramaSlots.assign(columns ? panorama_hud::kColumnSlots : 0, -1);
+	pm.panoramaOptions.clear();
 	for (int i = current.first; i < current.end; i++)
 	{
-		if (i == pinned)
+		if (OffPage(*def, pm.type, i))
 		{
 			continue;
 		}
 		const MenuItem &item = def->items[i];
+		// A Choice drawn in place: a button per option, the picked one lit.
+		if (const int segments = buttons ? Segments(item) : 0; segments > 0)
+		{
+			for (int option = 0; option < segments; option++)
+			{
+				panorama_hud::View::Row row;
+				row.segments = panorama_hud::SplitColors(OptionLabel(item.options[option]), item.disabled ? disabledColor : itemColor);
+				row.disabled = item.disabled;
+				row.segCount = segments;
+				row.segIndex = option;
+				row.highlight = option == item.value;
+				view.rows.push_back(std::move(row));
+				pm.panoramaSlots.push_back(i);
+				pm.panoramaOptions.push_back(option);
+			}
+			continue;
+		}
 		panorama_hud::View::Row row;
-		row.segments = panorama_hud::SplitColors(item.text, item.disabled ? disabledColor : itemColor);
+		row.segments = panorama_hud::SplitColors(LineText(item), Inert(item) ? disabledColor : itemColor);
 		if (item.submenu != kInvalidMenuHandle)
 		{
 			row.value = "\xE2\x80\xBA"; // ›
 		}
-		row.disabled = item.disabled;
+		row.disabled = Inert(item);
 		row.image = item.image;
+		row.imageTint = item.imageTint;
+		row.rarity = item.rarity;
+		row.tag = panorama_hud::StripColors(item.tag);
+		row.tagStyle = item.tagStyle;
+		row.teams = item.teams;
+		row.locked = item.locked;
+		row.corner = static_cast<panorama_hud::View::Corner>(item.corner);
+		row.highlight = item.highlight;
 		switch (item.type)
 		{
 			case MenuItemType::Toggle:
@@ -3422,9 +4562,119 @@ void MenuManager::RenderPanorama(int slot)
 		{
 			row.value = panorama_hud::StripColors(suffix);
 		}
+		if (columns)
+		{
+			// Its section is its column, in the order added.
+			const int column = (std::max)(item.section, 0);
+			row.heading = item.role == MenuItemRole::Heading;
+			row.half = item.span < 2 && !row.heading;
+			if (row.heading)
+			{
+				row.segments = panorama_hud::SplitColors(item.text, itemColor);
+				row.value.clear();
+			}
+			if (column < panorama_hud::kColumns)
+			{
+				if (static_cast<int>(view.columns.size()) <= column)
+				{
+					view.columns.resize(column + 1);
+				}
+				int &used = columnUsed[column];
+				if (used < panorama_hud::kColumnRows)
+				{
+					row.slot = column * panorama_hud::kColumnRows + used++;
+					pm.panoramaSlots[row.slot] = i;
+				}
+				view.columns[column].count += row.heading ? 0 : 1;
+			}
+		}
+		if (buttons)
+		{
+			row.span = item.span;
+			// Its label over its value, where the other layouts list "label: value".
+			if (item.role == MenuItemRole::Readout)
+			{
+				row.readout = true;
+				row.disabled = item.disabled;
+				row.segments = panorama_hud::SplitColors(item.text, itemColor);
+				row.value = panorama_hud::StripColors(item.subtext);
+			}
+			else if (item.role == MenuItemRole::Heading)
+			{
+				row.heading = true;
+				row.span = 3;
+				row.image.clear();
+				row.segments = panorama_hud::SplitColors(item.text, itemColor);
+				row.value.clear();
+			}
+			pm.panoramaSlots.push_back(i);
+			pm.panoramaOptions.push_back(-1);
+		}
 		view.rows.push_back(std::move(row));
 	}
 
+	// The list popup open on a page of `count` rows, `rowOf` making each.
+	auto fillList = [&](const std::string &title, int count, auto rowOf)
+	{
+		view.list.open = true;
+		view.list.title = title;
+		const int listPages = (std::max)(1, (count + panorama_hud::kListSlots - 1) / panorama_hud::kListSlots);
+		pm.editPage = (std::max)(0, (std::min)(pm.editPage, listPages - 1));
+		const int first = pm.editPage * panorama_hud::kListSlots;
+		for (int i = first; i < (std::min)(first + panorama_hud::kListSlots, count); i++)
+		{
+			view.list.rows.push_back(rowOf(i));
+		}
+		if (listPages > 1)
+		{
+			view.list.page = std::to_string(pm.editPage + 1) + "/" + std::to_string(listPages);
+			view.list.prev = pm.editPage > 0;
+			view.list.next = pm.editPage + 1 < listPages;
+		}
+	};
+	for (const MenuDef::Chip &chip : def->chips)
+	{
+		panorama_hud::View::Chip c;
+		c.label = panorama_hud::StripColors(chip.label);
+		if (chip.note)
+		{
+			c.note = true;
+			c.value = panorama_hud::StripColors(chip.value);
+			view.chips.push_back(std::move(c));
+			continue;
+		}
+		c.menu = !chip.options.empty();
+		c.on = c.menu && !chip.action ? chip.selected >= 0 : chip.selected > 0;
+		if (c.menu && c.on && !chip.action)
+		{
+			c.value = panorama_hud::StripColors(OptionLabel(chip.options[chip.selected]));
+		}
+		view.chips.push_back(std::move(c));
+	}
+	if (const int chip = -2 - pm.editItem; chip >= 0 && chip < static_cast<int>(def->chips.size()) && !def->chips[chip].options.empty())
+	{
+		const MenuDef::Chip &edited = def->chips[chip];
+		fillList(panorama_hud::StripColors(edited.label), static_cast<int>(edited.options.size()),
+				 [&edited](int i)
+				 {
+					 panorama_hud::View::ListRow row;
+					 row.label = panorama_hud::StripColors(OptionLabel(edited.options[i]));
+					 row.sub = panorama_hud::StripColors(OptionSub(edited.options[i]));
+					 row.selected = !edited.action && i == edited.selected;
+					 row.tone = i < static_cast<int>(edited.tones.size()) ? static_cast<int>(edited.tones[i]) : 0;
+					 return row;
+				 });
+	}
+	for (int c = 0; c < static_cast<int>(view.columns.size()); c++)
+	{
+		view.columns[c].label = c < static_cast<int>(def->sections.size()) ? panorama_hud::StripColors(def->sections[c]) : std::string();
+	}
+	if (view.rows.empty() && !def->emptyTitle.empty())
+	{
+		view.emptyTitle = panorama_hud::StripColors(def->emptyTitle);
+		view.emptyText = panorama_hud::StripColors(def->emptyText);
+		view.emptyLoading = def->emptyLoading;
+	}
 	if (const MenuItem *edited = EditedItem(slot))
 	{
 		const std::string title = panorama_hud::StripColors(edited->text);
@@ -3447,23 +4697,15 @@ void MenuManager::RenderPanorama(int slot)
 		}
 		else
 		{
-			view.list.open = true;
-			view.list.title = title;
-			const int optionCount = static_cast<int>(edited->options.size());
-			const int listPages = (std::max)(1, (optionCount + panorama_hud::kListSlots - 1) / panorama_hud::kListSlots);
-			pm.editPage = (std::max)(0, (std::min)(pm.editPage, listPages - 1));
-			const int firstOption = pm.editPage * panorama_hud::kListSlots;
-			const int lastOption = (std::min)(firstOption + panorama_hud::kListSlots, optionCount);
-			for (int i = firstOption; i < lastOption; i++)
-			{
-				view.list.rows.push_back({panorama_hud::StripColors(edited->options[i]), i == edited->value});
-			}
-			if (listPages > 1)
-			{
-				view.list.page = std::to_string(pm.editPage + 1) + "/" + std::to_string(listPages);
-				view.list.prev = pm.editPage > 0;
-				view.list.next = pm.editPage + 1 < listPages;
-			}
+			fillList(title, static_cast<int>(edited->options.size()),
+					 [edited](int i)
+					 {
+						 panorama_hud::View::ListRow row;
+						 row.label = panorama_hud::StripColors(OptionLabel(edited->options[i]));
+						 row.sub = panorama_hud::StripColors(OptionSub(edited->options[i]));
+						 row.selected = i == edited->value;
+						 return row;
+					 });
 		}
 	}
 
@@ -3473,24 +4715,13 @@ void MenuManager::RenderPanorama(int slot)
 		view.nav.push_back({label, selected});
 		pm.panoramaNav.push_back(page);
 	};
-	std::string lang = m_langResolver ? m_langResolver(slot) : std::string();
+	const std::string lang = Lang(slot);
 	const std::string pageFormat = g_Translations.Translate(lang, "Page {n}");
 	auto sectionLabel = [&](int section, int n)
 	{ return section >= 0 ? panorama_hud::StripColors(def->sections[section]) : FillTemplate(pageFormat, {{"n", std::to_string(n)}}); };
 
 	if (view.layout != panorama_hud::Layout::List)
 	{
-		// Tabs: one per section, opening its first page.
-		if (!def->sections.empty())
-		{
-			for (int page = 0; page < pageCount && static_cast<int>(view.nav.size()) < panorama_hud::NavSlots(view.layout); page++)
-			{
-				if (page == 0 || pages[page].section != pages[page - 1].section)
-				{
-					addNav(page, sectionLabel(pages[page].section, static_cast<int>(view.nav.size()) + 1), pages[page].section == current.section);
-				}
-			}
-		}
 		// Arrows: the current section's pages.
 		int sectionFirst = pm.page;
 		while (sectionFirst > 0 && pages[sectionFirst - 1].section == current.section)
@@ -3507,6 +4738,53 @@ void MenuManager::RenderPanorama(int slot)
 			view.page = std::to_string(pm.page - sectionFirst + 1) + "/" + std::to_string(sectionEnd - sectionFirst);
 			view.prev = pm.page > sectionFirst;
 			view.next = pm.page + 1 < sectionEnd;
+		}
+		// Tabs: the plugin's own, else one per section. The ones the row has no room for go behind "+N".
+		const std::vector<TabEntry> tabs = Tabs(slot, *def, pages, pm.page);
+		const std::vector<int> fits = FitTabs(view.layout, tabs, view.chips, !view.page.empty());
+		const int hidden = static_cast<int>(tabs.size() - fits.size());
+		// "+N" follows the last tab that isn't pinned, so it sits before one that adds a tab.
+		int moreAfter = -1;
+		for (int k = 0; hidden > 0 && k < static_cast<int>(fits.size()); k++)
+		{
+			moreAfter = tabs[fits[k]].pinned ? moreAfter : k;
+		}
+		auto addMore = [&]
+		{
+			view.navMore = static_cast<int>(view.nav.size());
+			view.nav.push_back({"+" + std::to_string(hidden), pm.editItem == kEditTabs});
+			pm.panoramaNav.push_back(kNavMore);
+		};
+		if (hidden > 0 && moreAfter < 0)
+		{
+			addMore();
+		}
+		for (int k = 0; k < static_cast<int>(fits.size()); k++)
+		{
+			const TabEntry &tab = tabs[fits[k]];
+			view.nav.push_back({tab.label, tab.selected, tab.marked});
+			pm.panoramaNav.push_back(fits[k]);
+			if (hidden > 0 && k == moreAfter)
+			{
+				addMore();
+			}
+		}
+		// Every tab in the list popup, a pick there as good as a click on the tab.
+		if (pm.editItem == kEditTabs && hidden == 0)
+		{
+			pm.editItem = -1;
+		}
+		if (pm.editItem == kEditTabs)
+		{
+			fillList(view.title, static_cast<int>(tabs.size()),
+					 [&tabs](int i)
+					 {
+						 panorama_hud::View::ListRow row;
+						 row.label = tabs[i].label;
+						 row.selected = tabs[i].selected;
+						 row.marked = tabs[i].marked;
+						 return row;
+					 });
 		}
 	}
 	// Left column: every page, or a window around the current one when they don't fit.
@@ -3568,6 +4846,32 @@ void MenuManager::RenderPanorama(int slot)
 	}
 }
 
+void MenuManager::RedrawPanorama(int slot)
+{
+	const PlayerMenu &pm = m_players[slot];
+	if (pm.active && !pm.suspended && pm.type == MenuType::Panorama && Find(pm.handle))
+	{
+		RenderPanorama(slot);
+	}
+}
+
+int MenuManager::ClickedItem(int slot, int index) const
+{
+	const PlayerMenu &pm = m_players[slot];
+	// Columns, showcase and studio keep which item each slot drew. The list and the grid draw a page in order.
+	if (!pm.panoramaSlots.empty())
+	{
+		return index >= 0 && index < static_cast<int>(pm.panoramaSlots.size()) ? pm.panoramaSlots[index] : -1;
+	}
+	const MenuDef *shown = Find(pm.handle);
+	if (!shown)
+	{
+		return -1;
+	}
+	const std::vector<Page> pages = Pages(*shown, pm.type);
+	return pm.page < static_cast<int>(pages.size()) ? PageItem(*shown, pm.type, pages[pm.page], index) : -1;
+}
+
 void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index, float curtime)
 {
 	ScopedLock lock(m_mutex);
@@ -3588,6 +4892,51 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 	}
 	m_curtime = curtime;
 
+	if (pm.dialog.open)
+	{
+		if (click == panorama_hud::Click::DialogYes || click == panorama_hud::Click::DialogNo)
+		{
+			MenuConfirmFn onDone = std::move(pm.dialog.onDone);
+			pm.dialog = {};
+			{
+				DepthGuard guard(m_callbackDepth);
+				if (onDone && guard.enter())
+				{
+					onDone(slot, click == panorama_hud::Click::DialogYes);
+				}
+			}
+			RedrawPanorama(slot);
+		}
+		return;
+	}
+
+	// A click calls off typing first. On the field that's all it does.
+	if (pm.inputMenu != kInvalidMenuHandle)
+	{
+		const MenuHandle typing = std::exchange(pm.inputMenu, kInvalidMenuHandle);
+		MenuInputCancelFn onCancel = std::move(pm.onInputCancel);
+		pm.onInputCancel = nullptr;
+		{
+			DepthGuard guard(m_callbackDepth);
+			if (onCancel && typing == pm.handle && guard.enter())
+			{
+				onCancel(typing, slot);
+			}
+		}
+		if (click == panorama_hud::Click::Input)
+		{
+			if (pm.active && Find(pm.handle))
+			{
+				RenderPanorama(slot);
+			}
+			return;
+		}
+		if (!pm.active || !Find(pm.handle))
+		{
+			return;
+		}
+	}
+
 	switch (click)
 	{
 		case panorama_hud::Click::Close:
@@ -3595,7 +4944,7 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 			// The window's own X closes the whole display, history included. Back has its own button here.
 			pm.editItem = -1;
 			const MenuDef *shown = Find(pm.handle);
-			if (shown && shown->exitButton)
+			if (shown && shown->exitButton && !GuardLeave(slot, true, [this, slot] { EndDisplay(slot, MenuEndReason::Exit); }))
 			{
 				EndDisplay(slot, MenuEndReason::Exit);
 			}
@@ -3603,7 +4952,10 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 		}
 		case panorama_hud::Click::Back:
 			pm.editItem = -1;
-			StepBack(slot);
+			if (!GuardLeave(slot, false, [this, slot] { StepBack(slot); }))
+			{
+				StepBack(slot);
+			}
 			break;
 		case panorama_hud::Click::Forward:
 			pm.editItem = -1;
@@ -3643,8 +4995,90 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 			}
 			break;
 		}
+		case panorama_hud::Click::InputClear:
+		{
+			const MenuHandle handle = pm.handle;
+			MenuInputClearFn onClear = Find(handle)->onInputClear;
+			DepthGuard guard(m_callbackDepth);
+			if (onClear && guard.enter())
+			{
+				pm.editItem = -1;
+				onClear(handle, slot);
+			}
+			break;
+		}
+		case panorama_hud::Click::Scope:
+		{
+			const MenuHandle handle = pm.handle;
+			MenuScopeFn onScope = Find(handle)->onScope;
+			DepthGuard guard(m_callbackDepth);
+			if (onScope && guard.enter())
+			{
+				pm.editItem = -1;
+				onScope(handle, slot);
+			}
+			break;
+		}
+		case panorama_hud::Click::Input:
+		{
+			const MenuDef &shown = *Find(pm.handle);
+			for (int i = 0; i < static_cast<int>(shown.items.size()); i++)
+			{
+				if (shown.items[i].role == MenuItemRole::Input)
+				{
+					pm.editItem = -1;
+					Select(slot, i);
+					break;
+				}
+			}
+			break;
+		}
+		case panorama_hud::Click::Chip:
+		{
+			const MenuDef &shown = *Find(pm.handle);
+			if (index < 0 || index >= static_cast<int>(shown.chips.size()))
+			{
+				break;
+			}
+			const MenuDef::Chip &chip = shown.chips[index];
+			if (chip.note)
+			{
+				break;
+			}
+			if (chip.options.empty())
+			{
+				pm.editItem = -1;
+				PickChip(slot, index, chip.action ? 0 : chip.selected > 0 ? 0 : 1);
+				break;
+			}
+			// A second click closes its list.
+			const bool open = pm.editItem == -2 - index;
+			pm.editItem = open ? -1 : -2 - index;
+			pm.editPage = open || chip.action || chip.selected < 0 ? 0 : chip.selected / panorama_hud::kListSlots;
+			RenderPanorama(slot);
+			break;
+		}
 		case panorama_hud::Click::ListRow:
 		{
+			if (pm.editItem == kEditTabs)
+			{
+				PickTab(slot, pm.editPage * panorama_hud::kListSlots + index);
+				break;
+			}
+			if (const int chip = -2 - pm.editItem; chip >= 0)
+			{
+				const MenuDef &shown = *Find(pm.handle);
+				const int option = pm.editPage * panorama_hud::kListSlots + index;
+				if (chip < static_cast<int>(shown.chips.size()) && index >= 0 && option < static_cast<int>(shown.chips[chip].options.size()))
+				{
+					// Like a dropdown, and a filter's selected option again clears it.
+					const int selected = !shown.chips[chip].action && option == shown.chips[chip].selected ? -1 : option;
+					pm.editItem = -1;
+					pm.editPage = 0;
+					PickChip(slot, chip, selected);
+				}
+				break;
+			}
 			const MenuItem *edited = EditedItem(slot);
 			const int option = pm.editPage * panorama_hud::kListSlots + index;
 			if (edited && edited->type == MenuItemType::Choice && index >= 0 && option < static_cast<int>(edited->options.size()))
@@ -3659,7 +5093,7 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 		}
 		case panorama_hud::Click::ListPrev:
 		case panorama_hud::Click::ListNext:
-			if (EditedItem(slot))
+			if (EditedItem(slot) || pm.editItem <= -2)
 			{
 				// RenderPanorama clamps the page.
 				pm.editPage = (std::max)(0, pm.editPage + (click == panorama_hud::Click::ListNext ? 1 : -1));
@@ -3667,21 +5101,77 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 			}
 			break;
 		case panorama_hud::Click::Nav:
-			if (index >= 0 && index < static_cast<int>(pm.panoramaNav.size()))
+		{
+			if (index < 0 || index >= static_cast<int>(pm.panoramaNav.size()))
 			{
-				pm.page = pm.panoramaNav[index];
+				break;
+			}
+			const int target = pm.panoramaNav[index];
+			if (PanoramaLayout(*Find(pm.handle)) == panorama_hud::Layout::List)
+			{
+				pm.page = target;
 				RenderPanorama(slot);
 			}
+			else if (target == kNavMore)
+			{
+				// A second click closes the list.
+				pm.editItem = pm.editItem == kEditTabs ? -1 : kEditTabs;
+				pm.editPage = 0;
+				RenderPanorama(slot);
+			}
+			else
+			{
+				PickTab(slot, target);
+			}
 			break;
+		}
 		case panorama_hud::Click::Item:
 		{
 			const MenuDef &shown = *Find(pm.handle);
-			const std::vector<Page> pages = Pages(shown, pm.type);
-			const int item = pm.page < static_cast<int>(pages.size()) ? PageItem(shown, pm.type, pages[pm.page], index) : -1;
-			if (item >= 0)
+			const int item = ClickedItem(slot, index);
+			const int option = index >= 0 && index < static_cast<int>(pm.panoramaOptions.size()) ? pm.panoramaOptions[index] : -1;
+			if (item >= 0 && option >= 0)
+			{
+				// A segment of a Choice drawn in place: the pick is the click.
+				pm.editItem = -1;
+				if (shown.items[item].disabled)
+				{
+					Render(slot);
+				}
+				else
+				{
+					ChangeValue(slot, item, option);
+				}
+			}
+			else if (item >= 0)
 			{
 				// Select re-renders on a disabled row.
 				Select(slot, item);
+			}
+			break;
+		}
+		case panorama_hud::Click::ItemDec:
+		case panorama_hud::Click::ItemInc:
+		{
+			// A list row's own buttons: a Stepper a step, a Choice the option before or after, without the popup.
+			const MenuDef &shown = *Find(pm.handle);
+			const int item = ClickedItem(slot, index);
+			if (item >= 0 && shown.items[item].type != MenuItemType::Toggle)
+			{
+				pm.editItem = -1;
+				StepValue(slot, item, click == panorama_hud::Click::ItemDec ? -1 : 1);
+			}
+			break;
+		}
+		case panorama_hud::Click::Corner:
+		{
+			const MenuHandle handle = pm.handle;
+			const int item = ClickedItem(slot, index);
+			MenuItemCornerFn onCorner = Find(handle)->onCorner;
+			DepthGuard guard(m_callbackDepth);
+			if (item >= 0 && onCorner && guard.enter())
+			{
+				onCorner(handle, slot, item);
 			}
 			break;
 		}
@@ -3694,6 +5184,58 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 			}
 			break;
 		}
+		case panorama_hud::Click::Action2:
+		{
+			const int secondary = SecondaryItem(*Find(pm.handle), pm.type);
+			if (secondary >= 0)
+			{
+				Select(slot, secondary);
+			}
+			break;
+		}
+		case panorama_hud::Click::Control:
+		{
+			// The control behind the slot, as last drawn. A segment of a Choice drawn in place picks its option.
+			if (index < 0 || index >= static_cast<int>(pm.controlSlots.size()))
+			{
+				break;
+			}
+			const int item = pm.controlSlots[index];
+			const int option = pm.controlOptions[index];
+			if (option < 0)
+			{
+				Select(slot, item);
+				break;
+			}
+			pm.editItem = -1;
+			if (const MenuItem *control = FindItem(pm.handle, item); control && !control->disabled)
+			{
+				ChangeValue(slot, item, option);
+			}
+			break;
+		}
+		case panorama_hud::Click::Help:
+			pm.helpOpen = !pm.helpOpen;
+			RenderPanorama(slot);
+			break;
+		case panorama_hud::Click::ControlTab:
+		{
+			std::vector<std::string> tabs;
+			StudioControls(*Find(pm.handle), pm.controlTab, tabs);
+			if (index < static_cast<int>(tabs.size()))
+			{
+				pm.controlTab = tabs[index];
+				RenderPanorama(slot);
+			}
+			break;
+		}
+		case panorama_hud::Click::Stage:
+			// The cursor goes, so the mouse turns the view. PollButtons brings it back on the next attack press.
+			pm.editItem = -1;
+			pm.turning = true;
+			pm.buttonsPrimed = false;
+			RenderPanorama(slot);
+			break;
 		case panorama_hud::Click::PagePrev:
 		case panorama_hud::Click::PageNext:
 		{

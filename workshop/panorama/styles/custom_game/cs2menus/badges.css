@@ -1,0 +1,211 @@
+/* Image tiles' badges: grid and column tiles, and the showcase's and studio's image buttons. The server only sets classes
+   on the tile's button: rar-<rarity>, team-t, team-ct, locked, tagged (with tag-<style> on the label) and corner-star,
+   corner-star-on, corner-star-undo or corner-copy.
+   The badge row and the corner button take no room: a negative margin as tall as they are lays the image over them. */
+
+.tile-badges {
+	flow-children: right;
+	height: 16px;
+	margin-bottom: -16px;
+	z-index: 1;
+}
+
+.tile-tag {
+	visibility: collapse;
+	height: 16px;
+	padding: 1px 4px 0 4px;
+	margin-right: 4px;
+	border-radius: 2px;
+	background-color: #0d0f12cc;
+	font-size: 10px;
+	font-weight: bold;
+	letter-spacing: 0.6px;
+	color: #ffffffa3;
+}
+
+.tagged .tile-tag {
+	visibility: visible;
+}
+
+.tile-tag.tag-orange {
+	color: #e8804a;
+	border: 1px solid #cf6a3280;
+}
+
+.tile-tag.tag-gold {
+	color: #ffd24a;
+	border: 1px solid #ffd70066;
+}
+
+.tile-lock {
+	visibility: collapse;
+	width: 16px;
+	height: 16px;
+	margin-right: 4px;
+	border-radius: 2px;
+	background-color: #0d0f12cc;
+	background-image: url("s2r://panorama/images/custom_game/cs2menus/badge_lock.vsvg");
+	background-size: 10px 10px;
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+}
+
+.locked .tile-lock {
+	visibility: visible;
+}
+
+.locked .tile-img,
+.locked .sbtn-img {
+	opacity: 0.3;
+}
+
+.tile-dot {
+	visibility: collapse;
+	width: 8px;
+	height: 8px;
+	margin: 4px 3px 0 0;
+	border-radius: 50%;
+}
+
+.tile-dot-t {
+	background-color: #e3a73f;
+}
+
+.tile-dot-ct {
+	background-color: #6f9ce6;
+}
+
+.team-t .tile-dot-t,
+.team-ct .tile-dot-ct {
+	visibility: visible;
+}
+
+/* The corner button: a star to keep the tile's pick, or a copy of it. */
+.tile-corner {
+	visibility: collapse;
+	width: 28px;
+	height: 28px;
+	margin: -3px -3px -25px 0;
+	horizontal-align: right;
+	z-index: 1;
+	border-radius: 3px;
+	background-image: url("s2r://panorama/images/custom_game/cs2menus/badge_star_outline.vsvg");
+	background-size: 18px 18px;
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	wash-color: #ffffffa3;
+}
+
+.corner-star:hover .tile-corner,
+.corner-star-on .tile-corner,
+.corner-star-undo .tile-corner,
+.corner-copy:hover .tile-corner {
+	visibility: visible;
+}
+
+.corner-star .tile-corner,
+.corner-copy .tile-corner {
+	background-color: #0d0f12cc;
+}
+
+.corner-star-on .tile-corner {
+	background-image: url("s2r://panorama/images/custom_game/cs2menus/badge_star.vsvg");
+	wash-color: #f5c542;
+}
+
+.corner-copy .tile-corner {
+	background-image: url("s2r://panorama/images/custom_game/cs2menus/badge_copy.vsvg");
+	background-size: 16px 16px;
+}
+
+.tile-corner:hover {
+	background-color: #0d0f12e6;
+	wash-color: #ffffff;
+}
+
+.corner-star-on .tile-corner:hover {
+	wash-color: #ffd970;
+}
+
+/* Just unstarred: dimmed until the menu is left, so a misclick is one click to undo */
+.corner-star-undo .tile-img,
+.corner-star-undo .sbtn-img,
+.corner-star-undo .tile-name,
+.corner-star-undo .sbtn-iname {
+	opacity: 0.4;
+}
+
+.tile-rarity {
+	visibility: collapse;
+	width: 100%;
+	height: 3px;
+	margin-top: 3px;
+	border-radius: 2px;
+}
+
+.rar-consumer .tile-rarity,
+.rar-industrial .tile-rarity,
+.rar-milspec .tile-rarity,
+.rar-highgrade .tile-rarity,
+.rar-restricted .tile-rarity,
+.rar-remarkable .tile-rarity,
+.rar-classified .tile-rarity,
+.rar-exotic .tile-rarity,
+.rar-covert .tile-rarity,
+.rar-extraordinary .tile-rarity,
+.rar-contraband .tile-rarity {
+	visibility: visible;
+}
+
+.rar-consumer .tile-rarity {
+	background-color: #b0c3d9;
+}
+
+.rar-industrial .tile-rarity {
+	background-color: #5e98d9;
+}
+
+.rar-milspec .tile-rarity,
+.rar-highgrade .tile-rarity {
+	background-color: #4b69ff;
+}
+
+.rar-restricted .tile-rarity,
+.rar-remarkable .tile-rarity {
+	background-color: #8847ff;
+}
+
+.rar-classified .tile-rarity,
+.rar-exotic .tile-rarity {
+	background-color: #d32ce6;
+}
+
+.rar-covert .tile-rarity,
+.rar-extraordinary .tile-rarity {
+	background-color: #eb4b4b;
+}
+
+.rar-contraband .tile-rarity {
+	background-color: #e4ae39;
+}
+
+/* A tile whose name is cut gets "long": hovering swaps the clamped name and the subtext for the whole name, the image
+   giving up the room. */
+.tile-full {
+	visibility: collapse;
+	width: 100%;
+	margin-top: 4px;
+	font-size: 14px;
+	text-align: center;
+}
+
+.long:hover .tile-full {
+	visibility: visible;
+}
+
+.long:hover .tile-name,
+.long:hover .tile-sub,
+.long:hover .sbtn-iname,
+.long:hover .sbtn-isub {
+	visibility: collapse;
+}

@@ -1,22 +1,22 @@
 #include "cs2menus.h"
 #include "common.h"
 
-#include "admin/menu_admin_bridge.h"
+#include "admin/bridge.h"
 
 #include "config/config.h"
-#include "db/prefs_db.h"
+#include "db/prefs.h"
 #include "mmu/entity/ccsplayercontroller.h"
 #include "entity/cgamerules.h"
 #include "mmu/entity/entity_system.h"
 #include "lang/translations.h"
 #include "menu/key_table.h"
-#include "menu/menu_manager.h"
+#include "menu/manager.h"
 #include "interfaces/cs2menus/ics2menus.h"
 #include "interfaces/multiaddonmanager/imultiaddonmanager.h"
 #include "render/center_html.h"
 #include "render/panorama_hud.h"
 #include "utils/html_style.h"
-#include "utils/print_utils.h"
+#include "utils/print.h"
 #include "mmu/cvarquery.h"
 #include "mmu/interface_bridge.h"
 #include "mmu/log.h"
@@ -433,6 +433,148 @@ class CS2MenusAPI : public ICS2Menus
 		g_MenuManager.ResumeMenu(slot);
 	}
 
+	bool BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel) override
+	{
+		return g_MenuManager.BeginMenuInput(slot, prompt, hint, std::move(onCancel));
+	}
+
+	void EndMenuInput(int slot) override
+	{
+		g_MenuManager.EndMenuInput(slot);
+	}
+
+	void SetMenuInputClearCallback(MenuHandle menu, MenuInputClearFn onClear) override
+	{
+		g_MenuManager.SetMenuInputClearCallback(menu, std::move(onClear));
+	}
+
+	bool ShowMenuMessage(int slot, const char *text, MenuTone tone, float seconds) override
+	{
+		return g_MenuManager.ShowMenuMessage(slot, text, tone, seconds);
+	}
+
+	bool ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger,
+						 MenuConfirmFn onDone) override
+	{
+		return g_MenuManager.ShowMenuConfirm(slot, title, body, cancel, confirm, danger, std::move(onDone));
+	}
+
+	void SetMenuEdited(MenuHandle menu, bool edited) override
+	{
+		g_MenuManager.SetMenuEdited(menu, edited);
+	}
+
+	bool GetMenuEdited(MenuHandle menu) override
+	{
+		return g_MenuManager.GetMenuEdited(menu);
+	}
+
+	void SetMenuScope(MenuHandle menu, const char *label, int teams) override
+	{
+		g_MenuManager.SetMenuScope(menu, label, teams);
+	}
+
+	void SetMenuScopeCallback(MenuHandle menu, MenuScopeFn onScope) override
+	{
+		g_MenuManager.SetMenuScopeCallback(menu, std::move(onScope));
+	}
+
+	int AddMenuTab(MenuHandle menu, const char *label, bool selected, bool marked, bool pinned) override
+	{
+		return g_MenuManager.AddMenuTab(menu, label, selected, marked, pinned);
+	}
+
+	void SetMenuTabCallback(MenuHandle menu, MenuTabFn onTab) override
+	{
+		g_MenuManager.SetMenuTabCallback(menu, std::move(onTab));
+	}
+
+	void SetMenuSecondaryItem(MenuHandle menu, int item) override
+	{
+		g_MenuManager.SetMenuSecondaryItem(menu, item);
+	}
+
+	void SetMenuEmpty(MenuHandle menu, const char *title, const char *text, bool loading) override
+	{
+		g_MenuManager.SetMenuEmpty(menu, title, text, loading);
+	}
+
+	bool AddMenuHint(int slot, const char *keys, const char *text) override
+	{
+		return g_MenuManager.AddMenuHint(slot, keys, text);
+	}
+
+	void ClearMenuHint(int slot) override
+	{
+		g_MenuManager.ClearMenuHint(slot);
+	}
+
+	void HideMenuHint(int slot) override
+	{
+		g_MenuManager.HideMenuHint(slot);
+	}
+
+	bool AddMenuHelp(int slot, const char *keys, const char *text) override
+	{
+		return g_MenuManager.AddMenuHelp(slot, keys, text);
+	}
+
+	void ClearMenuHelp(int slot) override
+	{
+		g_MenuManager.ClearMenuHelp(slot);
+	}
+
+	void SetMenuMirrored(int slot, bool mirrored) override
+	{
+		g_MenuManager.SetMenuMirrored(slot, mirrored);
+	}
+
+	void SetItemControl(MenuHandle menu, int item, bool control) override
+	{
+		g_MenuManager.SetItemControl(menu, item, control);
+	}
+
+	void SetItemRole(MenuHandle menu, int item, MenuItemRole role) override
+	{
+		g_MenuManager.SetItemRole(menu, item, role);
+	}
+
+	MenuItemRole GetItemRole(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemRole(menu, item);
+	}
+
+	void SetItemHighlight(MenuHandle menu, int item, bool highlight) override
+	{
+		g_MenuManager.SetItemHighlight(menu, item, highlight);
+	}
+
+	void SetItemSpan(MenuHandle menu, int item, int columns) override
+	{
+		g_MenuManager.SetItemSpan(menu, item, columns);
+	}
+
+	void SetMenuInfo(MenuHandle menu, const char *title, const char *subtitle, const char *subtitleColor) override
+	{
+		g_MenuManager.SetMenuInfo(menu, title, subtitle, subtitleColor);
+	}
+
+	void SetMenuInfoMeter(MenuHandle menu, float value, float rangeMin, float rangeMax, const float *bands, int bandCount, const char *label,
+						  const char *valueText) override
+	{
+		g_MenuManager.SetMenuInfoMeter(menu, value, rangeMin, rangeMax, bands, bandCount, label, valueText);
+	}
+
+	int AddMenuInfoRow(MenuHandle menu, const char *label, const char *value) override
+	{
+		return g_MenuManager.AddMenuInfoRow(menu, label, value);
+	}
+
+	void ClearMenuInfo(MenuHandle menu) override
+	{
+		g_MenuManager.ClearMenuInfo(menu);
+	}
+
 	bool HasMenu(int slot) override
 	{
 		return g_MenuManager.HasMenu(slot);
@@ -441,6 +583,11 @@ class CS2MenusAPI : public ICS2Menus
 	MenuHandle GetActiveMenu(int slot) override
 	{
 		return g_MenuManager.GetActiveMenu(slot);
+	}
+
+	MenuType GetSlotMenuType(int slot, MenuType type) override
+	{
+		return g_MenuManager.GetSlotMenuType(slot, type);
 	}
 
 	MenuType GetActiveMenuType(int slot) override
@@ -543,6 +690,95 @@ class CS2MenusAPI : public ICS2Menus
 	{
 		return g_MenuManager.GetItemSubtext(menu, item);
 	}
+
+	// --- Tile badges ---
+
+	void SetItemRarity(MenuHandle menu, int item, const char *rarity) override
+	{
+		g_MenuManager.SetItemRarity(menu, item, rarity);
+	}
+
+	void SetItemImageTint(MenuHandle menu, int item, const char *tint) override
+	{
+		g_MenuManager.SetItemImageTint(menu, item, tint);
+	}
+
+	const char *GetItemRarity(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemRarity(menu, item);
+	}
+
+	void SetItemTag(MenuHandle menu, int item, const char *tag, const char *style) override
+	{
+		g_MenuManager.SetItemTag(menu, item, tag, style);
+	}
+
+	const char *GetItemTag(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemTag(menu, item);
+	}
+
+	void SetItemTeams(MenuHandle menu, int item, int teams) override
+	{
+		g_MenuManager.SetItemTeams(menu, item, teams);
+	}
+
+	int GetItemTeams(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemTeams(menu, item);
+	}
+
+	void SetItemLocked(MenuHandle menu, int item, bool locked) override
+	{
+		g_MenuManager.SetItemLocked(menu, item, locked);
+	}
+
+	bool GetItemLocked(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemLocked(menu, item);
+	}
+
+	void SetItemCorner(MenuHandle menu, int item, MenuCorner corner) override
+	{
+		g_MenuManager.SetItemCorner(menu, item, corner);
+	}
+
+	MenuCorner GetItemCorner(MenuHandle menu, int item) override
+	{
+		return g_MenuManager.GetItemCorner(menu, item);
+	}
+
+	void SetMenuCornerCallback(MenuHandle menu, MenuItemCornerFn onCorner) override
+	{
+		g_MenuManager.SetMenuCornerCallback(menu, std::move(onCorner));
+	}
+
+	// --- Chips ---
+
+	int AddMenuChip(MenuHandle menu, const char *label, const char *const *options, int optionCount, int selected) override
+	{
+		return g_MenuManager.AddMenuChip(menu, label, options, optionCount, selected, false);
+	}
+
+	int AddMenuAction(MenuHandle menu, const char *label, const char *const *options, int optionCount, bool accent) override
+	{
+		return g_MenuManager.AddMenuChip(menu, label, options, optionCount, accent ? 1 : 0, true);
+	}
+
+	int AddMenuNote(MenuHandle menu, const char *label, const char *value) override
+	{
+		return g_MenuManager.AddMenuNote(menu, label, value);
+	}
+
+	void SetMenuChipOptionTone(MenuHandle menu, int chip, int option, MenuTone tone) override
+	{
+		g_MenuManager.SetMenuChipOptionTone(menu, chip, option, tone);
+	}
+
+	void SetMenuChipCallback(MenuHandle menu, MenuChipFn onChip) override
+	{
+		g_MenuManager.SetMenuChipCallback(menu, std::move(onChip));
+	}
 };
 
 static CS2MenusAPI g_CS2MenusAPI;
@@ -556,7 +792,8 @@ ICS2Menus *Cs2Menus_GetLocalAPI()
 
 void *CS2MenusPlugin::OnMetamodQuery(const char *iface, int *ret)
 {
-	if (!strcmp(iface, CS2MENUS_INTERFACE) || !strcmp(iface, "ICS2Menus003"))
+	// An older client calls a shorter prefix of the same table, by position.
+	if (!strcmp(iface, CS2MENUS_INTERFACE) || !strcmp(iface, "ICS2Menus004") || !strcmp(iface, "ICS2Menus003"))
 	{
 		if (ret)
 		{

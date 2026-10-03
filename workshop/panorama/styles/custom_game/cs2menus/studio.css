@@ -1,0 +1,734 @@
+/* studio.xml: the showcase's buttons in a column at the right edge, the rest of the screen left to a 3D preview.
+   A click anywhere else (cs_stage) hands the mouse to the view, the root gets "turning" until the plugin hands it back.
+   Buttons, tabs and pager come from showcase.css's sizes and grid.css, the window, popups and palette from menu.css. */
+
+#cs_root {
+	width: 100%;
+	height: 100%;
+	color: #ffffff;
+}
+
+#cs_root.hidden {
+	visibility: collapse;
+}
+
+/* Behind the box, catches every click that misses it. */
+.stage-area {
+	width: 100%;
+	height: 100%;
+}
+
+/* The hint pill at the screen's foot: parts of key caps and a text, a line between them. The server fills cs_hint<N>. */
+.hint-pill {
+	horizontal-align: center;
+	vertical-align: bottom;
+	margin-bottom: 140px;
+	height: 42px;
+	padding: 0px 18px 0px 14px;
+	flow-children: right;
+	border-radius: 21px;
+	border: 1px solid #ffffff17;
+	background-color: #0d0f12b8;
+}
+
+.hpart {
+	flow-children: right;
+	vertical-align: center;
+}
+
+.hpart.hidden,
+.hkey.hidden,
+.hpart.first .hsep {
+	visibility: collapse;
+}
+
+.hsep {
+	width: 1px;
+	height: 18px;
+	margin: 0px 14px;
+	vertical-align: center;
+	background-color: #ffffff38;
+}
+
+.hkey {
+	height: 22px;
+	min-width: 22px;
+	padding: 3px 6px 0px 6px;
+	margin-right: 4px;
+	vertical-align: center;
+	border-radius: 3px;
+	border: 1px solid #ffffff38;
+	background-color: #ffffff1c;
+	font-size: 11px;
+	font-weight: bold;
+	letter-spacing: 0.6px;
+	text-align: center;
+	color: #ffffff;
+}
+
+.htxt {
+	vertical-align: center;
+	margin-left: 6px;
+	font-size: 16px;
+	white-space: nowrap;
+	color: #ffffffa3;
+}
+
+.hpart.caption .htxt {
+	margin-left: 0px;
+	color: #ffffff;
+}
+
+/* The plugin asked for no pill, as for a preview in the player's own view. */
+#cs_root.nohint .hint-pill {
+	visibility: collapse;
+}
+
+/* The control panel, kept on screen whatever the page, on the left edge, its top level with the box's.
+   Rows of 3 buttons of 106 plus 3px margins (336) in the 339 its padding leaves,
+   3 more of it on the left so a row sits as far from either edge. Solid like the box. */
+.left-col {
+	horizontal-align: left;
+	vertical-align: top;
+	margin-top: 200px;
+	margin-left: 24px;
+	width: 364px;
+	flow-children: down;
+}
+
+.controls-panel {
+	width: 100%;
+	flow-children: right-wrap;
+	padding: 10px 10px 10px 13px;
+	border: 1px solid #ffffff17;
+	border-radius: 5px;
+	background-image: url("s2r://panorama/images/backgrounds/bluedots_large_png.vtex");
+	background-size: 360px 360px;
+	background-img-opacity: 0.01;
+	background-color: rgb(13, 15, 18);
+}
+
+.controls-panel.hidden {
+	visibility: collapse;
+}
+
+#cs_root.turning .controls-panel {
+	opacity: 0.35;
+}
+
+/* One tab per section of the control items, a full row above the buttons. */
+.ctabs {
+	width: 100%;
+	flow-children: right;
+	margin: 0px 3px 6px 3px;
+}
+
+.ctabs.hidden {
+	visibility: collapse;
+}
+
+.ctab {
+	width: fill-parent-flow(1);
+	height: 32px;
+	margin-right: 3px;
+	border-bottom: 2px solid #ffffff14;
+	transition-property: background-color, border-color;
+	transition-duration: 0.05s;
+}
+
+.ctab:hover {
+	background-color: #ffffff14;
+}
+
+.ctab.selected {
+	border-bottom: 2px solid #24f097b3;
+	background-color: #ffffff0d;
+}
+
+.ctab.hidden {
+	visibility: collapse;
+}
+
+.ctab-label {
+	horizontal-align: center;
+	vertical-align: center;
+	font-size: 14px;
+	text-transform: uppercase;
+	white-space: nowrap;
+	text-overflow: shrink;
+}
+
+.snd .ctab:hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .ctab:active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+/* The key list's button at the tabs' end, lit while the list is open: the root has "help" then. */
+.help-btn {
+	width: 24px;
+	height: 24px;
+	vertical-align: center;
+	border-radius: 3px;
+	border: 1px solid #ffffff38;
+	background-color: #00000000;
+	transition-property: background-color, border-color;
+	transition-duration: 0.05s;
+}
+
+.help-btn:hover {
+	background-color: #ffffff1c;
+}
+
+.help-btn.hidden {
+	visibility: collapse;
+}
+
+/* The mark sits a little high and left in its line's box. A margin moves a centered label by half of itself. */
+.help-btn-label {
+	horizontal-align: center;
+	vertical-align: center;
+	margin: 2px 0px 0px 3px;
+	font-size: 13px;
+	font-weight: bold;
+	color: #ffffffa3;
+}
+
+#cs_root.help .help-btn {
+	border-color: #24f09785;
+	background-color: #24f09721;
+}
+
+#cs_root.help .help-btn-label {
+	color: #24f097;
+}
+
+.snd .help-btn:hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .help-btn:active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+.cbtn {
+	width: 106px;
+	height: 40px;
+	margin: 3px;
+	border-radius: 3px;
+	border: 1px solid #ffffff14;
+	background-color: #ffffff0d;
+	transition-property: background-color, border-color;
+	transition-duration: 0.05s;
+}
+
+.cbtn:hover {
+	background-color: #ffffff1f;
+	border-color: #ffffff40;
+}
+
+/* Readouts: shown, not pressed. */
+.cbtn.disabled {
+	background-color: #00000000;
+	border-color: #00000000;
+}
+
+.cbtn.hidden {
+	visibility: collapse;
+}
+
+.cbtn-label {
+	horizontal-align: center;
+	vertical-align: center;
+	font-size: 15px;
+	white-space: nowrap;
+	text-overflow: shrink;
+}
+
+.snd .cbtn:not(.disabled):hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .cbtn:not(.disabled):active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+/* 3 buttons of 144 plus padding and a border, and 4 to spare. Fits its content on the right edge,
+   its top fixed so a taller tab only grows it down. */
+.studio-box {
+	horizontal-align: right;
+	vertical-align: top;
+	margin-top: 200px;
+	margin-right: 24px;
+	width: 474px;
+	height: fit-children;
+	max-height: 820px;
+}
+
+/* One line in the narrow box, the font shrinks rather than wrapping. */
+#cs_root .menu-title {
+	white-space: nowrap;
+	text-overflow: shrink;
+}
+
+/* Out of the way while the mouse turns the view. */
+#cs_root.turning .studio-box {
+	opacity: 0.35;
+}
+
+/* Collapsed: only the header, where the box's top edge was. */
+#cs_root.collapsed .body {
+	visibility: collapse;
+}
+
+.body {
+	width: 100%;
+	flow-children: down;
+}
+
+/* Section tabs wrap in the narrow column, and are smaller so six fit a line. */
+#cs_root .tabs {
+	flow-children: right-wrap;
+}
+
+#cs_root .tab {
+	padding: 6px 9px;
+}
+
+#cs_root .tab-label {
+	font-size: 13px;
+}
+
+/* Rows of 432 in the box's 436: 2 before them, 2 to spare after. */
+.controls {
+	width: 100%;
+	padding-left: 2px;
+	flow-children: down;
+}
+
+.sbtns {
+	width: 100%;
+	flow-children: right-wrap;
+}
+
+.sbtn {
+	width: 138px;
+	height: 58px;
+	margin: 3px;
+	padding: 4px 6px;
+	border-radius: 3px;
+	border: 1px solid #ffffff14;
+	background-color: #ffffff0d;
+	transition-property: background-color, border-color;
+	transition-duration: 0.05s;
+}
+
+.sbtn:hover {
+	background-color: #ffffff1f;
+	border-color: #ffffff40;
+}
+
+.sbtn.disabled {
+	opacity: 0.6;
+}
+
+.sbtn.disabled:hover {
+	background-color: #ffffff0d;
+	border-color: #ffffff14;
+}
+
+.sbtn.type-toggle.on {
+	border-color: #24f09780;
+	background-color: #24f09726;
+}
+
+.sbtn.hidden {
+	visibility: collapse;
+}
+
+.sbtn-name {
+	max-width: 100%;
+	horizontal-align: center;
+	vertical-align: center;
+	font-size: 16px;
+	white-space: nowrap;
+	text-overflow: shrink;
+}
+
+.sbtn-sub {
+	width: 100%;
+	vertical-align: bottom;
+	font-size: 13px;
+	text-align: center;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	opacity: 0.7;
+}
+
+.snd .sbtn:not(.disabled):hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .sbtn:not(.disabled):active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+/* The pinned item's button under the buttons, as wide as their rows. The secondary item's before it, a column wide. */
+.action-row {
+	width: 426px;
+	margin: 0px 3px;
+	flow-children: right;
+}
+
+.action2-btn {
+	width: 138px;
+	height: 52px;
+	margin: 10px 6px 0px 0px;
+	border-radius: 3px;
+	border: 1px solid #ffffff14;
+	background-color: #ffffff0d;
+	transition-property: background-color, border-color;
+	transition-duration: 0.05s;
+}
+
+.action2-btn:hover {
+	background-color: #ffffff1f;
+	border-color: #ffffff40;
+}
+
+.action2-btn.disabled {
+	opacity: 0.35;
+}
+
+.action2-btn.disabled:hover {
+	background-color: #ffffff0d;
+	border-color: #ffffff14;
+}
+
+.action2-btn.hidden {
+	visibility: collapse;
+}
+
+.action2-label {
+	horizontal-align: center;
+	vertical-align: center;
+	font-size: 16px;
+	white-space: nowrap;
+}
+
+.snd .action2-btn:not(.disabled):hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .action2-btn:not(.disabled):active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+.action-btn {
+	width: fill-parent-flow(1);
+	height: 52px;
+	margin-top: 10px;
+	border-radius: 3px;
+	border: 1px solid #24f09766;
+	background-color: #24f09726;
+	transition-property: background-color, border-color;
+	transition-duration: 0.05s;
+}
+
+.action-btn:hover {
+	border-color: #24f097b3;
+	background-color: #24f09740;
+}
+
+.action-btn.disabled {
+	opacity: 0.4;
+}
+
+.action-btn.hidden {
+	visibility: collapse;
+}
+
+.action-label {
+	horizontal-align: center;
+	vertical-align: center;
+	font-size: 18px;
+	font-weight: bold;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	white-space: nowrap;
+}
+
+.snd .action-btn:not(.disabled):hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .action-btn:not(.disabled):active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+/* Popups open left of the box, level with its top: its width, its margin and a 14px gap. */
+#cs_root .popup {
+	horizontal-align: right;
+	margin-top: 200px;
+	x: -512px;
+}
+
+/* Mirrored, as for an item held in the left hand:
+   the box at the left edge, the control panel and its cards at the right, popups right of the box. */
+#cs_root.mirror .studio-box {
+	horizontal-align: left;
+	margin-left: 24px;
+	margin-right: 0px;
+}
+
+#cs_root.mirror .left-col {
+	horizontal-align: right;
+	margin-left: 0px;
+	margin-right: 24px;
+}
+
+#cs_root.mirror .popup {
+	horizontal-align: left;
+	x: 512px;
+}
+
+/* The info card: a window of its own under the control panel. */
+#cs_root .info-card {
+	padding: 14px;
+	border: 1px solid #ffffff17;
+	border-radius: 5px;
+	background-color: rgb(13, 15, 18);
+}
+
+/* 334 inside its padding and border: rows of 165, the second of a line 167. */
+#cs_root .info-row {
+	width: 165px;
+}
+
+#cs_root .info-row.end {
+	width: 167px;
+}
+
+#cs_root .info-row.wide {
+	width: 100%;
+}
+
+#cs_root.turning .info-card {
+	opacity: 0.35;
+}
+
+#cs_root.collapsed .info-card {
+	visibility: collapse;
+}
+
+/* The key list, in the info card's place while the root has "help":
+   a row of key caps, the hint pill's, and what they do. */
+.help-card {
+	width: 100%;
+	flow-children: down;
+	margin-top: 10px;
+	padding: 14px;
+	border: 1px solid #ffffff17;
+	border-radius: 5px;
+	background-color: rgb(13, 15, 18);
+}
+
+.help-card.hidden,
+.help-row.hidden,
+#cs_root.help .info-card,
+#cs_root.collapsed .help-card {
+	visibility: collapse;
+}
+
+#cs_root.turning .help-card {
+	opacity: 0.35;
+}
+
+.help-card .info-title {
+	margin-bottom: 6px;
+}
+
+.help-row {
+	width: 100%;
+	height: 32px;
+	flow-children: right;
+	border-top: 1px solid #ffffff0d;
+}
+
+.help-keys {
+	width: 120px;
+	vertical-align: center;
+	flow-children: right;
+}
+
+.help-text {
+	width: fill-parent-flow(1);
+	vertical-align: center;
+	font-size: 14px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: #ffffffa3;
+}
+
+/* The buttons' roles, as in showcase.css, at the studio's sizes. */
+.sbtn.readout {
+	background-color: #00000000;
+	border-color: #ffffff0f;
+}
+
+.sbtn.readout:hover {
+	background-color: #00000000;
+	border-color: #ffffff0f;
+}
+
+.sbtn.readout .sbtn-sub {
+	vertical-align: top;
+	font-size: 11px;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+}
+
+.sbtn.readout .sbtn-name {
+	vertical-align: bottom;
+	margin-bottom: 4px;
+	font-size: 18px;
+	font-weight: bold;
+}
+
+.sbtn.highlight,
+.cbtn.highlight {
+	border-color: #24f09780;
+	background-color: #24f09726;
+}
+
+.sbtn.span2 {
+	width: 282px;
+}
+
+.sbtn.span3 {
+	width: 426px;
+}
+
+.cbtn.span2 {
+	width: 218px;
+}
+
+.cbtn.span3 {
+	width: 330px;
+}
+
+.cbtn-sub {
+	visibility: collapse;
+	width: 100%;
+	vertical-align: top;
+	margin-top: 2px;
+	font-size: 10px;
+	letter-spacing: 1px;
+	text-align: center;
+	text-transform: uppercase;
+	color: #ffffffa3;
+}
+
+.cbtn.readout {
+	background-color: #00000000;
+	border-color: #ffffff0f;
+}
+
+.cbtn.readout:hover {
+	background-color: #00000000;
+	border-color: #ffffff0f;
+}
+
+.cbtn.readout .cbtn-sub {
+	visibility: visible;
+}
+
+.cbtn.readout .cbtn-label {
+	vertical-align: bottom;
+	margin-bottom: 2px;
+	font-weight: bold;
+}
+
+/* A heading over the controls after it, on a row of its own. */
+.cbtn.heading {
+	width: 330px;
+	height: 16px;
+	margin: 7px 3px 1px 3px;
+}
+
+.cbtn.heading .cbtn-label {
+	horizontal-align: left;
+	margin-left: 2px;
+	font-size: 11px;
+	font-weight: bold;
+	letter-spacing: 1.2px;
+	text-transform: uppercase;
+	color: #ffffffa3;
+}
+
+/* A Choice drawn in place, as buttons.css has it for the box:
+   a control per option joined into one row. 5 don't divide 324, the last takes the rest. */
+.cbtn.seg {
+	margin: 3px 0px;
+	border-radius: 0px;
+	border-left: 0px solid #00000000;
+}
+
+.cbtn.seg-first {
+	margin-left: 3px;
+	border-left: 1px solid #ffffff14;
+	border-radius: 3px 0px 0px 3px;
+}
+
+.cbtn.seg-last {
+	margin-right: 3px;
+	border-radius: 0px 3px 3px 0px;
+}
+
+.cbtn.seg-n2 {
+	width: 165px;
+}
+
+.cbtn.seg-n3 {
+	width: 110px;
+}
+
+.cbtn.seg-n4 {
+	width: 82px;
+}
+
+.cbtn.seg-n4.seg-last {
+	width: 84px;
+}
+
+.cbtn.seg-n5 {
+	width: 66px;
+}
+
+.cbtn.seg .cbtn-label {
+	color: #ffffffa3;
+}
+
+.cbtn.fill1 {
+	margin-right: 115px;
+}
+
+.cbtn.fill2 {
+	margin-right: 227px;
+}
+
+.cbtn.seg.disabled {
+	border-color: #ffffff14;
+	background-color: #ffffff0d;
+	opacity: 0.4;
+}
+
+.cbtn.seg.highlight {
+	border: 1px solid #24f09785;
+}
+
+.cbtn.seg.highlight .cbtn-label {
+	color: #24f097;
+}

@@ -677,6 +677,7 @@
 .img-coin__trophy_majors_finalists { background-image: url("s2r://panorama/images/econ/status_icons/trophy_majors_finalists_png.vtex"); }
 .img-coin__xpgrant { background-image: url("s2r://panorama/images/econ/status_icons/xpgrant_png.vtex"); }
 .img-coin__xpshopticket1 { background-image: url("s2r://panorama/images/econ/status_icons/xpshopticket1_png.vtex"); }
+.img-collectible { background-image: url("s2r://panorama/images/custom_game/cs2menus/collectible.vsvg"); }
 .img-ct_gloves { background-image: url("s2r://panorama/images/econ/weapons/base_weapons/ct_gloves_png.vtex"); }
 .img-ct_logo { background-image: url("s2r://panorama/images/custom_game/cs2menus/ct_logo.vsvg"); }
 .img-customplayer { background-image: url("s2r://panorama/images/custom_game/cs2menus/customplayer.vsvg"); }
@@ -1109,6 +1110,7 @@
 .img-music__valve_01 { background-image: url("s2r://panorama/images/econ/music_kits/valve_01_png.vtex"); }
 .img-music__valve_02 { background-image: url("s2r://panorama/images/econ/music_kits/valve_02_png.vtex"); }
 .img-music__valve_cs2_01 { background-image: url("s2r://panorama/images/econ/music_kits/valve_cs2_01_png.vtex"); }
+.img-music_kit { background-image: url("s2r://panorama/images/custom_game/cs2menus/music_kit.vsvg"); }
 .img-negev { background-image: url("s2r://panorama/images/custom_game/cs2menus/negev.vsvg"); }
 .img-nova { background-image: url("s2r://panorama/images/custom_game/cs2menus/nova.vsvg"); }
 .img-p2000 { background-image: url("s2r://panorama/images/custom_game/cs2menus/p2000.vsvg"); }

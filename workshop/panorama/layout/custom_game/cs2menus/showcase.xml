@@ -3,15 +3,25 @@
     <include src="file://{resources}/styles/custom_game/cs2menus/fonts.css" />
     <include src="file://{resources}/styles/custom_game/cs2menus/menu.css" />
     <include src="file://{resources}/styles/custom_game/cs2menus/grid.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/info.css" />
     <include src="file://{resources}/styles/custom_game/cs2menus/showcase.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/buttons.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/badges.css" />
     <include src="file://{resources}/styles/custom_game/cs2menus/econ.css" />
     <include src="file://{resources}/styles/custom_game/cs2menus/econ_wear.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/econ_stickers.css" />
   </styles>
   <Panel class="root" hittest="false">
     <Panel id="cx_root" class="menu hidden">
-      <Panel class="menu-box showcase-box">
+      <Panel class="menu-box">
         <Panel class="window-header">
           <Label id="cx_title" class="menu-title" text="{s:cx_title}" />
+          <Button id="cx_scope" class="scope-chip hidden">
+            <Panel class="scope-dot scope-dot-t" />
+            <Panel class="scope-dot scope-dot-ct" />
+            <Label id="cx_scope_lbl" class="scope-label" text="{s:cx_scope_lbl}" />
+          </Button>
+          <Label id="cx_edited" class="edited-mark" text="{s:cx_edited}" />
           <Button id="cx_back" class="hist-btn back-btn disabled" />
           <Button id="cx_forward" class="hist-btn forward-btn disabled" />
           <Button id="cx_refresh" class="hist-btn refresh-btn disabled" />
@@ -19,124 +29,645 @@
           <Button id="cx_close" class="close-btn" />
         </Panel>
         <Panel class="body">
-          <Panel id="cx_pages" class="tabs">
-            <Button id="cx_nav0" class="tab hidden">
-              <Label id="cx_nav_lbl0" class="tab-label" text="{s:cx_nav_lbl0}" />
+          <Panel class="tabrow">
+            <Panel id="cx_pages" class="tabs">
+              <Button id="cx_nav0" class="tab hidden">
+                <Panel class="tab-dot" />
+                <Label id="cx_nav_lbl0" class="tab-label" text="{s:cx_nav_lbl0}" />
+                <Panel class="tab-caret" />
+              </Button>
+              <Button id="cx_nav1" class="tab hidden">
+                <Panel class="tab-dot" />
+                <Label id="cx_nav_lbl1" class="tab-label" text="{s:cx_nav_lbl1}" />
+                <Panel class="tab-caret" />
+              </Button>
+              <Button id="cx_nav2" class="tab hidden">
+                <Panel class="tab-dot" />
+                <Label id="cx_nav_lbl2" class="tab-label" text="{s:cx_nav_lbl2}" />
+                <Panel class="tab-caret" />
+              </Button>
+              <Button id="cx_nav3" class="tab hidden">
+                <Panel class="tab-dot" />
+                <Label id="cx_nav_lbl3" class="tab-label" text="{s:cx_nav_lbl3}" />
+                <Panel class="tab-caret" />
+              </Button>
+              <Button id="cx_nav4" class="tab hidden">
+                <Panel class="tab-dot" />
+                <Label id="cx_nav_lbl4" class="tab-label" text="{s:cx_nav_lbl4}" />
+                <Panel class="tab-caret" />
+              </Button>
+              <Button id="cx_nav5" class="tab hidden">
+                <Panel class="tab-dot" />
+                <Label id="cx_nav_lbl5" class="tab-label" text="{s:cx_nav_lbl5}" />
+                <Panel class="tab-caret" />
+              </Button>
+              <Button id="cx_nav6" class="tab hidden">
+                <Panel class="tab-dot" />
+                <Label id="cx_nav_lbl6" class="tab-label" text="{s:cx_nav_lbl6}" />
+                <Panel class="tab-caret" />
+              </Button>
+              <Button id="cx_nav7" class="tab hidden">
+                <Panel class="tab-dot" />
+                <Label id="cx_nav_lbl7" class="tab-label" text="{s:cx_nav_lbl7}" />
+                <Panel class="tab-caret" />
+              </Button>
+              <Button id="cx_nav8" class="tab hidden">
+                <Panel class="tab-dot" />
+                <Label id="cx_nav_lbl8" class="tab-label" text="{s:cx_nav_lbl8}" />
+                <Panel class="tab-caret" />
+              </Button>
+              <Button id="cx_nav9" class="tab hidden">
+                <Panel class="tab-dot" />
+                <Label id="cx_nav_lbl9" class="tab-label" text="{s:cx_nav_lbl9}" />
+                <Panel class="tab-caret" />
+              </Button>
+            </Panel>
+            <Panel id="cx_pager" class="pager hidden">
+              <Button id="cx_prev" class="popup-btn"><Label class="popup-btn-label" text="&lt;" /></Button>
+              <Label id="cx_page" class="popup-page" text="{s:cx_page}" />
+              <Button id="cx_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
+            </Panel>
+          </Panel>
+          <Button id="cx_input" class="input-bar hidden">
+            <Panel class="input-icon" />
+            <Label id="cx_input_text" class="input-text" text="{s:cx_input_text}" />
+            <Label id="cx_input_hint" class="input-hint" text="{s:cx_input_hint}" />
+            <Button id="cx_input_x" class="input-x" />
+          </Button>
+          <Panel id="cx_chips" class="chips hidden">
+            <Button id="cx_chip0" class="chip hidden">
+              <Label id="cx_chip_lbl0" class="chip-label" text="{s:cx_chip_lbl0}" />
+              <Label id="cx_chip_val0" class="chip-value" text="{s:cx_chip_val0}" />
+              <Panel class="chip-caret" />
             </Button>
-            <Button id="cx_nav1" class="tab hidden">
-              <Label id="cx_nav_lbl1" class="tab-label" text="{s:cx_nav_lbl1}" />
+            <Button id="cx_chip1" class="chip hidden">
+              <Label id="cx_chip_lbl1" class="chip-label" text="{s:cx_chip_lbl1}" />
+              <Label id="cx_chip_val1" class="chip-value" text="{s:cx_chip_val1}" />
+              <Panel class="chip-caret" />
             </Button>
-            <Button id="cx_nav2" class="tab hidden">
-              <Label id="cx_nav_lbl2" class="tab-label" text="{s:cx_nav_lbl2}" />
+            <Button id="cx_chip2" class="chip hidden">
+              <Label id="cx_chip_lbl2" class="chip-label" text="{s:cx_chip_lbl2}" />
+              <Label id="cx_chip_val2" class="chip-value" text="{s:cx_chip_val2}" />
+              <Panel class="chip-caret" />
             </Button>
-            <Button id="cx_nav3" class="tab hidden">
-              <Label id="cx_nav_lbl3" class="tab-label" text="{s:cx_nav_lbl3}" />
+            <Button id="cx_chip3" class="chip hidden">
+              <Label id="cx_chip_lbl3" class="chip-label" text="{s:cx_chip_lbl3}" />
+              <Label id="cx_chip_val3" class="chip-value" text="{s:cx_chip_val3}" />
+              <Panel class="chip-caret" />
             </Button>
-            <Button id="cx_nav4" class="tab hidden">
-              <Label id="cx_nav_lbl4" class="tab-label" text="{s:cx_nav_lbl4}" />
+            <Button id="cx_chip4" class="chip hidden">
+              <Label id="cx_chip_lbl4" class="chip-label" text="{s:cx_chip_lbl4}" />
+              <Label id="cx_chip_val4" class="chip-value" text="{s:cx_chip_val4}" />
+              <Panel class="chip-caret" />
             </Button>
-            <Button id="cx_nav5" class="tab hidden">
-              <Label id="cx_nav_lbl5" class="tab-label" text="{s:cx_nav_lbl5}" />
-            </Button>
-            <Button id="cx_nav6" class="tab hidden">
-              <Label id="cx_nav_lbl6" class="tab-label" text="{s:cx_nav_lbl6}" />
-            </Button>
-            <Button id="cx_nav7" class="tab hidden">
-              <Label id="cx_nav_lbl7" class="tab-label" text="{s:cx_nav_lbl7}" />
-            </Button>
-            <Button id="cx_nav8" class="tab hidden">
-              <Label id="cx_nav_lbl8" class="tab-label" text="{s:cx_nav_lbl8}" />
-            </Button>
-            <Button id="cx_nav9" class="tab hidden">
-              <Label id="cx_nav_lbl9" class="tab-label" text="{s:cx_nav_lbl9}" />
+            <Button id="cx_chip5" class="chip hidden">
+              <Label id="cx_chip_lbl5" class="chip-label" text="{s:cx_chip_lbl5}" />
+              <Label id="cx_chip_val5" class="chip-value" text="{s:cx_chip_val5}" />
+              <Panel class="chip-caret" />
             </Button>
           </Panel>
           <Panel class="showcase">
             <Panel class="stage">
               <Panel id="cx_shot" class="shot" />
-              <Button id="cx_action" class="action-btn hidden">
-                <Label id="cx_action_lbl" class="action-label" text="{s:cx_action_lbl}" />
-              </Button>
+              <Panel id="cx_info" class="info-card hidden">
+                <Label id="cx_info_title" class="info-title" text="{s:cx_info_title}" />
+                <Label id="cx_info_sub" class="info-sub" text="{s:cx_info_sub}" />
+                <Panel id="cx_info_meter" class="info-meter hidden">
+                  <Panel class="info-bar">
+                    <Panel id="cx_info_band0" class="info-band info-band0" />
+                    <Panel id="cx_info_band1" class="info-band info-band1" />
+                    <Panel id="cx_info_band2" class="info-band info-band2" />
+                    <Panel id="cx_info_band3" class="info-band info-band3" />
+                    <Panel id="cx_info_band4" class="info-band info-band4" />
+                  </Panel>
+                  <Panel class="info-dims">
+                    <Panel id="cx_info_dim_l" class="info-dim" />
+                    <Panel id="cx_info_gap" class="info-gap" />
+                    <Panel id="cx_info_dim_r" class="info-dim" />
+                  </Panel>
+                  <Panel class="info-markrow">
+                    <Panel id="cx_info_mark_sp" class="info-mark-sp" />
+                    <Panel class="info-mark" />
+                  </Panel>
+                  <Panel class="info-read">
+                    <Label id="cx_info_mlabel" class="info-mlabel" text="{s:cx_info_mlabel}" />
+                    <Label id="cx_info_mvalue" class="info-mvalue" text="{s:cx_info_mvalue}" />
+                  </Panel>
+                </Panel>
+                <Panel class="info-rows">
+                  <Panel id="cx_info_row0" class="info-row hidden">
+                    <Label id="cx_info_rl0" class="info-rl" text="{s:cx_info_rl0}" />
+                    <Label id="cx_info_rv0" class="info-rv" text="{s:cx_info_rv0}" />
+                  </Panel>
+                  <Panel id="cx_info_row1" class="info-row hidden">
+                    <Label id="cx_info_rl1" class="info-rl" text="{s:cx_info_rl1}" />
+                    <Label id="cx_info_rv1" class="info-rv" text="{s:cx_info_rv1}" />
+                  </Panel>
+                  <Panel id="cx_info_row2" class="info-row hidden">
+                    <Label id="cx_info_rl2" class="info-rl" text="{s:cx_info_rl2}" />
+                    <Label id="cx_info_rv2" class="info-rv" text="{s:cx_info_rv2}" />
+                  </Panel>
+                  <Panel id="cx_info_row3" class="info-row hidden">
+                    <Label id="cx_info_rl3" class="info-rl" text="{s:cx_info_rl3}" />
+                    <Label id="cx_info_rv3" class="info-rv" text="{s:cx_info_rv3}" />
+                  </Panel>
+                  <Panel id="cx_info_row4" class="info-row hidden">
+                    <Label id="cx_info_rl4" class="info-rl" text="{s:cx_info_rl4}" />
+                    <Label id="cx_info_rv4" class="info-rv" text="{s:cx_info_rv4}" />
+                  </Panel>
+                  <Panel id="cx_info_row5" class="info-row hidden">
+                    <Label id="cx_info_rl5" class="info-rl" text="{s:cx_info_rl5}" />
+                    <Label id="cx_info_rv5" class="info-rv" text="{s:cx_info_rv5}" />
+                  </Panel>
+                  <Panel id="cx_info_row6" class="info-row hidden">
+                    <Label id="cx_info_rl6" class="info-rl" text="{s:cx_info_rl6}" />
+                    <Label id="cx_info_rv6" class="info-rv" text="{s:cx_info_rv6}" />
+                  </Panel>
+                  <Panel id="cx_info_row7" class="info-row hidden">
+                    <Label id="cx_info_rl7" class="info-rl" text="{s:cx_info_rl7}" />
+                    <Label id="cx_info_rv7" class="info-rv" text="{s:cx_info_rv7}" />
+                  </Panel>
+                  <Panel id="cx_info_row8" class="info-row hidden">
+                    <Label id="cx_info_rl8" class="info-rl" text="{s:cx_info_rl8}" />
+                    <Label id="cx_info_rv8" class="info-rv" text="{s:cx_info_rv8}" />
+                  </Panel>
+                  <Panel id="cx_info_row9" class="info-row hidden">
+                    <Label id="cx_info_rl9" class="info-rl" text="{s:cx_info_rl9}" />
+                    <Label id="cx_info_rv9" class="info-rv" text="{s:cx_info_rv9}" />
+                  </Panel>
+                </Panel>
+              </Panel>
             </Panel>
             <Panel class="controls">
               <Panel class="sbtns">
+                <Panel id="cx_empty" class="empty-state hidden">
+                  <Label id="cx_empty_title" class="empty-title" text="{s:cx_empty_title}" />
+                  <Label id="cx_empty_text" class="empty-text" text="{s:cx_empty_text}" />
+                </Panel>
                 <Button id="cx_item0" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag0" class="tile-tag" text="{s:cx_tag0}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner0" class="tile-corner" />
+                    <Panel id="cx_img0" class="sbtn-img" />
+                    <Label id="cx_iname0" class="sbtn-iname" text="{s:cx_iname0}" />
+                    <Label id="cx_ival0" class="sbtn-isub" text="{s:cx_ival0}" />
+                    <Label id="cx_full0" class="tile-full" text="{s:cx_full0}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name0" class="sbtn-name" text="{s:cx_name0}" />
+                  <Label id="cx_btag0" class="sbtn-tag" text="{s:cx_btag0}" />
                   <Label id="cx_val0" class="sbtn-sub" text="{s:cx_val0}" />
                 </Button>
                 <Button id="cx_item1" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag1" class="tile-tag" text="{s:cx_tag1}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner1" class="tile-corner" />
+                    <Panel id="cx_img1" class="sbtn-img" />
+                    <Label id="cx_iname1" class="sbtn-iname" text="{s:cx_iname1}" />
+                    <Label id="cx_ival1" class="sbtn-isub" text="{s:cx_ival1}" />
+                    <Label id="cx_full1" class="tile-full" text="{s:cx_full1}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name1" class="sbtn-name" text="{s:cx_name1}" />
+                  <Label id="cx_btag1" class="sbtn-tag" text="{s:cx_btag1}" />
                   <Label id="cx_val1" class="sbtn-sub" text="{s:cx_val1}" />
                 </Button>
                 <Button id="cx_item2" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag2" class="tile-tag" text="{s:cx_tag2}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner2" class="tile-corner" />
+                    <Panel id="cx_img2" class="sbtn-img" />
+                    <Label id="cx_iname2" class="sbtn-iname" text="{s:cx_iname2}" />
+                    <Label id="cx_ival2" class="sbtn-isub" text="{s:cx_ival2}" />
+                    <Label id="cx_full2" class="tile-full" text="{s:cx_full2}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name2" class="sbtn-name" text="{s:cx_name2}" />
+                  <Label id="cx_btag2" class="sbtn-tag" text="{s:cx_btag2}" />
                   <Label id="cx_val2" class="sbtn-sub" text="{s:cx_val2}" />
                 </Button>
                 <Button id="cx_item3" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag3" class="tile-tag" text="{s:cx_tag3}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner3" class="tile-corner" />
+                    <Panel id="cx_img3" class="sbtn-img" />
+                    <Label id="cx_iname3" class="sbtn-iname" text="{s:cx_iname3}" />
+                    <Label id="cx_ival3" class="sbtn-isub" text="{s:cx_ival3}" />
+                    <Label id="cx_full3" class="tile-full" text="{s:cx_full3}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name3" class="sbtn-name" text="{s:cx_name3}" />
+                  <Label id="cx_btag3" class="sbtn-tag" text="{s:cx_btag3}" />
                   <Label id="cx_val3" class="sbtn-sub" text="{s:cx_val3}" />
                 </Button>
                 <Button id="cx_item4" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag4" class="tile-tag" text="{s:cx_tag4}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner4" class="tile-corner" />
+                    <Panel id="cx_img4" class="sbtn-img" />
+                    <Label id="cx_iname4" class="sbtn-iname" text="{s:cx_iname4}" />
+                    <Label id="cx_ival4" class="sbtn-isub" text="{s:cx_ival4}" />
+                    <Label id="cx_full4" class="tile-full" text="{s:cx_full4}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name4" class="sbtn-name" text="{s:cx_name4}" />
+                  <Label id="cx_btag4" class="sbtn-tag" text="{s:cx_btag4}" />
                   <Label id="cx_val4" class="sbtn-sub" text="{s:cx_val4}" />
                 </Button>
                 <Button id="cx_item5" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag5" class="tile-tag" text="{s:cx_tag5}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner5" class="tile-corner" />
+                    <Panel id="cx_img5" class="sbtn-img" />
+                    <Label id="cx_iname5" class="sbtn-iname" text="{s:cx_iname5}" />
+                    <Label id="cx_ival5" class="sbtn-isub" text="{s:cx_ival5}" />
+                    <Label id="cx_full5" class="tile-full" text="{s:cx_full5}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name5" class="sbtn-name" text="{s:cx_name5}" />
+                  <Label id="cx_btag5" class="sbtn-tag" text="{s:cx_btag5}" />
                   <Label id="cx_val5" class="sbtn-sub" text="{s:cx_val5}" />
                 </Button>
                 <Button id="cx_item6" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag6" class="tile-tag" text="{s:cx_tag6}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner6" class="tile-corner" />
+                    <Panel id="cx_img6" class="sbtn-img" />
+                    <Label id="cx_iname6" class="sbtn-iname" text="{s:cx_iname6}" />
+                    <Label id="cx_ival6" class="sbtn-isub" text="{s:cx_ival6}" />
+                    <Label id="cx_full6" class="tile-full" text="{s:cx_full6}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name6" class="sbtn-name" text="{s:cx_name6}" />
+                  <Label id="cx_btag6" class="sbtn-tag" text="{s:cx_btag6}" />
                   <Label id="cx_val6" class="sbtn-sub" text="{s:cx_val6}" />
                 </Button>
                 <Button id="cx_item7" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag7" class="tile-tag" text="{s:cx_tag7}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner7" class="tile-corner" />
+                    <Panel id="cx_img7" class="sbtn-img" />
+                    <Label id="cx_iname7" class="sbtn-iname" text="{s:cx_iname7}" />
+                    <Label id="cx_ival7" class="sbtn-isub" text="{s:cx_ival7}" />
+                    <Label id="cx_full7" class="tile-full" text="{s:cx_full7}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name7" class="sbtn-name" text="{s:cx_name7}" />
+                  <Label id="cx_btag7" class="sbtn-tag" text="{s:cx_btag7}" />
                   <Label id="cx_val7" class="sbtn-sub" text="{s:cx_val7}" />
                 </Button>
                 <Button id="cx_item8" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag8" class="tile-tag" text="{s:cx_tag8}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner8" class="tile-corner" />
+                    <Panel id="cx_img8" class="sbtn-img" />
+                    <Label id="cx_iname8" class="sbtn-iname" text="{s:cx_iname8}" />
+                    <Label id="cx_ival8" class="sbtn-isub" text="{s:cx_ival8}" />
+                    <Label id="cx_full8" class="tile-full" text="{s:cx_full8}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name8" class="sbtn-name" text="{s:cx_name8}" />
+                  <Label id="cx_btag8" class="sbtn-tag" text="{s:cx_btag8}" />
                   <Label id="cx_val8" class="sbtn-sub" text="{s:cx_val8}" />
                 </Button>
                 <Button id="cx_item9" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag9" class="tile-tag" text="{s:cx_tag9}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner9" class="tile-corner" />
+                    <Panel id="cx_img9" class="sbtn-img" />
+                    <Label id="cx_iname9" class="sbtn-iname" text="{s:cx_iname9}" />
+                    <Label id="cx_ival9" class="sbtn-isub" text="{s:cx_ival9}" />
+                    <Label id="cx_full9" class="tile-full" text="{s:cx_full9}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name9" class="sbtn-name" text="{s:cx_name9}" />
+                  <Label id="cx_btag9" class="sbtn-tag" text="{s:cx_btag9}" />
                   <Label id="cx_val9" class="sbtn-sub" text="{s:cx_val9}" />
                 </Button>
                 <Button id="cx_item10" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag10" class="tile-tag" text="{s:cx_tag10}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner10" class="tile-corner" />
+                    <Panel id="cx_img10" class="sbtn-img" />
+                    <Label id="cx_iname10" class="sbtn-iname" text="{s:cx_iname10}" />
+                    <Label id="cx_ival10" class="sbtn-isub" text="{s:cx_ival10}" />
+                    <Label id="cx_full10" class="tile-full" text="{s:cx_full10}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name10" class="sbtn-name" text="{s:cx_name10}" />
+                  <Label id="cx_btag10" class="sbtn-tag" text="{s:cx_btag10}" />
                   <Label id="cx_val10" class="sbtn-sub" text="{s:cx_val10}" />
                 </Button>
                 <Button id="cx_item11" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag11" class="tile-tag" text="{s:cx_tag11}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner11" class="tile-corner" />
+                    <Panel id="cx_img11" class="sbtn-img" />
+                    <Label id="cx_iname11" class="sbtn-iname" text="{s:cx_iname11}" />
+                    <Label id="cx_ival11" class="sbtn-isub" text="{s:cx_ival11}" />
+                    <Label id="cx_full11" class="tile-full" text="{s:cx_full11}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name11" class="sbtn-name" text="{s:cx_name11}" />
+                  <Label id="cx_btag11" class="sbtn-tag" text="{s:cx_btag11}" />
                   <Label id="cx_val11" class="sbtn-sub" text="{s:cx_val11}" />
                 </Button>
                 <Button id="cx_item12" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag12" class="tile-tag" text="{s:cx_tag12}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner12" class="tile-corner" />
+                    <Panel id="cx_img12" class="sbtn-img" />
+                    <Label id="cx_iname12" class="sbtn-iname" text="{s:cx_iname12}" />
+                    <Label id="cx_ival12" class="sbtn-isub" text="{s:cx_ival12}" />
+                    <Label id="cx_full12" class="tile-full" text="{s:cx_full12}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name12" class="sbtn-name" text="{s:cx_name12}" />
+                  <Label id="cx_btag12" class="sbtn-tag" text="{s:cx_btag12}" />
                   <Label id="cx_val12" class="sbtn-sub" text="{s:cx_val12}" />
                 </Button>
                 <Button id="cx_item13" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag13" class="tile-tag" text="{s:cx_tag13}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner13" class="tile-corner" />
+                    <Panel id="cx_img13" class="sbtn-img" />
+                    <Label id="cx_iname13" class="sbtn-iname" text="{s:cx_iname13}" />
+                    <Label id="cx_ival13" class="sbtn-isub" text="{s:cx_ival13}" />
+                    <Label id="cx_full13" class="tile-full" text="{s:cx_full13}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name13" class="sbtn-name" text="{s:cx_name13}" />
+                  <Label id="cx_btag13" class="sbtn-tag" text="{s:cx_btag13}" />
                   <Label id="cx_val13" class="sbtn-sub" text="{s:cx_val13}" />
                 </Button>
                 <Button id="cx_item14" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag14" class="tile-tag" text="{s:cx_tag14}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner14" class="tile-corner" />
+                    <Panel id="cx_img14" class="sbtn-img" />
+                    <Label id="cx_iname14" class="sbtn-iname" text="{s:cx_iname14}" />
+                    <Label id="cx_ival14" class="sbtn-isub" text="{s:cx_ival14}" />
+                    <Label id="cx_full14" class="tile-full" text="{s:cx_full14}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name14" class="sbtn-name" text="{s:cx_name14}" />
+                  <Label id="cx_btag14" class="sbtn-tag" text="{s:cx_btag14}" />
                   <Label id="cx_val14" class="sbtn-sub" text="{s:cx_val14}" />
                 </Button>
                 <Button id="cx_item15" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag15" class="tile-tag" text="{s:cx_tag15}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner15" class="tile-corner" />
+                    <Panel id="cx_img15" class="sbtn-img" />
+                    <Label id="cx_iname15" class="sbtn-iname" text="{s:cx_iname15}" />
+                    <Label id="cx_ival15" class="sbtn-isub" text="{s:cx_ival15}" />
+                    <Label id="cx_full15" class="tile-full" text="{s:cx_full15}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name15" class="sbtn-name" text="{s:cx_name15}" />
+                  <Label id="cx_btag15" class="sbtn-tag" text="{s:cx_btag15}" />
                   <Label id="cx_val15" class="sbtn-sub" text="{s:cx_val15}" />
                 </Button>
                 <Button id="cx_item16" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag16" class="tile-tag" text="{s:cx_tag16}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner16" class="tile-corner" />
+                    <Panel id="cx_img16" class="sbtn-img" />
+                    <Label id="cx_iname16" class="sbtn-iname" text="{s:cx_iname16}" />
+                    <Label id="cx_ival16" class="sbtn-isub" text="{s:cx_ival16}" />
+                    <Label id="cx_full16" class="tile-full" text="{s:cx_full16}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name16" class="sbtn-name" text="{s:cx_name16}" />
+                  <Label id="cx_btag16" class="sbtn-tag" text="{s:cx_btag16}" />
                   <Label id="cx_val16" class="sbtn-sub" text="{s:cx_val16}" />
                 </Button>
                 <Button id="cx_item17" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag17" class="tile-tag" text="{s:cx_tag17}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner17" class="tile-corner" />
+                    <Panel id="cx_img17" class="sbtn-img" />
+                    <Label id="cx_iname17" class="sbtn-iname" text="{s:cx_iname17}" />
+                    <Label id="cx_ival17" class="sbtn-isub" text="{s:cx_ival17}" />
+                    <Label id="cx_full17" class="tile-full" text="{s:cx_full17}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
                   <Label id="cx_name17" class="sbtn-name" text="{s:cx_name17}" />
+                  <Label id="cx_btag17" class="sbtn-tag" text="{s:cx_btag17}" />
                   <Label id="cx_val17" class="sbtn-sub" text="{s:cx_val17}" />
                 </Button>
+                <Button id="cx_item18" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag18" class="tile-tag" text="{s:cx_tag18}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner18" class="tile-corner" />
+                    <Panel id="cx_img18" class="sbtn-img" />
+                    <Label id="cx_iname18" class="sbtn-iname" text="{s:cx_iname18}" />
+                    <Label id="cx_ival18" class="sbtn-isub" text="{s:cx_ival18}" />
+                    <Label id="cx_full18" class="tile-full" text="{s:cx_full18}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
+                  <Label id="cx_name18" class="sbtn-name" text="{s:cx_name18}" />
+                  <Label id="cx_btag18" class="sbtn-tag" text="{s:cx_btag18}" />
+                  <Label id="cx_val18" class="sbtn-sub" text="{s:cx_val18}" />
+                </Button>
+                <Button id="cx_item19" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag19" class="tile-tag" text="{s:cx_tag19}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner19" class="tile-corner" />
+                    <Panel id="cx_img19" class="sbtn-img" />
+                    <Label id="cx_iname19" class="sbtn-iname" text="{s:cx_iname19}" />
+                    <Label id="cx_ival19" class="sbtn-isub" text="{s:cx_ival19}" />
+                    <Label id="cx_full19" class="tile-full" text="{s:cx_full19}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
+                  <Label id="cx_name19" class="sbtn-name" text="{s:cx_name19}" />
+                  <Label id="cx_btag19" class="sbtn-tag" text="{s:cx_btag19}" />
+                  <Label id="cx_val19" class="sbtn-sub" text="{s:cx_val19}" />
+                </Button>
+                <Button id="cx_item20" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag20" class="tile-tag" text="{s:cx_tag20}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner20" class="tile-corner" />
+                    <Panel id="cx_img20" class="sbtn-img" />
+                    <Label id="cx_iname20" class="sbtn-iname" text="{s:cx_iname20}" />
+                    <Label id="cx_ival20" class="sbtn-isub" text="{s:cx_ival20}" />
+                    <Label id="cx_full20" class="tile-full" text="{s:cx_full20}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
+                  <Label id="cx_name20" class="sbtn-name" text="{s:cx_name20}" />
+                  <Label id="cx_btag20" class="sbtn-tag" text="{s:cx_btag20}" />
+                  <Label id="cx_val20" class="sbtn-sub" text="{s:cx_val20}" />
+                </Button>
+                <Button id="cx_item21" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag21" class="tile-tag" text="{s:cx_tag21}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner21" class="tile-corner" />
+                    <Panel id="cx_img21" class="sbtn-img" />
+                    <Label id="cx_iname21" class="sbtn-iname" text="{s:cx_iname21}" />
+                    <Label id="cx_ival21" class="sbtn-isub" text="{s:cx_ival21}" />
+                    <Label id="cx_full21" class="tile-full" text="{s:cx_full21}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
+                  <Label id="cx_name21" class="sbtn-name" text="{s:cx_name21}" />
+                  <Label id="cx_btag21" class="sbtn-tag" text="{s:cx_btag21}" />
+                  <Label id="cx_val21" class="sbtn-sub" text="{s:cx_val21}" />
+                </Button>
+                <Button id="cx_item22" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag22" class="tile-tag" text="{s:cx_tag22}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner22" class="tile-corner" />
+                    <Panel id="cx_img22" class="sbtn-img" />
+                    <Label id="cx_iname22" class="sbtn-iname" text="{s:cx_iname22}" />
+                    <Label id="cx_ival22" class="sbtn-isub" text="{s:cx_ival22}" />
+                    <Label id="cx_full22" class="tile-full" text="{s:cx_full22}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
+                  <Label id="cx_name22" class="sbtn-name" text="{s:cx_name22}" />
+                  <Label id="cx_btag22" class="sbtn-tag" text="{s:cx_btag22}" />
+                  <Label id="cx_val22" class="sbtn-sub" text="{s:cx_val22}" />
+                </Button>
+                <Button id="cx_item23" class="sbtn hidden">
+                  <Panel class="sbtn-tile">
+                    <Panel class="tile-badges">
+                      <Label id="cx_tag23" class="tile-tag" text="{s:cx_tag23}" />
+                      <Panel class="tile-lock" />
+                      <Panel class="tile-dot tile-dot-t" />
+                      <Panel class="tile-dot tile-dot-ct" />
+                    </Panel>
+                    <Button id="cx_corner23" class="tile-corner" />
+                    <Panel id="cx_img23" class="sbtn-img" />
+                    <Label id="cx_iname23" class="sbtn-iname" text="{s:cx_iname23}" />
+                    <Label id="cx_ival23" class="sbtn-isub" text="{s:cx_ival23}" />
+                    <Label id="cx_full23" class="tile-full" text="{s:cx_full23}" />
+                    <Panel class="tile-rarity" />
+                  </Panel>
+                  <Label id="cx_name23" class="sbtn-name" text="{s:cx_name23}" />
+                  <Label id="cx_btag23" class="sbtn-tag" text="{s:cx_btag23}" />
+                  <Label id="cx_val23" class="sbtn-sub" text="{s:cx_val23}" />
+                </Button>
               </Panel>
-              <Panel id="cx_pager" class="pager hidden">
-                <Button id="cx_prev" class="popup-btn"><Label class="popup-btn-label" text="&lt;" /></Button>
-                <Label id="cx_page" class="popup-page" text="{s:cx_page}" />
-                <Button id="cx_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
+              <Panel class="action-row">
+                <Button id="cx_action2" class="action2-btn hidden">
+                  <Label id="cx_action2_lbl" class="action2-label" text="{s:cx_action2_lbl}" />
+                </Button>
+                <Button id="cx_action" class="action-btn hidden">
+                  <Label id="cx_action_lbl" class="action-label" text="{s:cx_action_lbl}" />
+                </Button>
               </Panel>
             </Panel>
           </Panel>
@@ -155,7 +686,6 @@
           <Button id="cx_step_b3" class="step-btn"><Label id="cx_step_l3" class="step-btn-label" text="{s:cx_step_l3}" /></Button>
         </Panel>
       </Panel>
-
       <Panel id="cx_list" class="popup list-popup hidden">
         <Panel class="window-header">
           <Label id="cx_list_title" class="popup-title" text="{s:cx_list_title}" />
@@ -163,52 +693,116 @@
         </Panel>
         <Panel class="list-rows">
           <Button id="cx_li0" class="li hidden">
-            <Label id="cx_li_lbl0" class="li-label" text="{s:cx_li_lbl0}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl0" class="li-label" text="{s:cx_li_lbl0}" />
+              <Label id="cx_li_sub0" class="li-sub" text="{s:cx_li_sub0}" />
+            </Panel>
           </Button>
           <Button id="cx_li1" class="li hidden">
-            <Label id="cx_li_lbl1" class="li-label" text="{s:cx_li_lbl1}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl1" class="li-label" text="{s:cx_li_lbl1}" />
+              <Label id="cx_li_sub1" class="li-sub" text="{s:cx_li_sub1}" />
+            </Panel>
           </Button>
           <Button id="cx_li2" class="li hidden">
-            <Label id="cx_li_lbl2" class="li-label" text="{s:cx_li_lbl2}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl2" class="li-label" text="{s:cx_li_lbl2}" />
+              <Label id="cx_li_sub2" class="li-sub" text="{s:cx_li_sub2}" />
+            </Panel>
           </Button>
           <Button id="cx_li3" class="li hidden">
-            <Label id="cx_li_lbl3" class="li-label" text="{s:cx_li_lbl3}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl3" class="li-label" text="{s:cx_li_lbl3}" />
+              <Label id="cx_li_sub3" class="li-sub" text="{s:cx_li_sub3}" />
+            </Panel>
           </Button>
           <Button id="cx_li4" class="li hidden">
-            <Label id="cx_li_lbl4" class="li-label" text="{s:cx_li_lbl4}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl4" class="li-label" text="{s:cx_li_lbl4}" />
+              <Label id="cx_li_sub4" class="li-sub" text="{s:cx_li_sub4}" />
+            </Panel>
           </Button>
           <Button id="cx_li5" class="li hidden">
-            <Label id="cx_li_lbl5" class="li-label" text="{s:cx_li_lbl5}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl5" class="li-label" text="{s:cx_li_lbl5}" />
+              <Label id="cx_li_sub5" class="li-sub" text="{s:cx_li_sub5}" />
+            </Panel>
           </Button>
           <Button id="cx_li6" class="li hidden">
-            <Label id="cx_li_lbl6" class="li-label" text="{s:cx_li_lbl6}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl6" class="li-label" text="{s:cx_li_lbl6}" />
+              <Label id="cx_li_sub6" class="li-sub" text="{s:cx_li_sub6}" />
+            </Panel>
           </Button>
           <Button id="cx_li7" class="li hidden">
-            <Label id="cx_li_lbl7" class="li-label" text="{s:cx_li_lbl7}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl7" class="li-label" text="{s:cx_li_lbl7}" />
+              <Label id="cx_li_sub7" class="li-sub" text="{s:cx_li_sub7}" />
+            </Panel>
           </Button>
           <Button id="cx_li8" class="li hidden">
-            <Label id="cx_li_lbl8" class="li-label" text="{s:cx_li_lbl8}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl8" class="li-label" text="{s:cx_li_lbl8}" />
+              <Label id="cx_li_sub8" class="li-sub" text="{s:cx_li_sub8}" />
+            </Panel>
           </Button>
           <Button id="cx_li9" class="li hidden">
-            <Label id="cx_li_lbl9" class="li-label" text="{s:cx_li_lbl9}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl9" class="li-label" text="{s:cx_li_lbl9}" />
+              <Label id="cx_li_sub9" class="li-sub" text="{s:cx_li_sub9}" />
+            </Panel>
           </Button>
           <Button id="cx_li10" class="li hidden">
-            <Label id="cx_li_lbl10" class="li-label" text="{s:cx_li_lbl10}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl10" class="li-label" text="{s:cx_li_lbl10}" />
+              <Label id="cx_li_sub10" class="li-sub" text="{s:cx_li_sub10}" />
+            </Panel>
           </Button>
           <Button id="cx_li11" class="li hidden">
-            <Label id="cx_li_lbl11" class="li-label" text="{s:cx_li_lbl11}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl11" class="li-label" text="{s:cx_li_lbl11}" />
+              <Label id="cx_li_sub11" class="li-sub" text="{s:cx_li_sub11}" />
+            </Panel>
           </Button>
           <Button id="cx_li12" class="li hidden">
-            <Label id="cx_li_lbl12" class="li-label" text="{s:cx_li_lbl12}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl12" class="li-label" text="{s:cx_li_lbl12}" />
+              <Label id="cx_li_sub12" class="li-sub" text="{s:cx_li_sub12}" />
+            </Panel>
           </Button>
           <Button id="cx_li13" class="li hidden">
-            <Label id="cx_li_lbl13" class="li-label" text="{s:cx_li_lbl13}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl13" class="li-label" text="{s:cx_li_lbl13}" />
+              <Label id="cx_li_sub13" class="li-sub" text="{s:cx_li_sub13}" />
+            </Panel>
           </Button>
           <Button id="cx_li14" class="li hidden">
-            <Label id="cx_li_lbl14" class="li-label" text="{s:cx_li_lbl14}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl14" class="li-label" text="{s:cx_li_lbl14}" />
+              <Label id="cx_li_sub14" class="li-sub" text="{s:cx_li_sub14}" />
+            </Panel>
           </Button>
           <Button id="cx_li15" class="li hidden">
-            <Label id="cx_li_lbl15" class="li-label" text="{s:cx_li_lbl15}" />
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="cx_li_lbl15" class="li-label" text="{s:cx_li_lbl15}" />
+              <Label id="cx_li_sub15" class="li-sub" text="{s:cx_li_sub15}" />
+            </Panel>
           </Button>
         </Panel>
         <Panel class="popup-nav">
@@ -217,6 +811,20 @@
           <Button id="cx_list_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
         </Panel>
       </Panel>
+      <Panel id="cx_msg" class="msg hidden">
+        <Panel class="msg-dot" />
+        <Label id="cx_msg_text" class="msg-text" text="{s:cx_msg_text}" />
+      </Panel>
+      <Button id="cx_dlg" class="dlg-scrim hidden">
+        <Button id="cx_dlg_box" class="dlg-box">
+          <Label id="cx_dlg_title" class="dlg-title" text="{s:cx_dlg_title}" />
+          <Label id="cx_dlg_body" class="dlg-body" text="{s:cx_dlg_body}" />
+          <Panel class="dlg-btns">
+            <Button id="cx_dlg_no" class="dlg-btn dlg-no"><Label id="cx_dlg_no_lbl" class="dlg-btn-label" text="{s:cx_dlg_no_lbl}" /></Button>
+            <Button id="cx_dlg_yes" class="dlg-btn dlg-yes"><Label id="cx_dlg_yes_lbl" class="dlg-btn-label" text="{s:cx_dlg_yes_lbl}" /></Button>
+          </Panel>
+        </Button>
+      </Button>
     </Panel>
   </Panel>
 </root>

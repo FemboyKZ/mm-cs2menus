@@ -10,6 +10,12 @@
       <Panel class="menu-box">
         <Panel class="window-header">
           <Label id="cm_title" class="menu-title" text="{s:cm_title}" />
+          <Button id="cm_scope" class="scope-chip hidden">
+            <Panel class="scope-dot scope-dot-t" />
+            <Panel class="scope-dot scope-dot-ct" />
+            <Label id="cm_scope_lbl" class="scope-label" text="{s:cm_scope_lbl}" />
+          </Button>
+          <Label id="cm_edited" class="edited-mark" text="{s:cm_edited}" />
           <Button id="cm_back" class="hist-btn back-btn disabled" />
           <Button id="cm_forward" class="hist-btn forward-btn disabled" />
           <Button id="cm_refresh" class="hist-btn refresh-btn disabled" />
@@ -80,6 +86,10 @@
             </Button>
           </Panel>
           <Panel id="cm_items" class="items">
+            <Panel id="cm_empty" class="empty-state hidden">
+              <Label id="cm_empty_title" class="empty-title" text="{s:cm_empty_title}" />
+              <Label id="cm_empty_text" class="empty-text" text="{s:cm_empty_text}" />
+            </Panel>
             <Button id="cm_item0" class="item hidden">
               <Panel class="item-text">
                 <Label id="cm_seg0_0" class="item-seg" text="{s:cm_seg0_0}" />
@@ -110,7 +120,18 @@
                 <Label id="cm_seg0_25" class="item-seg" text="{s:cm_seg0_25}" />
                 <Label id="cm_seg0_26" class="item-seg" text="{s:cm_seg0_26}" />
               </Panel>
+              <Button id="cm_dec0" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val0" class="item-value" text="{s:cm_val0}" />
+              <Button id="cm_inc0" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item1" class="item hidden">
               <Panel class="item-text">
@@ -142,7 +163,18 @@
                 <Label id="cm_seg1_25" class="item-seg" text="{s:cm_seg1_25}" />
                 <Label id="cm_seg1_26" class="item-seg" text="{s:cm_seg1_26}" />
               </Panel>
+              <Button id="cm_dec1" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val1" class="item-value" text="{s:cm_val1}" />
+              <Button id="cm_inc1" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item2" class="item hidden">
               <Panel class="item-text">
@@ -174,7 +206,18 @@
                 <Label id="cm_seg2_25" class="item-seg" text="{s:cm_seg2_25}" />
                 <Label id="cm_seg2_26" class="item-seg" text="{s:cm_seg2_26}" />
               </Panel>
+              <Button id="cm_dec2" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val2" class="item-value" text="{s:cm_val2}" />
+              <Button id="cm_inc2" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item3" class="item hidden">
               <Panel class="item-text">
@@ -206,7 +249,18 @@
                 <Label id="cm_seg3_25" class="item-seg" text="{s:cm_seg3_25}" />
                 <Label id="cm_seg3_26" class="item-seg" text="{s:cm_seg3_26}" />
               </Panel>
+              <Button id="cm_dec3" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val3" class="item-value" text="{s:cm_val3}" />
+              <Button id="cm_inc3" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item4" class="item hidden">
               <Panel class="item-text">
@@ -238,7 +292,18 @@
                 <Label id="cm_seg4_25" class="item-seg" text="{s:cm_seg4_25}" />
                 <Label id="cm_seg4_26" class="item-seg" text="{s:cm_seg4_26}" />
               </Panel>
+              <Button id="cm_dec4" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val4" class="item-value" text="{s:cm_val4}" />
+              <Button id="cm_inc4" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item5" class="item hidden">
               <Panel class="item-text">
@@ -270,7 +335,18 @@
                 <Label id="cm_seg5_25" class="item-seg" text="{s:cm_seg5_25}" />
                 <Label id="cm_seg5_26" class="item-seg" text="{s:cm_seg5_26}" />
               </Panel>
+              <Button id="cm_dec5" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val5" class="item-value" text="{s:cm_val5}" />
+              <Button id="cm_inc5" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item6" class="item hidden">
               <Panel class="item-text">
@@ -302,7 +378,18 @@
                 <Label id="cm_seg6_25" class="item-seg" text="{s:cm_seg6_25}" />
                 <Label id="cm_seg6_26" class="item-seg" text="{s:cm_seg6_26}" />
               </Panel>
+              <Button id="cm_dec6" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val6" class="item-value" text="{s:cm_val6}" />
+              <Button id="cm_inc6" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item7" class="item hidden">
               <Panel class="item-text">
@@ -334,7 +421,18 @@
                 <Label id="cm_seg7_25" class="item-seg" text="{s:cm_seg7_25}" />
                 <Label id="cm_seg7_26" class="item-seg" text="{s:cm_seg7_26}" />
               </Panel>
+              <Button id="cm_dec7" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val7" class="item-value" text="{s:cm_val7}" />
+              <Button id="cm_inc7" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item8" class="item hidden">
               <Panel class="item-text">
@@ -366,7 +464,18 @@
                 <Label id="cm_seg8_25" class="item-seg" text="{s:cm_seg8_25}" />
                 <Label id="cm_seg8_26" class="item-seg" text="{s:cm_seg8_26}" />
               </Panel>
+              <Button id="cm_dec8" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val8" class="item-value" text="{s:cm_val8}" />
+              <Button id="cm_inc8" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item9" class="item hidden">
               <Panel class="item-text">
@@ -398,7 +507,18 @@
                 <Label id="cm_seg9_25" class="item-seg" text="{s:cm_seg9_25}" />
                 <Label id="cm_seg9_26" class="item-seg" text="{s:cm_seg9_26}" />
               </Panel>
+              <Button id="cm_dec9" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val9" class="item-value" text="{s:cm_val9}" />
+              <Button id="cm_inc9" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item10" class="item hidden">
               <Panel class="item-text">
@@ -430,7 +550,18 @@
                 <Label id="cm_seg10_25" class="item-seg" text="{s:cm_seg10_25}" />
                 <Label id="cm_seg10_26" class="item-seg" text="{s:cm_seg10_26}" />
               </Panel>
+              <Button id="cm_dec10" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val10" class="item-value" text="{s:cm_val10}" />
+              <Button id="cm_inc10" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item11" class="item hidden">
               <Panel class="item-text">
@@ -462,7 +593,18 @@
                 <Label id="cm_seg11_25" class="item-seg" text="{s:cm_seg11_25}" />
                 <Label id="cm_seg11_26" class="item-seg" text="{s:cm_seg11_26}" />
               </Panel>
+              <Button id="cm_dec11" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val11" class="item-value" text="{s:cm_val11}" />
+              <Button id="cm_inc11" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item12" class="item hidden">
               <Panel class="item-text">
@@ -494,7 +636,18 @@
                 <Label id="cm_seg12_25" class="item-seg" text="{s:cm_seg12_25}" />
                 <Label id="cm_seg12_26" class="item-seg" text="{s:cm_seg12_26}" />
               </Panel>
+              <Button id="cm_dec12" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val12" class="item-value" text="{s:cm_val12}" />
+              <Button id="cm_inc12" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item13" class="item hidden">
               <Panel class="item-text">
@@ -526,7 +679,18 @@
                 <Label id="cm_seg13_25" class="item-seg" text="{s:cm_seg13_25}" />
                 <Label id="cm_seg13_26" class="item-seg" text="{s:cm_seg13_26}" />
               </Panel>
+              <Button id="cm_dec13" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val13" class="item-value" text="{s:cm_val13}" />
+              <Button id="cm_inc13" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item14" class="item hidden">
               <Panel class="item-text">
@@ -558,7 +722,18 @@
                 <Label id="cm_seg14_25" class="item-seg" text="{s:cm_seg14_25}" />
                 <Label id="cm_seg14_26" class="item-seg" text="{s:cm_seg14_26}" />
               </Panel>
+              <Button id="cm_dec14" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val14" class="item-value" text="{s:cm_val14}" />
+              <Button id="cm_inc14" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item15" class="item hidden">
               <Panel class="item-text">
@@ -590,7 +765,18 @@
                 <Label id="cm_seg15_25" class="item-seg" text="{s:cm_seg15_25}" />
                 <Label id="cm_seg15_26" class="item-seg" text="{s:cm_seg15_26}" />
               </Panel>
+              <Button id="cm_dec15" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val15" class="item-value" text="{s:cm_val15}" />
+              <Button id="cm_inc15" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item16" class="item hidden">
               <Panel class="item-text">
@@ -622,7 +808,18 @@
                 <Label id="cm_seg16_25" class="item-seg" text="{s:cm_seg16_25}" />
                 <Label id="cm_seg16_26" class="item-seg" text="{s:cm_seg16_26}" />
               </Panel>
+              <Button id="cm_dec16" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val16" class="item-value" text="{s:cm_val16}" />
+              <Button id="cm_inc16" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item17" class="item hidden">
               <Panel class="item-text">
@@ -654,7 +851,18 @@
                 <Label id="cm_seg17_25" class="item-seg" text="{s:cm_seg17_25}" />
                 <Label id="cm_seg17_26" class="item-seg" text="{s:cm_seg17_26}" />
               </Panel>
+              <Button id="cm_dec17" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val17" class="item-value" text="{s:cm_val17}" />
+              <Button id="cm_inc17" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item18" class="item hidden">
               <Panel class="item-text">
@@ -686,7 +894,18 @@
                 <Label id="cm_seg18_25" class="item-seg" text="{s:cm_seg18_25}" />
                 <Label id="cm_seg18_26" class="item-seg" text="{s:cm_seg18_26}" />
               </Panel>
+              <Button id="cm_dec18" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val18" class="item-value" text="{s:cm_val18}" />
+              <Button id="cm_inc18" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item19" class="item hidden">
               <Panel class="item-text">
@@ -718,7 +937,18 @@
                 <Label id="cm_seg19_25" class="item-seg" text="{s:cm_seg19_25}" />
                 <Label id="cm_seg19_26" class="item-seg" text="{s:cm_seg19_26}" />
               </Panel>
+              <Button id="cm_dec19" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val19" class="item-value" text="{s:cm_val19}" />
+              <Button id="cm_inc19" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item20" class="item hidden">
               <Panel class="item-text">
@@ -750,7 +980,18 @@
                 <Label id="cm_seg20_25" class="item-seg" text="{s:cm_seg20_25}" />
                 <Label id="cm_seg20_26" class="item-seg" text="{s:cm_seg20_26}" />
               </Panel>
+              <Button id="cm_dec20" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val20" class="item-value" text="{s:cm_val20}" />
+              <Button id="cm_inc20" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item21" class="item hidden">
               <Panel class="item-text">
@@ -782,7 +1023,18 @@
                 <Label id="cm_seg21_25" class="item-seg" text="{s:cm_seg21_25}" />
                 <Label id="cm_seg21_26" class="item-seg" text="{s:cm_seg21_26}" />
               </Panel>
+              <Button id="cm_dec21" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val21" class="item-value" text="{s:cm_val21}" />
+              <Button id="cm_inc21" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item22" class="item hidden">
               <Panel class="item-text">
@@ -814,7 +1066,18 @@
                 <Label id="cm_seg22_25" class="item-seg" text="{s:cm_seg22_25}" />
                 <Label id="cm_seg22_26" class="item-seg" text="{s:cm_seg22_26}" />
               </Panel>
+              <Button id="cm_dec22" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val22" class="item-value" text="{s:cm_val22}" />
+              <Button id="cm_inc22" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item23" class="item hidden">
               <Panel class="item-text">
@@ -846,7 +1109,18 @@
                 <Label id="cm_seg23_25" class="item-seg" text="{s:cm_seg23_25}" />
                 <Label id="cm_seg23_26" class="item-seg" text="{s:cm_seg23_26}" />
               </Panel>
+              <Button id="cm_dec23" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val23" class="item-value" text="{s:cm_val23}" />
+              <Button id="cm_inc23" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item24" class="item hidden">
               <Panel class="item-text">
@@ -878,7 +1152,18 @@
                 <Label id="cm_seg24_25" class="item-seg" text="{s:cm_seg24_25}" />
                 <Label id="cm_seg24_26" class="item-seg" text="{s:cm_seg24_26}" />
               </Panel>
+              <Button id="cm_dec24" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val24" class="item-value" text="{s:cm_val24}" />
+              <Button id="cm_inc24" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item25" class="item hidden">
               <Panel class="item-text">
@@ -910,7 +1195,18 @@
                 <Label id="cm_seg25_25" class="item-seg" text="{s:cm_seg25_25}" />
                 <Label id="cm_seg25_26" class="item-seg" text="{s:cm_seg25_26}" />
               </Panel>
+              <Button id="cm_dec25" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val25" class="item-value" text="{s:cm_val25}" />
+              <Button id="cm_inc25" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item26" class="item hidden">
               <Panel class="item-text">
@@ -942,7 +1238,18 @@
                 <Label id="cm_seg26_25" class="item-seg" text="{s:cm_seg26_25}" />
                 <Label id="cm_seg26_26" class="item-seg" text="{s:cm_seg26_26}" />
               </Panel>
+              <Button id="cm_dec26" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val26" class="item-value" text="{s:cm_val26}" />
+              <Button id="cm_inc26" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
+              </Panel>
             </Button>
             <Button id="cm_item27" class="item hidden">
               <Panel class="item-text">
@@ -974,71 +1281,18 @@
                 <Label id="cm_seg27_25" class="item-seg" text="{s:cm_seg27_25}" />
                 <Label id="cm_seg27_26" class="item-seg" text="{s:cm_seg27_26}" />
               </Panel>
+              <Button id="cm_dec27" class="item-step">
+                <Label class="item-step-label step-minus" text="-" />
+                <Label class="item-step-label step-prev" text="&lt;" />
+              </Button>
               <Label id="cm_val27" class="item-value" text="{s:cm_val27}" />
-            </Button>
-            <Button id="cm_item28" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg28_0" class="item-seg" text="{s:cm_seg28_0}" />
-                <Label id="cm_seg28_1" class="item-seg" text="{s:cm_seg28_1}" />
-                <Label id="cm_seg28_2" class="item-seg" text="{s:cm_seg28_2}" />
-                <Label id="cm_seg28_3" class="item-seg" text="{s:cm_seg28_3}" />
-                <Label id="cm_seg28_4" class="item-seg" text="{s:cm_seg28_4}" />
-                <Label id="cm_seg28_5" class="item-seg" text="{s:cm_seg28_5}" />
-                <Label id="cm_seg28_6" class="item-seg" text="{s:cm_seg28_6}" />
-                <Label id="cm_seg28_7" class="item-seg" text="{s:cm_seg28_7}" />
-                <Label id="cm_seg28_8" class="item-seg" text="{s:cm_seg28_8}" />
-                <Label id="cm_seg28_9" class="item-seg" text="{s:cm_seg28_9}" />
-                <Label id="cm_seg28_10" class="item-seg" text="{s:cm_seg28_10}" />
-                <Label id="cm_seg28_11" class="item-seg" text="{s:cm_seg28_11}" />
-                <Label id="cm_seg28_12" class="item-seg" text="{s:cm_seg28_12}" />
-                <Label id="cm_seg28_13" class="item-seg" text="{s:cm_seg28_13}" />
-                <Label id="cm_seg28_14" class="item-seg" text="{s:cm_seg28_14}" />
-                <Label id="cm_seg28_15" class="item-seg" text="{s:cm_seg28_15}" />
-                <Label id="cm_seg28_16" class="item-seg" text="{s:cm_seg28_16}" />
-                <Label id="cm_seg28_17" class="item-seg" text="{s:cm_seg28_17}" />
-                <Label id="cm_seg28_18" class="item-seg" text="{s:cm_seg28_18}" />
-                <Label id="cm_seg28_19" class="item-seg" text="{s:cm_seg28_19}" />
-                <Label id="cm_seg28_20" class="item-seg" text="{s:cm_seg28_20}" />
-                <Label id="cm_seg28_21" class="item-seg" text="{s:cm_seg28_21}" />
-                <Label id="cm_seg28_22" class="item-seg" text="{s:cm_seg28_22}" />
-                <Label id="cm_seg28_23" class="item-seg" text="{s:cm_seg28_23}" />
-                <Label id="cm_seg28_24" class="item-seg" text="{s:cm_seg28_24}" />
-                <Label id="cm_seg28_25" class="item-seg" text="{s:cm_seg28_25}" />
-                <Label id="cm_seg28_26" class="item-seg" text="{s:cm_seg28_26}" />
+              <Button id="cm_inc27" class="item-step">
+                <Label class="item-step-label step-plus" text="+" />
+                <Label class="item-step-label step-next" text="&gt;" />
+              </Button>
+              <Panel class="item-switch">
+                <Panel class="item-knob" />
               </Panel>
-              <Label id="cm_val28" class="item-value" text="{s:cm_val28}" />
-            </Button>
-            <Button id="cm_item29" class="item hidden">
-              <Panel class="item-text">
-                <Label id="cm_seg29_0" class="item-seg" text="{s:cm_seg29_0}" />
-                <Label id="cm_seg29_1" class="item-seg" text="{s:cm_seg29_1}" />
-                <Label id="cm_seg29_2" class="item-seg" text="{s:cm_seg29_2}" />
-                <Label id="cm_seg29_3" class="item-seg" text="{s:cm_seg29_3}" />
-                <Label id="cm_seg29_4" class="item-seg" text="{s:cm_seg29_4}" />
-                <Label id="cm_seg29_5" class="item-seg" text="{s:cm_seg29_5}" />
-                <Label id="cm_seg29_6" class="item-seg" text="{s:cm_seg29_6}" />
-                <Label id="cm_seg29_7" class="item-seg" text="{s:cm_seg29_7}" />
-                <Label id="cm_seg29_8" class="item-seg" text="{s:cm_seg29_8}" />
-                <Label id="cm_seg29_9" class="item-seg" text="{s:cm_seg29_9}" />
-                <Label id="cm_seg29_10" class="item-seg" text="{s:cm_seg29_10}" />
-                <Label id="cm_seg29_11" class="item-seg" text="{s:cm_seg29_11}" />
-                <Label id="cm_seg29_12" class="item-seg" text="{s:cm_seg29_12}" />
-                <Label id="cm_seg29_13" class="item-seg" text="{s:cm_seg29_13}" />
-                <Label id="cm_seg29_14" class="item-seg" text="{s:cm_seg29_14}" />
-                <Label id="cm_seg29_15" class="item-seg" text="{s:cm_seg29_15}" />
-                <Label id="cm_seg29_16" class="item-seg" text="{s:cm_seg29_16}" />
-                <Label id="cm_seg29_17" class="item-seg" text="{s:cm_seg29_17}" />
-                <Label id="cm_seg29_18" class="item-seg" text="{s:cm_seg29_18}" />
-                <Label id="cm_seg29_19" class="item-seg" text="{s:cm_seg29_19}" />
-                <Label id="cm_seg29_20" class="item-seg" text="{s:cm_seg29_20}" />
-                <Label id="cm_seg29_21" class="item-seg" text="{s:cm_seg29_21}" />
-                <Label id="cm_seg29_22" class="item-seg" text="{s:cm_seg29_22}" />
-                <Label id="cm_seg29_23" class="item-seg" text="{s:cm_seg29_23}" />
-                <Label id="cm_seg29_24" class="item-seg" text="{s:cm_seg29_24}" />
-                <Label id="cm_seg29_25" class="item-seg" text="{s:cm_seg29_25}" />
-                <Label id="cm_seg29_26" class="item-seg" text="{s:cm_seg29_26}" />
-              </Panel>
-              <Label id="cm_val29" class="item-value" text="{s:cm_val29}" />
             </Button>
           </Panel>
         </Panel>
@@ -1122,6 +1376,20 @@
       <Panel id="cm_preview" class="popup preview-popup hidden">
         <Panel id="cm_preview_img" class="preview-img" />
       </Panel>
+      <Panel id="cm_msg" class="msg hidden">
+        <Panel class="msg-dot" />
+        <Label id="cm_msg_text" class="msg-text" text="{s:cm_msg_text}" />
+      </Panel>
+      <Button id="cm_dlg" class="dlg-scrim hidden">
+        <Button id="cm_dlg_box" class="dlg-box">
+          <Label id="cm_dlg_title" class="dlg-title" text="{s:cm_dlg_title}" />
+          <Label id="cm_dlg_body" class="dlg-body" text="{s:cm_dlg_body}" />
+          <Panel class="dlg-btns">
+            <Button id="cm_dlg_no" class="dlg-btn dlg-no"><Label id="cm_dlg_no_lbl" class="dlg-btn-label" text="{s:cm_dlg_no_lbl}" /></Button>
+            <Button id="cm_dlg_yes" class="dlg-btn dlg-yes"><Label id="cm_dlg_yes_lbl" class="dlg-btn-label" text="{s:cm_dlg_yes_lbl}" /></Button>
+          </Panel>
+        </Button>
+      </Button>
     </Panel>
   </Panel>
 </root>

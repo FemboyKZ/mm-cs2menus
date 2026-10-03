@@ -1,4 +1,4 @@
-#include "menu_admin_bridge.h"
+#include "bridge.h"
 #include "mmu/log.h"
 #include "src/common.h"
 
