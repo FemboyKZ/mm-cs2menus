@@ -1,7 +1,8 @@
 services:
   build:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/femboykz/build-containers:steamrt3
+    working_dir: /app
     volumes:
+      - .:/app
       - ./output:/app/build
+    command: /bin/bash ./docker-entrypoint.sh
