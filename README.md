@@ -45,13 +45,21 @@ For commands see: [COMMANDS.md](./COMMANDS.md).
 
 ### Configuration
 
-`cfg/cs2menus/core.cfg`, reloaded automatically on every map change.
+[`cfg/cs2menus/core.cfg`](configs/core.cfg), reloaded automatically on every map change. Every key is explained in the file.
 
-TBA...
+| Section    | What it sets                                                                                          |
+| ---------- | ----------------------------------------------------------------------------------------------------- |
+| `General`  | Chat prefixes accepted in front of a menu selection number                                            |
+| `Menu`     | Default menu type and language, logging, then the chat menus' and the HTML menus' looks and keys      |
+| `Panorama` | The workshop addon's ID and whether MultiAddonManager mounts it, the window's font, colors and sounds |
+| `Database` | Per-player preferences (menu type, HTML keys) through sql_mm, off by default                          |
+
+Panorama menus need the [workshop addon](./workshop/README.md) on the clients, so the server has to mount it:
+with MultiAddonManager loaded and `MountAddon` on, cs2menus does that itself. Without the addon they fall back to HTML menus.
 
 ## For plugin developers
 
-Acquire the interface via Metamod's factory (interface name `ICS2Menus004`, `ICS2Menus003` still resolves for older builds):
+Acquire the interface via Metamod's factory:
 
 ```cpp
 #include "ics2menus.h"
@@ -90,7 +98,12 @@ g_pMenus->SetMenuKey(m, MenuNavAction::Back,   MenuButton::Speed); // Shift back
 g_pMenus->DisplayMenu(m, slot, 20.0f); // show to one player, 20s timeout (0 = none)
 ```
 
-The full surface is documented in [`ics2menus.h`](src/public/ics2menus.h).
+The full surface is documented in [`ics2menus.h`](https://github.com/FemboyKZ/mm-utils/blob/main/interfaces/cs2menus/ics2menus.h),
+which lives in [mm-utils](https://github.com/FemboyKZ/mm-utils) with a `menus_client.h` helper that does the acquiring above.
+
+Past plain lists it has value items (toggles, steppers, choices), sections, per-menu styling, a history with a back arrow,
+and for Panorama the grid, showcase, studio and columns layouts with tile badges, tabs, chips, an info card, typed input,
+a message line and a confirm dialog. Each of those falls back to a list on chat and HTML menus.
 
 ### SwiftlyS2 and CounterStrikeSharp
 
