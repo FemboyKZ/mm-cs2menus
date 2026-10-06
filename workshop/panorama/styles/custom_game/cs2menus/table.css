@@ -1,0 +1,373 @@
+/* table.xml. The window, popups and palette come from menu.css, the row over the table, its page arrows, the chips
+   and the input field from grid.css. Slot counts match panorama_hud.h. */
+
+#ct_root {
+	width: 100%;
+	height: 100%;
+	color: #ffffff;
+	transition-property: position;
+	transition-duration: 0.1s;
+	transition-timing-function: ease-in-out;
+}
+
+#ct_root.hidden {
+	visibility: collapse;
+}
+
+#ct_root.shift {
+	x: -188px;
+}
+
+/* The rows' area has a height of its own, so the window is as tall on every page. */
+#ct_root .menu-box {
+	height: fit-children;
+}
+
+#ct_root.collapsed .tabrow {
+	visibility: collapse;
+}
+
+#ct_root.collapsed .thead {
+	visibility: collapse;
+}
+
+#ct_root.collapsed .trows {
+	visibility: collapse;
+}
+
+/* --- the row over the table: the keys, one per letter or section and lit for the ones on the page shown,
+   then the chips and the page arrows. All 24 tall but the chips' 26 and centered on one line, the keys wrap --- */
+
+#ct_root .tabrow {
+	padding-bottom: 6px;
+}
+
+.keys {
+	flow-children: right-wrap;
+	width: fill-parent-flow(1);
+	vertical-align: center;
+}
+
+.key {
+	height: 24px;
+	min-width: 24px;
+	padding: 0px 6px;
+	margin: 1px 2px 1px 0px;
+	border-radius: 3px;
+	background-color: #00000000;
+	transition-property: background-color;
+	transition-duration: 0.05s;
+}
+
+.key:hover {
+	background-color: #ffffff1a;
+}
+
+.key.selected {
+	background-color: #ffffff26;
+}
+
+.key.hidden {
+	visibility: collapse;
+}
+
+/* Dimmed by opacity: the server puts a palette class on the label, which a color here would lose to. */
+.key-label {
+	horizontal-align: center;
+	vertical-align: center;
+	font-size: 14px;
+	font-weight: bold;
+	white-space: nowrap;
+	text-transform: uppercase;
+	opacity: 0.64;
+}
+
+.key.selected .key-label {
+	opacity: 1;
+}
+
+.tabrow .chips {
+	width: fit-children;
+	margin: 0px 0px 0px 10px;
+	vertical-align: center;
+}
+
+#ct_root .pager {
+	margin: 0px 0px 0px 4px;
+	vertical-align: center;
+}
+
+#ct_root .pager .popup-btn {
+	height: 24px;
+	min-width: 24px;
+	padding: 0px 6px;
+	margin: 0px 1px;
+}
+
+#ct_root .pager .popup-btn-label {
+	vertical-align: center;
+	font-size: 14px;
+	font-weight: bold;
+}
+
+#ct_root .pager .popup-page {
+	width: 40px;
+	vertical-align: center;
+	font-size: 14px;
+}
+
+/* --- the headings. The first fills what the cells leave, the others are as wide as their cells:
+   w<cells> of 26, after the 18 that sets their cells apart --- */
+
+.thead {
+	flow-children: right;
+	width: 100%;
+	height: 24px;
+	padding: 0px 8px 0px 12px;
+	border-bottom: 1px solid #ffffff1f;
+}
+
+.thead-col {
+	flow-children: right;
+	height: 100%;
+	margin-left: 18px;
+}
+
+.thead-col.hidden {
+	visibility: collapse;
+}
+
+#ct_head0 {
+	width: fill-parent-flow(1);
+	margin-left: 0px;
+}
+
+.thead-col.w1 {
+	width: 26px;
+}
+
+.thead-col.w2 {
+	width: 52px;
+}
+
+.thead-col.w3 {
+	width: 78px;
+}
+
+.thead-col.w4 {
+	width: 104px;
+}
+
+.thead-col.w5 {
+	width: 130px;
+}
+
+.thead-col.w6 {
+	width: 156px;
+}
+
+.thead-col.w7 {
+	width: 182px;
+}
+
+.thead-col.w8 {
+	width: 208px;
+}
+
+.thead-col.w9 {
+	width: 234px;
+}
+
+.thead-col.w10 {
+	width: 260px;
+}
+
+.thead-col.w11 {
+	width: 286px;
+}
+
+.thead-col.w12 {
+	width: 312px;
+}
+
+/* Starts where a one-digit cell's text does. */
+.thead-label {
+	vertical-align: center;
+	margin-left: 8px;
+	font-size: 12px;
+	font-weight: bold;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	white-space: nowrap;
+	color: #ffffff8f;
+}
+
+#ct_head0 .thead-label {
+	margin-left: 0px;
+}
+
+.thead-col.button:hover .thead-label {
+	color: #ffffff;
+}
+
+.thead-col.asc .thead-label {
+	color: #ffffff;
+}
+
+.thead-col.desc .thead-label {
+	color: #ffffff;
+}
+
+.thead-arrow {
+	visibility: collapse;
+	width: 8px;
+	height: 8px;
+	margin-left: 5px;
+	vertical-align: center;
+	background-size: 8px 8px;
+	background-repeat: no-repeat;
+	wash-color: #ffffff;
+}
+
+.thead-col.asc .thead-arrow {
+	visibility: visible;
+	background-image: url("s2r://panorama/images/control_icons/arrow_solid_up_png.vtex");
+}
+
+.thead-col.desc .thead-arrow {
+	visibility: visible;
+	background-image: url("s2r://panorama/images/control_icons/arrow_solid_down_png.vtex");
+}
+
+/* --- the rows: 18 of 27, and 2 to spare. A menu of one page, the root "fit", is only as tall as its rows --- */
+
+.trows {
+	flow-children: down;
+	width: 100%;
+	height: 488px;
+}
+
+.fit .trows {
+	height: fit-children;
+}
+
+.trow {
+	flow-children: right;
+	width: 100%;
+	height: 27px;
+	padding: 0px 8px 0px 12px;
+	border-radius: 3px;
+	border-bottom: 1px solid #ffffff14;
+	background-color: #00000000;
+	transition-property: background-color;
+	transition-duration: 0.05s;
+}
+
+.trow:hover {
+	background-color: #ffffff14;
+}
+
+.trow.disabled:hover {
+	background-color: #00000000;
+}
+
+.trow.hidden {
+	visibility: collapse;
+}
+
+.trow-name {
+	width: fill-parent-flow(1);
+	vertical-align: center;
+	font-size: 16px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* One width whatever is in it, two digits at most. */
+.tcell {
+	width: 26px;
+	vertical-align: center;
+	font-size: 16px;
+	text-align: center;
+	white-space: nowrap;
+}
+
+.tcell.first {
+	margin-left: 18px;
+}
+
+.tcell.hidden {
+	visibility: collapse;
+}
+
+/* The button for a row's details. While any row of the menu has them the root is "more" and every row keeps the
+   button's place, unseen without "on", so the cells stay in line. The headings give up as much. */
+.trow-more {
+	visibility: collapse;
+	width: 26px;
+	height: 19px;
+	margin-left: 8px;
+	vertical-align: center;
+	border-radius: 3px;
+	opacity: 0;
+	background-color: #ffffff14;
+	transition-property: background-color;
+	transition-duration: 0.05s;
+}
+
+.more .trow-more {
+	visibility: visible;
+}
+
+.trow-more.on {
+	opacity: 1;
+}
+
+.trow-more.on:hover {
+	background-color: #ffffff40;
+}
+
+.trow-more-label {
+	horizontal-align: center;
+	vertical-align: center;
+	font-size: 13px;
+	font-weight: bold;
+}
+
+.more .thead {
+	padding-right: 42px;
+}
+
+/* --- sounds, on when the server adds "snd" to ct_root --- */
+
+.snd .key:hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .key:active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+.snd .thead-col.button:hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .thead-col.button:active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+.snd .trow-more.on:hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .trow-more.on:active {
+	sound: "UIPanorama.generic_button_press";
+}
+
+.snd .trow:not(.disabled):hover {
+	sound: "UIPanorama.generic_button_rollover";
+}
+
+.snd .trow:not(.disabled):active {
+	sound: "UIPanorama.generic_button_press";
+}

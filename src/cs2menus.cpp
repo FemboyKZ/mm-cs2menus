@@ -539,14 +539,34 @@ class CS2MenusAPI : public ICS2Menus
 		return g_MenuManager.GetMenuTextFeatures(menu);
 	}
 
-	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onClick) override
+	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1) override
 	{
-		return g_MenuManager.ShowNotice(slot, title, text, hint, seconds, std::move(onClick));
+		return g_MenuManager.ShowNotice(slot, title, text, hint, seconds, std::move(onMouse1));
 	}
 
 	void HideNotice(int slot) override
 	{
 		g_MenuManager.HideNotice(slot);
+	}
+
+	int AddMenuColumn(MenuHandle menu, const char *label, int cells, int sort) override
+	{
+		return g_MenuManager.AddMenuColumn(menu, label, cells, sort);
+	}
+
+	void SetMenuColumnCallback(MenuHandle menu, MenuColumnFn onColumn) override
+	{
+		g_MenuManager.SetMenuColumnCallback(menu, std::move(onColumn));
+	}
+
+	void SetItemCells(MenuHandle menu, int item, const char *const *cells, int count) override
+	{
+		g_MenuManager.SetItemCells(menu, item, cells, count);
+	}
+
+	void SetItemDetails(MenuHandle menu, int item, const char *const *lines, int count) override
+	{
+		g_MenuManager.SetItemDetails(menu, item, lines, count);
 	}
 
 	void SetItemControl(MenuHandle menu, int item, bool control) override

@@ -94,7 +94,7 @@ Threading is not a concern: cs2menus is fully thread-safe and callbacks always a
 ## Panorama layouts, history and pausing
 
 These need a cs2menus with the matching exports.
-Check `SupportsValueItemsAndGrids`, `SupportsShowcaseAndHistory` and `SupportsBadgesTabsAndDialogs` first,
+Check `SupportsValueItemsAndGrids`, `SupportsShowcaseAndHistory`, `SupportsBadgesTabsAndDialogs` and `SupportsTables` first,
 the setters throw `NotSupportedException` on an older one.
 
 ```csharp

@@ -769,3 +769,48 @@ CS2M_API int CS2M_CALL cs2m_get_text_features(cs2m_handle menu)
 {
 	return API()->GetMenuTextFeatures(menu);
 }
+
+// --- Notices ---
+
+CS2M_API int CS2M_CALL cs2m_show_notice(int slot, const char *title, const char *text, const char *hint, float seconds, cs2m_notice_cb on_mouse1,
+										void *user)
+{
+	MenuNoticeFn fn;
+	if (on_mouse1)
+	{
+		fn = [on_mouse1, user](int s) { on_mouse1(s, user); };
+	}
+	return API()->ShowNotice(slot, title ? title : "", text ? text : "", hint ? hint : "", seconds, std::move(fn)) ? 1 : 0;
+}
+
+CS2M_API void CS2M_CALL cs2m_hide_notice(int slot)
+{
+	API()->HideNotice(slot);
+}
+
+// --- Table ---
+
+CS2M_API int CS2M_CALL cs2m_add_menu_column(cs2m_handle menu, const char *label, int cells, int sort)
+{
+	return API()->AddMenuColumn(menu, label ? label : "", cells, sort);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_column_callback(cs2m_handle menu, cs2m_column_cb on_column, void *user)
+{
+	MenuColumnFn fn;
+	if (on_column)
+	{
+		fn = [on_column, user](MenuHandle m, int slot, int column) { on_column(m, slot, column, user); };
+	}
+	API()->SetMenuColumnCallback(menu, std::move(fn));
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_cells(cs2m_handle menu, int item, const char *const *cells, int count)
+{
+	API()->SetItemCells(menu, item, cells, cells ? count : 0);
+}
+
+CS2M_API void CS2M_CALL cs2m_set_item_details(cs2m_handle menu, int item, const char *const *lines, int count)
+{
+	API()->SetItemDetails(menu, item, lines, lines ? count : 0);
+}

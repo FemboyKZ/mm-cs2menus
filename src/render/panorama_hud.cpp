@@ -41,6 +41,7 @@ namespace
 		{"panorama/layout/custom_game/cs2menus/showcase.vxml_c", "cx_", "showcase", panorama_hud::kShowcaseSlots, panorama_hud::kShowcaseTabs},
 		{"panorama/layout/custom_game/cs2menus/studio.vxml_c", "cs_", "studio", panorama_hud::kShowcaseSlots, panorama_hud::kShowcaseTabs},
 		{"panorama/layout/custom_game/cs2menus/columns.vxml_c", "cl_", "columns", panorama_hud::kColumnSlots, panorama_hud::kGridTabs},
+		{"panorama/layout/custom_game/cs2menus/table.vxml_c", "ct_", "table", panorama_hud::kTableRows, panorama_hud::kTableKeys},
 		{"panorama/layout/custom_game/cs2menus/notice.vxml_c", "cn_", "notice", 0, 0},
 	};
 	// Lets a reloaded plugin find the windows it left behind.
@@ -968,6 +969,70 @@ namespace
 		WritePager(w, view);
 	}
 
+	// The table's headings and rows. The cells under a heading are set apart from the ones before by a gap.
+	void WriteTable(Writer &w, const panorama_hud::View &view)
+	{
+		w.Flag(w.Id("root"), "more", view.details);
+		// One page: the window is only as tall as its rows.
+		w.Flag(w.Id("root"), "fit", view.page.empty());
+		bool first[panorama_hud::kTableCells] = {};
+		int cellCount = 0;
+		for (int i = 0; i < panorama_hud::kTableColumns; i++)
+		{
+			const bool used = i < static_cast<int>(view.heads.size());
+			const std::string panel = w.Id("head%d", i);
+			if (used)
+			{
+				const panorama_hud::View::Head &head = view.heads[i];
+				w.Var(w.Id("head_lbl%d", i), head.label);
+				w.Swap(panel, i > 0 ? "w" + std::to_string(head.cells) : std::string(), "width");
+				w.Class(panel, "asc", head.sort > 0);
+				w.Class(panel, "desc", head.sort < 0);
+				w.Class(panel, "button", view.headButtons);
+				if (i > 0 && cellCount < panorama_hud::kTableCells)
+				{
+					first[cellCount] = true;
+					cellCount = (std::min)(cellCount + head.cells, panorama_hud::kTableCells);
+				}
+			}
+			w.Class(panel, "hidden", !used);
+		}
+		for (int i = 0; i < panorama_hud::kTableRows; i++)
+		{
+			const bool used = i < static_cast<int>(view.rows.size());
+			const std::string panel = w.Id("item%d", i);
+			if (used)
+			{
+				const panorama_hud::View::Row &row = view.rows[i];
+				const std::string name = w.Id("name%d", i);
+				w.Var(name, RowName(row));
+				if (!row.segments.empty())
+				{
+					w.Swap(name, ColorClass(row.segments[0].color));
+				}
+				for (int k = 0; k < panorama_hud::kTableCells; k++)
+				{
+					const std::string cell = w.Id("c%d_%d", i, k);
+					const bool filled = k < static_cast<int>(row.cells.size());
+					if (k < cellCount)
+					{
+						w.Var(cell, filled ? row.cells[k].text : std::string());
+						if (filled)
+						{
+							w.Swap(cell, ColorClass(row.cells[k].color));
+						}
+					}
+					w.Flag(cell, "first", k < cellCount && first[k]);
+					w.Class(cell, "hidden", k >= cellCount);
+				}
+				w.Flag(w.Id("corner%d", i), "on", row.details);
+				w.Class(panel, "disabled", row.disabled);
+			}
+			w.Class(panel, "hidden", !used);
+		}
+		WritePager(w, view);
+	}
+
 	void WritePopups(Writer &w, const panorama_hud::View &view)
 	{
 		const bool popup = view.step.open || view.list.open;
@@ -1288,7 +1353,8 @@ bool panorama_hud::Show(int slot, const View &view)
 	// The tab row goes when nothing is in it: no tabs, no page arrows, and in the columns no chips.
 	if (view.layout != Layout::List)
 	{
-		w.Class(root, "notabs", view.nav.empty() && view.page.empty() && (view.layout != Layout::Columns || view.chips.empty()));
+		const bool chipsInRow = view.layout == Layout::Columns || view.layout == Layout::Table;
+		w.Class(root, "notabs", view.nav.empty() && view.page.empty() && (!chipsInRow || view.chips.empty()));
 	}
 
 	const std::string navClass = ColorClass(view.navColor);
@@ -1317,6 +1383,12 @@ bool panorama_hud::Show(int slot, const View &view)
 	else if (view.layout == Layout::Grid)
 	{
 		WriteTiles(w, view);
+		WriteChips(w, view);
+		WriteInput(w, view);
+	}
+	else if (view.layout == Layout::Table)
+	{
+		WriteTable(w, view);
 		WriteChips(w, view);
 		WriteInput(w, view);
 	}
@@ -1640,10 +1712,10 @@ panorama_hud::Click panorama_hud::ParseClick(int slot, uint32_t layoutHandle, co
 	};
 
 	const Slotted slotted[] = {
-		{"step_b", kStepButtons, Click::Step},    {"li", kListSlots, Click::ListRow},  {"ctab", kStudioControlTabs, Click::ControlTab},
-		{"ctl", kStudioControls, Click::Control}, {"nav", def->nav, Click::Nav},       {"item", def->items, Click::Item},
-		{"dec", def->items, Click::ItemDec},      {"inc", def->items, Click::ItemInc}, {"corner", def->items, Click::Corner},
-		{"chip", kChipSlots, Click::Chip},
+		{"step_b", kStepButtons, Click::Step},    {"li", kListSlots, Click::ListRow},     {"ctab", kStudioControlTabs, Click::ControlTab},
+		{"ctl", kStudioControls, Click::Control}, {"nav", def->nav, Click::Nav},          {"item", def->items, Click::Item},
+		{"dec", def->items, Click::ItemDec},      {"inc", def->items, Click::ItemInc},    {"corner", def->items, Click::Corner},
+		{"chip", kChipSlots, Click::Chip},        {"head", kTableColumns, Click::Column},
 	};
 	for (const Slotted &s : slotted)
 	{

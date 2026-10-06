@@ -1,0 +1,660 @@
+<root>
+  <styles>
+    <include src="file://{resources}/styles/custom_game/cs2menus/fonts.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/menu.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/grid.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/table.css" />
+  </styles>
+  <Panel class="root" hittest="false">
+    <Panel id="ct_root" class="menu hidden">
+      <Panel class="menu-box">
+        <Panel class="window-header">
+          <Label id="ct_title" class="menu-title" text="{s:ct_title}" />
+          <Button id="ct_scope" class="scope-chip hidden">
+            <Panel class="scope-dot scope-dot-t" />
+            <Panel class="scope-dot scope-dot-ct" />
+            <Label id="ct_scope_lbl" class="scope-label" text="{s:ct_scope_lbl}" />
+          </Button>
+          <Label id="ct_edited" class="edited-mark" text="{s:ct_edited}" />
+          <Button id="ct_back" class="hist-btn back-btn disabled" />
+          <Button id="ct_forward" class="hist-btn forward-btn disabled" />
+          <Button id="ct_refresh" class="hist-btn refresh-btn disabled" />
+          <Button id="ct_collapse" class="hist-btn collapse-btn" />
+          <Button id="ct_close" class="close-btn" />
+        </Panel>
+        <Panel class="tabrow">
+          <Panel id="ct_pages" class="keys">
+            <Button id="ct_nav0" class="key hidden">
+              <Label id="ct_nav_lbl0" class="key-label" text="{s:ct_nav_lbl0}" />
+            </Button>
+            <Button id="ct_nav1" class="key hidden">
+              <Label id="ct_nav_lbl1" class="key-label" text="{s:ct_nav_lbl1}" />
+            </Button>
+            <Button id="ct_nav2" class="key hidden">
+              <Label id="ct_nav_lbl2" class="key-label" text="{s:ct_nav_lbl2}" />
+            </Button>
+            <Button id="ct_nav3" class="key hidden">
+              <Label id="ct_nav_lbl3" class="key-label" text="{s:ct_nav_lbl3}" />
+            </Button>
+            <Button id="ct_nav4" class="key hidden">
+              <Label id="ct_nav_lbl4" class="key-label" text="{s:ct_nav_lbl4}" />
+            </Button>
+            <Button id="ct_nav5" class="key hidden">
+              <Label id="ct_nav_lbl5" class="key-label" text="{s:ct_nav_lbl5}" />
+            </Button>
+            <Button id="ct_nav6" class="key hidden">
+              <Label id="ct_nav_lbl6" class="key-label" text="{s:ct_nav_lbl6}" />
+            </Button>
+            <Button id="ct_nav7" class="key hidden">
+              <Label id="ct_nav_lbl7" class="key-label" text="{s:ct_nav_lbl7}" />
+            </Button>
+            <Button id="ct_nav8" class="key hidden">
+              <Label id="ct_nav_lbl8" class="key-label" text="{s:ct_nav_lbl8}" />
+            </Button>
+            <Button id="ct_nav9" class="key hidden">
+              <Label id="ct_nav_lbl9" class="key-label" text="{s:ct_nav_lbl9}" />
+            </Button>
+            <Button id="ct_nav10" class="key hidden">
+              <Label id="ct_nav_lbl10" class="key-label" text="{s:ct_nav_lbl10}" />
+            </Button>
+            <Button id="ct_nav11" class="key hidden">
+              <Label id="ct_nav_lbl11" class="key-label" text="{s:ct_nav_lbl11}" />
+            </Button>
+            <Button id="ct_nav12" class="key hidden">
+              <Label id="ct_nav_lbl12" class="key-label" text="{s:ct_nav_lbl12}" />
+            </Button>
+            <Button id="ct_nav13" class="key hidden">
+              <Label id="ct_nav_lbl13" class="key-label" text="{s:ct_nav_lbl13}" />
+            </Button>
+            <Button id="ct_nav14" class="key hidden">
+              <Label id="ct_nav_lbl14" class="key-label" text="{s:ct_nav_lbl14}" />
+            </Button>
+            <Button id="ct_nav15" class="key hidden">
+              <Label id="ct_nav_lbl15" class="key-label" text="{s:ct_nav_lbl15}" />
+            </Button>
+            <Button id="ct_nav16" class="key hidden">
+              <Label id="ct_nav_lbl16" class="key-label" text="{s:ct_nav_lbl16}" />
+            </Button>
+            <Button id="ct_nav17" class="key hidden">
+              <Label id="ct_nav_lbl17" class="key-label" text="{s:ct_nav_lbl17}" />
+            </Button>
+            <Button id="ct_nav18" class="key hidden">
+              <Label id="ct_nav_lbl18" class="key-label" text="{s:ct_nav_lbl18}" />
+            </Button>
+            <Button id="ct_nav19" class="key hidden">
+              <Label id="ct_nav_lbl19" class="key-label" text="{s:ct_nav_lbl19}" />
+            </Button>
+            <Button id="ct_nav20" class="key hidden">
+              <Label id="ct_nav_lbl20" class="key-label" text="{s:ct_nav_lbl20}" />
+            </Button>
+            <Button id="ct_nav21" class="key hidden">
+              <Label id="ct_nav_lbl21" class="key-label" text="{s:ct_nav_lbl21}" />
+            </Button>
+            <Button id="ct_nav22" class="key hidden">
+              <Label id="ct_nav_lbl22" class="key-label" text="{s:ct_nav_lbl22}" />
+            </Button>
+            <Button id="ct_nav23" class="key hidden">
+              <Label id="ct_nav_lbl23" class="key-label" text="{s:ct_nav_lbl23}" />
+            </Button>
+            <Button id="ct_nav24" class="key hidden">
+              <Label id="ct_nav_lbl24" class="key-label" text="{s:ct_nav_lbl24}" />
+            </Button>
+            <Button id="ct_nav25" class="key hidden">
+              <Label id="ct_nav_lbl25" class="key-label" text="{s:ct_nav_lbl25}" />
+            </Button>
+            <Button id="ct_nav26" class="key hidden">
+              <Label id="ct_nav_lbl26" class="key-label" text="{s:ct_nav_lbl26}" />
+            </Button>
+            <Button id="ct_nav27" class="key hidden">
+              <Label id="ct_nav_lbl27" class="key-label" text="{s:ct_nav_lbl27}" />
+            </Button>
+            <Button id="ct_nav28" class="key hidden">
+              <Label id="ct_nav_lbl28" class="key-label" text="{s:ct_nav_lbl28}" />
+            </Button>
+            <Button id="ct_nav29" class="key hidden">
+              <Label id="ct_nav_lbl29" class="key-label" text="{s:ct_nav_lbl29}" />
+            </Button>
+          </Panel>
+          <Panel id="ct_chips" class="chips hidden">
+            <Button id="ct_chip0" class="chip hidden">
+              <Label id="ct_chip_lbl0" class="chip-label" text="{s:ct_chip_lbl0}" />
+              <Label id="ct_chip_val0" class="chip-value" text="{s:ct_chip_val0}" />
+              <Panel class="chip-caret" />
+            </Button>
+            <Button id="ct_chip1" class="chip hidden">
+              <Label id="ct_chip_lbl1" class="chip-label" text="{s:ct_chip_lbl1}" />
+              <Label id="ct_chip_val1" class="chip-value" text="{s:ct_chip_val1}" />
+              <Panel class="chip-caret" />
+            </Button>
+            <Button id="ct_chip2" class="chip hidden">
+              <Label id="ct_chip_lbl2" class="chip-label" text="{s:ct_chip_lbl2}" />
+              <Label id="ct_chip_val2" class="chip-value" text="{s:ct_chip_val2}" />
+              <Panel class="chip-caret" />
+            </Button>
+            <Button id="ct_chip3" class="chip hidden">
+              <Label id="ct_chip_lbl3" class="chip-label" text="{s:ct_chip_lbl3}" />
+              <Label id="ct_chip_val3" class="chip-value" text="{s:ct_chip_val3}" />
+              <Panel class="chip-caret" />
+            </Button>
+            <Button id="ct_chip4" class="chip hidden">
+              <Label id="ct_chip_lbl4" class="chip-label" text="{s:ct_chip_lbl4}" />
+              <Label id="ct_chip_val4" class="chip-value" text="{s:ct_chip_val4}" />
+              <Panel class="chip-caret" />
+            </Button>
+            <Button id="ct_chip5" class="chip hidden">
+              <Label id="ct_chip_lbl5" class="chip-label" text="{s:ct_chip_lbl5}" />
+              <Label id="ct_chip_val5" class="chip-value" text="{s:ct_chip_val5}" />
+              <Panel class="chip-caret" />
+            </Button>
+          </Panel>
+          <Panel id="ct_pager" class="pager hidden">
+            <Button id="ct_prev" class="popup-btn"><Label class="popup-btn-label" text="&lt;" /></Button>
+            <Label id="ct_page" class="popup-page" text="{s:ct_page}" />
+            <Button id="ct_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
+          </Panel>
+        </Panel>
+        <Button id="ct_input" class="input-bar hidden">
+          <Panel class="input-icon" />
+          <Label id="ct_input_text" class="input-text" text="{s:ct_input_text}" />
+          <Label id="ct_input_hint" class="input-hint" text="{s:ct_input_hint}" />
+          <Button id="ct_input_x" class="input-x" />
+        </Button>
+        <Panel class="thead">
+          <Button id="ct_head0" class="thead-col hidden">
+            <Label id="ct_head_lbl0" class="thead-label" text="{s:ct_head_lbl0}" />
+            <Panel class="thead-arrow" />
+          </Button>
+          <Button id="ct_head1" class="thead-col hidden">
+            <Label id="ct_head_lbl1" class="thead-label" text="{s:ct_head_lbl1}" />
+            <Panel class="thead-arrow" />
+          </Button>
+          <Button id="ct_head2" class="thead-col hidden">
+            <Label id="ct_head_lbl2" class="thead-label" text="{s:ct_head_lbl2}" />
+            <Panel class="thead-arrow" />
+          </Button>
+          <Button id="ct_head3" class="thead-col hidden">
+            <Label id="ct_head_lbl3" class="thead-label" text="{s:ct_head_lbl3}" />
+            <Panel class="thead-arrow" />
+          </Button>
+          <Button id="ct_head4" class="thead-col hidden">
+            <Label id="ct_head_lbl4" class="thead-label" text="{s:ct_head_lbl4}" />
+            <Panel class="thead-arrow" />
+          </Button>
+          <Button id="ct_head5" class="thead-col hidden">
+            <Label id="ct_head_lbl5" class="thead-label" text="{s:ct_head_lbl5}" />
+            <Panel class="thead-arrow" />
+          </Button>
+        </Panel>
+        <Panel class="trows">
+          <Panel id="ct_empty" class="empty-state hidden">
+            <Label id="ct_empty_title" class="empty-title" text="{s:ct_empty_title}" />
+            <Label id="ct_empty_text" class="empty-text" text="{s:ct_empty_text}" />
+          </Panel>
+          <Button id="ct_item0" class="trow hidden">
+            <Label id="ct_name0" class="trow-name" text="{s:ct_name0}" />
+            <Label id="ct_c0_0" class="tcell hidden" text="{s:ct_c0_0}" />
+            <Label id="ct_c0_1" class="tcell hidden" text="{s:ct_c0_1}" />
+            <Label id="ct_c0_2" class="tcell hidden" text="{s:ct_c0_2}" />
+            <Label id="ct_c0_3" class="tcell hidden" text="{s:ct_c0_3}" />
+            <Label id="ct_c0_4" class="tcell hidden" text="{s:ct_c0_4}" />
+            <Label id="ct_c0_5" class="tcell hidden" text="{s:ct_c0_5}" />
+            <Label id="ct_c0_6" class="tcell hidden" text="{s:ct_c0_6}" />
+            <Label id="ct_c0_7" class="tcell hidden" text="{s:ct_c0_7}" />
+            <Label id="ct_c0_8" class="tcell hidden" text="{s:ct_c0_8}" />
+            <Label id="ct_c0_9" class="tcell hidden" text="{s:ct_c0_9}" />
+            <Label id="ct_c0_10" class="tcell hidden" text="{s:ct_c0_10}" />
+            <Label id="ct_c0_11" class="tcell hidden" text="{s:ct_c0_11}" />
+            <Button id="ct_corner0" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item1" class="trow hidden">
+            <Label id="ct_name1" class="trow-name" text="{s:ct_name1}" />
+            <Label id="ct_c1_0" class="tcell hidden" text="{s:ct_c1_0}" />
+            <Label id="ct_c1_1" class="tcell hidden" text="{s:ct_c1_1}" />
+            <Label id="ct_c1_2" class="tcell hidden" text="{s:ct_c1_2}" />
+            <Label id="ct_c1_3" class="tcell hidden" text="{s:ct_c1_3}" />
+            <Label id="ct_c1_4" class="tcell hidden" text="{s:ct_c1_4}" />
+            <Label id="ct_c1_5" class="tcell hidden" text="{s:ct_c1_5}" />
+            <Label id="ct_c1_6" class="tcell hidden" text="{s:ct_c1_6}" />
+            <Label id="ct_c1_7" class="tcell hidden" text="{s:ct_c1_7}" />
+            <Label id="ct_c1_8" class="tcell hidden" text="{s:ct_c1_8}" />
+            <Label id="ct_c1_9" class="tcell hidden" text="{s:ct_c1_9}" />
+            <Label id="ct_c1_10" class="tcell hidden" text="{s:ct_c1_10}" />
+            <Label id="ct_c1_11" class="tcell hidden" text="{s:ct_c1_11}" />
+            <Button id="ct_corner1" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item2" class="trow hidden">
+            <Label id="ct_name2" class="trow-name" text="{s:ct_name2}" />
+            <Label id="ct_c2_0" class="tcell hidden" text="{s:ct_c2_0}" />
+            <Label id="ct_c2_1" class="tcell hidden" text="{s:ct_c2_1}" />
+            <Label id="ct_c2_2" class="tcell hidden" text="{s:ct_c2_2}" />
+            <Label id="ct_c2_3" class="tcell hidden" text="{s:ct_c2_3}" />
+            <Label id="ct_c2_4" class="tcell hidden" text="{s:ct_c2_4}" />
+            <Label id="ct_c2_5" class="tcell hidden" text="{s:ct_c2_5}" />
+            <Label id="ct_c2_6" class="tcell hidden" text="{s:ct_c2_6}" />
+            <Label id="ct_c2_7" class="tcell hidden" text="{s:ct_c2_7}" />
+            <Label id="ct_c2_8" class="tcell hidden" text="{s:ct_c2_8}" />
+            <Label id="ct_c2_9" class="tcell hidden" text="{s:ct_c2_9}" />
+            <Label id="ct_c2_10" class="tcell hidden" text="{s:ct_c2_10}" />
+            <Label id="ct_c2_11" class="tcell hidden" text="{s:ct_c2_11}" />
+            <Button id="ct_corner2" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item3" class="trow hidden">
+            <Label id="ct_name3" class="trow-name" text="{s:ct_name3}" />
+            <Label id="ct_c3_0" class="tcell hidden" text="{s:ct_c3_0}" />
+            <Label id="ct_c3_1" class="tcell hidden" text="{s:ct_c3_1}" />
+            <Label id="ct_c3_2" class="tcell hidden" text="{s:ct_c3_2}" />
+            <Label id="ct_c3_3" class="tcell hidden" text="{s:ct_c3_3}" />
+            <Label id="ct_c3_4" class="tcell hidden" text="{s:ct_c3_4}" />
+            <Label id="ct_c3_5" class="tcell hidden" text="{s:ct_c3_5}" />
+            <Label id="ct_c3_6" class="tcell hidden" text="{s:ct_c3_6}" />
+            <Label id="ct_c3_7" class="tcell hidden" text="{s:ct_c3_7}" />
+            <Label id="ct_c3_8" class="tcell hidden" text="{s:ct_c3_8}" />
+            <Label id="ct_c3_9" class="tcell hidden" text="{s:ct_c3_9}" />
+            <Label id="ct_c3_10" class="tcell hidden" text="{s:ct_c3_10}" />
+            <Label id="ct_c3_11" class="tcell hidden" text="{s:ct_c3_11}" />
+            <Button id="ct_corner3" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item4" class="trow hidden">
+            <Label id="ct_name4" class="trow-name" text="{s:ct_name4}" />
+            <Label id="ct_c4_0" class="tcell hidden" text="{s:ct_c4_0}" />
+            <Label id="ct_c4_1" class="tcell hidden" text="{s:ct_c4_1}" />
+            <Label id="ct_c4_2" class="tcell hidden" text="{s:ct_c4_2}" />
+            <Label id="ct_c4_3" class="tcell hidden" text="{s:ct_c4_3}" />
+            <Label id="ct_c4_4" class="tcell hidden" text="{s:ct_c4_4}" />
+            <Label id="ct_c4_5" class="tcell hidden" text="{s:ct_c4_5}" />
+            <Label id="ct_c4_6" class="tcell hidden" text="{s:ct_c4_6}" />
+            <Label id="ct_c4_7" class="tcell hidden" text="{s:ct_c4_7}" />
+            <Label id="ct_c4_8" class="tcell hidden" text="{s:ct_c4_8}" />
+            <Label id="ct_c4_9" class="tcell hidden" text="{s:ct_c4_9}" />
+            <Label id="ct_c4_10" class="tcell hidden" text="{s:ct_c4_10}" />
+            <Label id="ct_c4_11" class="tcell hidden" text="{s:ct_c4_11}" />
+            <Button id="ct_corner4" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item5" class="trow hidden">
+            <Label id="ct_name5" class="trow-name" text="{s:ct_name5}" />
+            <Label id="ct_c5_0" class="tcell hidden" text="{s:ct_c5_0}" />
+            <Label id="ct_c5_1" class="tcell hidden" text="{s:ct_c5_1}" />
+            <Label id="ct_c5_2" class="tcell hidden" text="{s:ct_c5_2}" />
+            <Label id="ct_c5_3" class="tcell hidden" text="{s:ct_c5_3}" />
+            <Label id="ct_c5_4" class="tcell hidden" text="{s:ct_c5_4}" />
+            <Label id="ct_c5_5" class="tcell hidden" text="{s:ct_c5_5}" />
+            <Label id="ct_c5_6" class="tcell hidden" text="{s:ct_c5_6}" />
+            <Label id="ct_c5_7" class="tcell hidden" text="{s:ct_c5_7}" />
+            <Label id="ct_c5_8" class="tcell hidden" text="{s:ct_c5_8}" />
+            <Label id="ct_c5_9" class="tcell hidden" text="{s:ct_c5_9}" />
+            <Label id="ct_c5_10" class="tcell hidden" text="{s:ct_c5_10}" />
+            <Label id="ct_c5_11" class="tcell hidden" text="{s:ct_c5_11}" />
+            <Button id="ct_corner5" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item6" class="trow hidden">
+            <Label id="ct_name6" class="trow-name" text="{s:ct_name6}" />
+            <Label id="ct_c6_0" class="tcell hidden" text="{s:ct_c6_0}" />
+            <Label id="ct_c6_1" class="tcell hidden" text="{s:ct_c6_1}" />
+            <Label id="ct_c6_2" class="tcell hidden" text="{s:ct_c6_2}" />
+            <Label id="ct_c6_3" class="tcell hidden" text="{s:ct_c6_3}" />
+            <Label id="ct_c6_4" class="tcell hidden" text="{s:ct_c6_4}" />
+            <Label id="ct_c6_5" class="tcell hidden" text="{s:ct_c6_5}" />
+            <Label id="ct_c6_6" class="tcell hidden" text="{s:ct_c6_6}" />
+            <Label id="ct_c6_7" class="tcell hidden" text="{s:ct_c6_7}" />
+            <Label id="ct_c6_8" class="tcell hidden" text="{s:ct_c6_8}" />
+            <Label id="ct_c6_9" class="tcell hidden" text="{s:ct_c6_9}" />
+            <Label id="ct_c6_10" class="tcell hidden" text="{s:ct_c6_10}" />
+            <Label id="ct_c6_11" class="tcell hidden" text="{s:ct_c6_11}" />
+            <Button id="ct_corner6" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item7" class="trow hidden">
+            <Label id="ct_name7" class="trow-name" text="{s:ct_name7}" />
+            <Label id="ct_c7_0" class="tcell hidden" text="{s:ct_c7_0}" />
+            <Label id="ct_c7_1" class="tcell hidden" text="{s:ct_c7_1}" />
+            <Label id="ct_c7_2" class="tcell hidden" text="{s:ct_c7_2}" />
+            <Label id="ct_c7_3" class="tcell hidden" text="{s:ct_c7_3}" />
+            <Label id="ct_c7_4" class="tcell hidden" text="{s:ct_c7_4}" />
+            <Label id="ct_c7_5" class="tcell hidden" text="{s:ct_c7_5}" />
+            <Label id="ct_c7_6" class="tcell hidden" text="{s:ct_c7_6}" />
+            <Label id="ct_c7_7" class="tcell hidden" text="{s:ct_c7_7}" />
+            <Label id="ct_c7_8" class="tcell hidden" text="{s:ct_c7_8}" />
+            <Label id="ct_c7_9" class="tcell hidden" text="{s:ct_c7_9}" />
+            <Label id="ct_c7_10" class="tcell hidden" text="{s:ct_c7_10}" />
+            <Label id="ct_c7_11" class="tcell hidden" text="{s:ct_c7_11}" />
+            <Button id="ct_corner7" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item8" class="trow hidden">
+            <Label id="ct_name8" class="trow-name" text="{s:ct_name8}" />
+            <Label id="ct_c8_0" class="tcell hidden" text="{s:ct_c8_0}" />
+            <Label id="ct_c8_1" class="tcell hidden" text="{s:ct_c8_1}" />
+            <Label id="ct_c8_2" class="tcell hidden" text="{s:ct_c8_2}" />
+            <Label id="ct_c8_3" class="tcell hidden" text="{s:ct_c8_3}" />
+            <Label id="ct_c8_4" class="tcell hidden" text="{s:ct_c8_4}" />
+            <Label id="ct_c8_5" class="tcell hidden" text="{s:ct_c8_5}" />
+            <Label id="ct_c8_6" class="tcell hidden" text="{s:ct_c8_6}" />
+            <Label id="ct_c8_7" class="tcell hidden" text="{s:ct_c8_7}" />
+            <Label id="ct_c8_8" class="tcell hidden" text="{s:ct_c8_8}" />
+            <Label id="ct_c8_9" class="tcell hidden" text="{s:ct_c8_9}" />
+            <Label id="ct_c8_10" class="tcell hidden" text="{s:ct_c8_10}" />
+            <Label id="ct_c8_11" class="tcell hidden" text="{s:ct_c8_11}" />
+            <Button id="ct_corner8" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item9" class="trow hidden">
+            <Label id="ct_name9" class="trow-name" text="{s:ct_name9}" />
+            <Label id="ct_c9_0" class="tcell hidden" text="{s:ct_c9_0}" />
+            <Label id="ct_c9_1" class="tcell hidden" text="{s:ct_c9_1}" />
+            <Label id="ct_c9_2" class="tcell hidden" text="{s:ct_c9_2}" />
+            <Label id="ct_c9_3" class="tcell hidden" text="{s:ct_c9_3}" />
+            <Label id="ct_c9_4" class="tcell hidden" text="{s:ct_c9_4}" />
+            <Label id="ct_c9_5" class="tcell hidden" text="{s:ct_c9_5}" />
+            <Label id="ct_c9_6" class="tcell hidden" text="{s:ct_c9_6}" />
+            <Label id="ct_c9_7" class="tcell hidden" text="{s:ct_c9_7}" />
+            <Label id="ct_c9_8" class="tcell hidden" text="{s:ct_c9_8}" />
+            <Label id="ct_c9_9" class="tcell hidden" text="{s:ct_c9_9}" />
+            <Label id="ct_c9_10" class="tcell hidden" text="{s:ct_c9_10}" />
+            <Label id="ct_c9_11" class="tcell hidden" text="{s:ct_c9_11}" />
+            <Button id="ct_corner9" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item10" class="trow hidden">
+            <Label id="ct_name10" class="trow-name" text="{s:ct_name10}" />
+            <Label id="ct_c10_0" class="tcell hidden" text="{s:ct_c10_0}" />
+            <Label id="ct_c10_1" class="tcell hidden" text="{s:ct_c10_1}" />
+            <Label id="ct_c10_2" class="tcell hidden" text="{s:ct_c10_2}" />
+            <Label id="ct_c10_3" class="tcell hidden" text="{s:ct_c10_3}" />
+            <Label id="ct_c10_4" class="tcell hidden" text="{s:ct_c10_4}" />
+            <Label id="ct_c10_5" class="tcell hidden" text="{s:ct_c10_5}" />
+            <Label id="ct_c10_6" class="tcell hidden" text="{s:ct_c10_6}" />
+            <Label id="ct_c10_7" class="tcell hidden" text="{s:ct_c10_7}" />
+            <Label id="ct_c10_8" class="tcell hidden" text="{s:ct_c10_8}" />
+            <Label id="ct_c10_9" class="tcell hidden" text="{s:ct_c10_9}" />
+            <Label id="ct_c10_10" class="tcell hidden" text="{s:ct_c10_10}" />
+            <Label id="ct_c10_11" class="tcell hidden" text="{s:ct_c10_11}" />
+            <Button id="ct_corner10" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item11" class="trow hidden">
+            <Label id="ct_name11" class="trow-name" text="{s:ct_name11}" />
+            <Label id="ct_c11_0" class="tcell hidden" text="{s:ct_c11_0}" />
+            <Label id="ct_c11_1" class="tcell hidden" text="{s:ct_c11_1}" />
+            <Label id="ct_c11_2" class="tcell hidden" text="{s:ct_c11_2}" />
+            <Label id="ct_c11_3" class="tcell hidden" text="{s:ct_c11_3}" />
+            <Label id="ct_c11_4" class="tcell hidden" text="{s:ct_c11_4}" />
+            <Label id="ct_c11_5" class="tcell hidden" text="{s:ct_c11_5}" />
+            <Label id="ct_c11_6" class="tcell hidden" text="{s:ct_c11_6}" />
+            <Label id="ct_c11_7" class="tcell hidden" text="{s:ct_c11_7}" />
+            <Label id="ct_c11_8" class="tcell hidden" text="{s:ct_c11_8}" />
+            <Label id="ct_c11_9" class="tcell hidden" text="{s:ct_c11_9}" />
+            <Label id="ct_c11_10" class="tcell hidden" text="{s:ct_c11_10}" />
+            <Label id="ct_c11_11" class="tcell hidden" text="{s:ct_c11_11}" />
+            <Button id="ct_corner11" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item12" class="trow hidden">
+            <Label id="ct_name12" class="trow-name" text="{s:ct_name12}" />
+            <Label id="ct_c12_0" class="tcell hidden" text="{s:ct_c12_0}" />
+            <Label id="ct_c12_1" class="tcell hidden" text="{s:ct_c12_1}" />
+            <Label id="ct_c12_2" class="tcell hidden" text="{s:ct_c12_2}" />
+            <Label id="ct_c12_3" class="tcell hidden" text="{s:ct_c12_3}" />
+            <Label id="ct_c12_4" class="tcell hidden" text="{s:ct_c12_4}" />
+            <Label id="ct_c12_5" class="tcell hidden" text="{s:ct_c12_5}" />
+            <Label id="ct_c12_6" class="tcell hidden" text="{s:ct_c12_6}" />
+            <Label id="ct_c12_7" class="tcell hidden" text="{s:ct_c12_7}" />
+            <Label id="ct_c12_8" class="tcell hidden" text="{s:ct_c12_8}" />
+            <Label id="ct_c12_9" class="tcell hidden" text="{s:ct_c12_9}" />
+            <Label id="ct_c12_10" class="tcell hidden" text="{s:ct_c12_10}" />
+            <Label id="ct_c12_11" class="tcell hidden" text="{s:ct_c12_11}" />
+            <Button id="ct_corner12" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item13" class="trow hidden">
+            <Label id="ct_name13" class="trow-name" text="{s:ct_name13}" />
+            <Label id="ct_c13_0" class="tcell hidden" text="{s:ct_c13_0}" />
+            <Label id="ct_c13_1" class="tcell hidden" text="{s:ct_c13_1}" />
+            <Label id="ct_c13_2" class="tcell hidden" text="{s:ct_c13_2}" />
+            <Label id="ct_c13_3" class="tcell hidden" text="{s:ct_c13_3}" />
+            <Label id="ct_c13_4" class="tcell hidden" text="{s:ct_c13_4}" />
+            <Label id="ct_c13_5" class="tcell hidden" text="{s:ct_c13_5}" />
+            <Label id="ct_c13_6" class="tcell hidden" text="{s:ct_c13_6}" />
+            <Label id="ct_c13_7" class="tcell hidden" text="{s:ct_c13_7}" />
+            <Label id="ct_c13_8" class="tcell hidden" text="{s:ct_c13_8}" />
+            <Label id="ct_c13_9" class="tcell hidden" text="{s:ct_c13_9}" />
+            <Label id="ct_c13_10" class="tcell hidden" text="{s:ct_c13_10}" />
+            <Label id="ct_c13_11" class="tcell hidden" text="{s:ct_c13_11}" />
+            <Button id="ct_corner13" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item14" class="trow hidden">
+            <Label id="ct_name14" class="trow-name" text="{s:ct_name14}" />
+            <Label id="ct_c14_0" class="tcell hidden" text="{s:ct_c14_0}" />
+            <Label id="ct_c14_1" class="tcell hidden" text="{s:ct_c14_1}" />
+            <Label id="ct_c14_2" class="tcell hidden" text="{s:ct_c14_2}" />
+            <Label id="ct_c14_3" class="tcell hidden" text="{s:ct_c14_3}" />
+            <Label id="ct_c14_4" class="tcell hidden" text="{s:ct_c14_4}" />
+            <Label id="ct_c14_5" class="tcell hidden" text="{s:ct_c14_5}" />
+            <Label id="ct_c14_6" class="tcell hidden" text="{s:ct_c14_6}" />
+            <Label id="ct_c14_7" class="tcell hidden" text="{s:ct_c14_7}" />
+            <Label id="ct_c14_8" class="tcell hidden" text="{s:ct_c14_8}" />
+            <Label id="ct_c14_9" class="tcell hidden" text="{s:ct_c14_9}" />
+            <Label id="ct_c14_10" class="tcell hidden" text="{s:ct_c14_10}" />
+            <Label id="ct_c14_11" class="tcell hidden" text="{s:ct_c14_11}" />
+            <Button id="ct_corner14" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item15" class="trow hidden">
+            <Label id="ct_name15" class="trow-name" text="{s:ct_name15}" />
+            <Label id="ct_c15_0" class="tcell hidden" text="{s:ct_c15_0}" />
+            <Label id="ct_c15_1" class="tcell hidden" text="{s:ct_c15_1}" />
+            <Label id="ct_c15_2" class="tcell hidden" text="{s:ct_c15_2}" />
+            <Label id="ct_c15_3" class="tcell hidden" text="{s:ct_c15_3}" />
+            <Label id="ct_c15_4" class="tcell hidden" text="{s:ct_c15_4}" />
+            <Label id="ct_c15_5" class="tcell hidden" text="{s:ct_c15_5}" />
+            <Label id="ct_c15_6" class="tcell hidden" text="{s:ct_c15_6}" />
+            <Label id="ct_c15_7" class="tcell hidden" text="{s:ct_c15_7}" />
+            <Label id="ct_c15_8" class="tcell hidden" text="{s:ct_c15_8}" />
+            <Label id="ct_c15_9" class="tcell hidden" text="{s:ct_c15_9}" />
+            <Label id="ct_c15_10" class="tcell hidden" text="{s:ct_c15_10}" />
+            <Label id="ct_c15_11" class="tcell hidden" text="{s:ct_c15_11}" />
+            <Button id="ct_corner15" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item16" class="trow hidden">
+            <Label id="ct_name16" class="trow-name" text="{s:ct_name16}" />
+            <Label id="ct_c16_0" class="tcell hidden" text="{s:ct_c16_0}" />
+            <Label id="ct_c16_1" class="tcell hidden" text="{s:ct_c16_1}" />
+            <Label id="ct_c16_2" class="tcell hidden" text="{s:ct_c16_2}" />
+            <Label id="ct_c16_3" class="tcell hidden" text="{s:ct_c16_3}" />
+            <Label id="ct_c16_4" class="tcell hidden" text="{s:ct_c16_4}" />
+            <Label id="ct_c16_5" class="tcell hidden" text="{s:ct_c16_5}" />
+            <Label id="ct_c16_6" class="tcell hidden" text="{s:ct_c16_6}" />
+            <Label id="ct_c16_7" class="tcell hidden" text="{s:ct_c16_7}" />
+            <Label id="ct_c16_8" class="tcell hidden" text="{s:ct_c16_8}" />
+            <Label id="ct_c16_9" class="tcell hidden" text="{s:ct_c16_9}" />
+            <Label id="ct_c16_10" class="tcell hidden" text="{s:ct_c16_10}" />
+            <Label id="ct_c16_11" class="tcell hidden" text="{s:ct_c16_11}" />
+            <Button id="ct_corner16" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+          <Button id="ct_item17" class="trow hidden">
+            <Label id="ct_name17" class="trow-name" text="{s:ct_name17}" />
+            <Label id="ct_c17_0" class="tcell hidden" text="{s:ct_c17_0}" />
+            <Label id="ct_c17_1" class="tcell hidden" text="{s:ct_c17_1}" />
+            <Label id="ct_c17_2" class="tcell hidden" text="{s:ct_c17_2}" />
+            <Label id="ct_c17_3" class="tcell hidden" text="{s:ct_c17_3}" />
+            <Label id="ct_c17_4" class="tcell hidden" text="{s:ct_c17_4}" />
+            <Label id="ct_c17_5" class="tcell hidden" text="{s:ct_c17_5}" />
+            <Label id="ct_c17_6" class="tcell hidden" text="{s:ct_c17_6}" />
+            <Label id="ct_c17_7" class="tcell hidden" text="{s:ct_c17_7}" />
+            <Label id="ct_c17_8" class="tcell hidden" text="{s:ct_c17_8}" />
+            <Label id="ct_c17_9" class="tcell hidden" text="{s:ct_c17_9}" />
+            <Label id="ct_c17_10" class="tcell hidden" text="{s:ct_c17_10}" />
+            <Label id="ct_c17_11" class="tcell hidden" text="{s:ct_c17_11}" />
+            <Button id="ct_corner17" class="trow-more">
+              <Label class="trow-more-label" text="..." />
+            </Button>
+          </Button>
+        </Panel>
+      </Panel>
+      <Panel id="ct_list" class="popup list-popup hidden">
+        <Panel class="window-header">
+          <Label id="ct_list_title" class="popup-title" text="{s:ct_list_title}" />
+          <Button id="ct_list_close" class="close-btn" />
+        </Panel>
+        <Panel class="list-rows">
+          <Button id="ct_li0" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl0" class="li-label" text="{s:ct_li_lbl0}" />
+              <Label id="ct_li_sub0" class="li-sub" text="{s:ct_li_sub0}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li1" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl1" class="li-label" text="{s:ct_li_lbl1}" />
+              <Label id="ct_li_sub1" class="li-sub" text="{s:ct_li_sub1}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li2" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl2" class="li-label" text="{s:ct_li_lbl2}" />
+              <Label id="ct_li_sub2" class="li-sub" text="{s:ct_li_sub2}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li3" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl3" class="li-label" text="{s:ct_li_lbl3}" />
+              <Label id="ct_li_sub3" class="li-sub" text="{s:ct_li_sub3}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li4" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl4" class="li-label" text="{s:ct_li_lbl4}" />
+              <Label id="ct_li_sub4" class="li-sub" text="{s:ct_li_sub4}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li5" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl5" class="li-label" text="{s:ct_li_lbl5}" />
+              <Label id="ct_li_sub5" class="li-sub" text="{s:ct_li_sub5}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li6" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl6" class="li-label" text="{s:ct_li_lbl6}" />
+              <Label id="ct_li_sub6" class="li-sub" text="{s:ct_li_sub6}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li7" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl7" class="li-label" text="{s:ct_li_lbl7}" />
+              <Label id="ct_li_sub7" class="li-sub" text="{s:ct_li_sub7}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li8" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl8" class="li-label" text="{s:ct_li_lbl8}" />
+              <Label id="ct_li_sub8" class="li-sub" text="{s:ct_li_sub8}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li9" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl9" class="li-label" text="{s:ct_li_lbl9}" />
+              <Label id="ct_li_sub9" class="li-sub" text="{s:ct_li_sub9}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li10" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl10" class="li-label" text="{s:ct_li_lbl10}" />
+              <Label id="ct_li_sub10" class="li-sub" text="{s:ct_li_sub10}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li11" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl11" class="li-label" text="{s:ct_li_lbl11}" />
+              <Label id="ct_li_sub11" class="li-sub" text="{s:ct_li_sub11}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li12" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl12" class="li-label" text="{s:ct_li_lbl12}" />
+              <Label id="ct_li_sub12" class="li-sub" text="{s:ct_li_sub12}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li13" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl13" class="li-label" text="{s:ct_li_lbl13}" />
+              <Label id="ct_li_sub13" class="li-sub" text="{s:ct_li_sub13}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li14" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl14" class="li-label" text="{s:ct_li_lbl14}" />
+              <Label id="ct_li_sub14" class="li-sub" text="{s:ct_li_sub14}" />
+            </Panel>
+          </Button>
+          <Button id="ct_li15" class="li hidden">
+            <Panel class="li-dot" />
+            <Panel class="li-text">
+              <Label id="ct_li_lbl15" class="li-label" text="{s:ct_li_lbl15}" />
+              <Label id="ct_li_sub15" class="li-sub" text="{s:ct_li_sub15}" />
+            </Panel>
+          </Button>
+        </Panel>
+        <Panel class="popup-nav">
+          <Button id="ct_list_prev" class="popup-btn"><Label class="popup-btn-label" text="&lt;" /></Button>
+          <Label id="ct_list_page" class="popup-page" text="{s:ct_list_page}" />
+          <Button id="ct_list_next" class="popup-btn"><Label class="popup-btn-label" text="&gt;" /></Button>
+        </Panel>
+      </Panel>
+      <Panel id="ct_msg" class="msg hidden">
+        <Panel class="msg-dot" />
+        <Label id="ct_msg_text" class="msg-text" text="{s:ct_msg_text}" />
+      </Panel>
+      <Button id="ct_dlg" class="dlg-scrim hidden">
+        <Button id="ct_dlg_box" class="dlg-box">
+          <Label id="ct_dlg_title" class="dlg-title" text="{s:ct_dlg_title}" />
+          <Label id="ct_dlg_body" class="dlg-body" text="{s:ct_dlg_body}" />
+          <Panel class="dlg-btns">
+            <Button id="ct_dlg_no" class="dlg-btn dlg-no"><Label id="ct_dlg_no_lbl" class="dlg-btn-label" text="{s:ct_dlg_no_lbl}" /></Button>
+            <Button id="ct_dlg_yes" class="dlg-btn dlg-yes"><Label id="ct_dlg_yes_lbl" class="dlg-btn-label" text="{s:ct_dlg_yes_lbl}" /></Button>
+          </Panel>
+        </Button>
+      </Button>
+    </Panel>
+  </Panel>
+</root>

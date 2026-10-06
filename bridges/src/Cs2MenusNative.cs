@@ -168,6 +168,16 @@ internal static unsafe class Cs2MenusNative
 	private static delegate* unmanaged[Cdecl]<uint, int, void> _setTextFeatures;
 	private static delegate* unmanaged[Cdecl]<uint, int> _getTextFeatures;
 
+	// Notices
+	private static delegate* unmanaged[Cdecl]<int, byte*, byte*, byte*, float, nint, void*, int> _showNotice;
+	private static delegate* unmanaged[Cdecl]<int, void> _hideNotice;
+
+	// Table
+	private static delegate* unmanaged[Cdecl]<uint, byte*, int, int, int> _addMenuColumn;
+	private static delegate* unmanaged[Cdecl]<uint, nint, void*, void> _setColumnCallback;
+	private static delegate* unmanaged[Cdecl]<uint, int, nint*, int, void> _setItemCells;
+	private static delegate* unmanaged[Cdecl]<uint, int, nint*, int, void> _setItemDetails;
+
 	public static bool Loaded { get; private set; }
 
 	/// <summary>True when the loaded cs2menus exports the ICS2Menus004 additions (value items, sections, grids).</summary>
@@ -177,6 +187,10 @@ internal static unsafe class Cs2MenusNative
 	public static bool SupportsHistory { get; private set; }
 	/// <summary>Newer than cs2menus 2.0.0.</summary>
 	public static bool SupportsTextFeatures { get; private set; }
+	/// <summary>Newer than cs2menus 2.0.1.</summary>
+	public static bool SupportsNotices { get; private set; }
+	/// <summary>Newer than cs2menus 2.0.1.</summary>
+	public static bool SupportsTables { get; private set; }
 
 	/// <summary>True when it exports the ICS2Menus005 additions too: badges, the info card, tabs, chips, dialogs and the studio.</summary>
 	public static bool Supports005 { get; private set; }
@@ -340,6 +354,25 @@ internal static unsafe class Cs2MenusNative
 			_getTextFeatures = (delegate* unmanaged[Cdecl]<uint, int>)getTextFeatures;
 		}
 
+		if (TryGet(lib, "cs2m_show_notice", out nint showNotice) && TryGet(lib, "cs2m_hide_notice", out nint hideNotice))
+		{
+			SupportsNotices = true;
+			_showNotice = (delegate* unmanaged[Cdecl]<int, byte*, byte*, byte*, float, nint, void*, int>)showNotice;
+			_hideNotice = (delegate* unmanaged[Cdecl]<int, void>)hideNotice;
+		}
+
+		if (TryGet(lib, "cs2m_add_menu_column", out nint addMenuColumn)
+			&& TryGet(lib, "cs2m_set_column_callback", out nint setColumnCallback)
+			&& TryGet(lib, "cs2m_set_item_cells", out nint setItemCells)
+			&& TryGet(lib, "cs2m_set_item_details", out nint setItemDetails))
+		{
+			SupportsTables = true;
+			_addMenuColumn = (delegate* unmanaged[Cdecl]<uint, byte*, int, int, int>)addMenuColumn;
+			_setColumnCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)setColumnCallback;
+			_setItemCells = (delegate* unmanaged[Cdecl]<uint, int, nint*, int, void>)setItemCells;
+			_setItemDetails = (delegate* unmanaged[Cdecl]<uint, int, nint*, int, void>)setItemDetails;
+		}
+
 		// And the ICS2Menus005 exports, all of them or none.
 		try
 		{
@@ -420,6 +453,14 @@ internal static unsafe class Cs2MenusNative
 		if (!SupportsHistory)
 		{
 			throw new NotSupportedException("The loaded cs2menus predates showcase layouts, menu history and pausing. Update cs2menus.");
+		}
+	}
+
+	private static void RequireTables()
+	{
+		if (!SupportsTables)
+		{
+			throw new NotSupportedException("The loaded cs2menus predates the table layout. Update cs2menus.");
 		}
 	}
 
@@ -1082,6 +1123,84 @@ internal static unsafe class Cs2MenusNative
 		if (Supports005)
 		{
 			_setMirrored(slot, mirrored ? 1 : 0);
+		}
+	}
+
+	// --- Notices ---
+	public static bool ShowNotice(int slot, ReadOnlySpan<char> title, ReadOnlySpan<char> text, ReadOnlySpan<char> hint, float seconds, nint onMouse1,
+		void* user)
+	{
+		if (!SupportsNotices)
+		{
+			return false;
+		}
+		fixed (byte* t = Utf8(title))
+		fixed (byte* x = Utf8(text))
+		fixed (byte* h = Utf8(hint))
+		{
+			return _showNotice(slot, t, x, h, seconds, onMouse1, user) != 0;
+		}
+	}
+
+	public static void HideNotice(int slot)
+	{
+		if (SupportsNotices)
+		{
+			_hideNotice(slot);
+		}
+	}
+
+	// --- Table ---
+	public static int AddMenuColumn(uint menu, ReadOnlySpan<char> label, int cells, int sort)
+	{
+		RequireTables();
+		fixed (byte* l = Utf8(label))
+		{
+			return _addMenuColumn(menu, l, cells, sort);
+		}
+	}
+
+	public static void SetColumnCallback(uint menu, nint onColumn, void* user)
+	{
+		if (SupportsTables)
+		{
+			_setColumnCallback(menu, onColumn, user);
+		}
+	}
+
+	public static void SetItemCells(uint menu, int item, IReadOnlyList<string> cells)
+	{
+		RequireTables();
+		SetItemStrings(_setItemCells, menu, item, cells);
+	}
+
+	public static void SetItemDetails(uint menu, int item, IReadOnlyList<string> lines)
+	{
+		RequireTables();
+		SetItemStrings(_setItemDetails, menu, item, lines);
+	}
+
+	private static void SetItemStrings(delegate* unmanaged[Cdecl]<uint, int, nint*, int, void> fn, uint menu, int item, IReadOnlyList<string> strings)
+	{
+		// cs2menus copies the strings, so they only need to outlive the call.
+		nint[] pointers = new nint[strings.Count];
+		try
+		{
+			for (int s = 0; s < pointers.Length; s++)
+			{
+				pointers[s] = Marshal.StringToCoTaskMemUTF8(strings[s] ?? string.Empty);
+			}
+			fixed (nint* p = pointers)
+			{
+				fn(menu, item, p, pointers.Length);
+			}
+		}
+		finally
+		{
+			foreach (nint pointer in pointers)
+			{
+				Marshal.FreeCoTaskMem(pointer);
+			}
 		}
 	}
 

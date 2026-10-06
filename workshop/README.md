@@ -1,9 +1,10 @@
 # cs2menus workshop addon
 
 Panorama layouts for cs2menus' `panorama` menu type: `menu.xml` for lists, `grid.xml` for image tiles, `showcase.xml` for one item's editor,
-`studio.xml` for an editor beside a 3D preview and `columns.xml` for everything at a glance.
+`studio.xml` for an editor beside a 3D preview, `columns.xml` for everything at a glance and `table.xml` for a long sorted
+list with columns.
 `notice.xml` is `ICS2Menus::ShowNotice`'s box, not a menu.
-`menu.xml` and `notice.xml` are written by hand, `tools/gen_layouts.py` builds the other four: change it, not them.
+`menu.xml` and `notice.xml` are written by hand, `tools/gen_layouts.py` builds the other five: change it, not them.
 The plugin spawns one `custom_hud_layout` per player and layout, pointing at `panorama/layout/custom_game/cs2menus/<layout>.vxml_c`.
 It falls back to HTML menus when `menu.vxml_c` isn't mounted, and to the list when another layout isn't.
 
@@ -15,7 +16,7 @@ Unlike the rest of this repository, everything in this folder is licensed under 
 `src/render/panorama_hud.cpp` writes the panel ids, dialog variables and classes the layouts declare. Keep both sides in step:
 
 - **Names.** Every id and dialog variable starts with its layout's prefix: `cm_` list, `cg_` grid, `cx_` showcase, `cs_` studio,
-  `cl_` columns, `cn_` notice. The client matches them by name across all custom HUD layouts, so an unprefixed `item0` would collide with
+  `cl_` columns, `ct_` table, `cn_` notice. The client matches them by name across all custom HUD layouts, so an unprefixed `item0` would collide with
   cs2kz's menu. After the prefix the layouts share names, so one writer serves them all.
 - **Slot counts** are the `k...` constants in `src/render/panorama_hud.h`. `tools/gen_layouts.py` names the one beside each
   count it builds to, `menu.xml` has them by hand.

@@ -46,6 +46,8 @@ public enum MenuLayout
 	Studio,
 	/// <summary>A column per section, each scrolling on its own, tiles of an image beside a name and subtext. Up to 4 sections of 16 items.</summary>
 	Columns,
+	/// <summary>A row per item: its text, then its cells under the menu's column headings.</summary>
+	Table,
 }
 
 /// <summary>How Panorama draws an item. Chat and HTML list every role as a plain row.</summary>
@@ -161,6 +163,12 @@ public sealed partial class Cs2MenusBridge : IDisposable
 	/// Otherwise their setters throw <see cref="NotSupportedException"/>, and the calls on a slot's display return false.
 	/// </summary>
 	public bool SupportsBadgesTabsAndDialogs => Cs2MenusNative.Supports005;
+
+	/// <summary>True if it has notices. Otherwise <see cref="ShowNotice"/> returns false.</summary>
+	public bool SupportsNotices => Cs2MenusNative.SupportsNotices;
+
+	/// <summary>True if it has the table layout. Otherwise its setters throw <see cref="NotSupportedException"/>.</summary>
+	public bool SupportsTables => Cs2MenusNative.SupportsTables;
 
 	/// <summary>
 	/// Resolve the cs2menus binary at an absolute path. Safe to call repeatedly, loads once.
@@ -294,9 +302,15 @@ public sealed partial class Cs2MenusBridge : IDisposable
 	private static readonly ConcurrentDictionary<nint, (Cs2MenusBridge Owner, Delegate Callback)> s_displayCallbacks = new();
 	private static readonly nint[] s_confirmToken = new nint[65];
 	private static readonly nint[] s_inputToken = new nint[65];
+	private static readonly nint[] s_noticeToken = new nint[65];
 	private static long s_nextToken;
+	// Notices this bridge has up, so its Dispose hides them.
+	private readonly bool[] _notice = new bool[65];
 
 	internal static Delegate? TakeDisplayCallback(nint token) => s_displayCallbacks.TryRemove(token, out var kept) ? kept.Callback : null;
+
+	// A notice's is called as often as the player presses.
+	internal static Delegate? PeekDisplayCallback(nint token) => s_displayCallbacks.TryGetValue(token, out var kept) ? kept.Callback : null;
 
 	private nint KeepDisplayCallback(nint[] perSlot, int slot, Delegate? callback, out nint previous)
 	{
@@ -368,6 +382,42 @@ public sealed partial class Cs2MenusBridge : IDisposable
 		return shown;
 	}
 
+	/// <summary>
+	/// A panorama box at the top of the slot's screen that never takes the mouse, one per slot. <paramref name="seconds"/>
+	/// counts down in it, 0 keeps it until <see cref="HideNotice"/>. <paramref name="onMouse1"/> gets the slot on Mouse1
+	/// with the scoreboard key held. False when the slot can't be shown one.
+	/// </summary>
+	public bool ShowNotice(int slot, string title, string text = "", string hint = "", float seconds = 0f, Action<int>? onMouse1 = null)
+	{
+		if (slot < 0 || slot >= s_noticeToken.Length || !Cs2MenusNative.Loaded)
+		{
+			return false;
+		}
+		nint token = KeepDisplayCallback(s_noticeToken, slot, onMouse1, out nint previous);
+		bool shown;
+		unsafe
+		{
+			shown = Cs2MenusNative.ShowNotice(slot, title, text, hint, seconds,
+				onMouse1 is null ? 0 : (nint)(delegate* unmanaged[Cdecl]<int, void*, void>)&Trampolines.OnNotice, (void*)token);
+		}
+		SettleDisplayCallback(s_noticeToken, slot, token, previous, shown);
+		_notice[slot] = shown;
+		return shown;
+	}
+
+	/// <summary>Hides the notice this bridge showed on the slot. Another plugin's stays.</summary>
+	public void HideNotice(int slot)
+	{
+		if (slot < 0 || slot >= _notice.Length || !_notice[slot])
+		{
+			return;
+		}
+		_notice[slot] = false;
+		Cs2MenusNative.HideNotice(slot);
+		s_displayCallbacks.TryRemove(s_noticeToken[slot], out _);
+		s_noticeToken[slot] = 0;
+	}
+
 	/// <summary>The menu this bridge created that the slot currently has open, or null (none / created by another bridge / not loaded).</summary>
 	public Cs2Menu? GetActiveMenu(int slot) => Cs2MenusNative.Loaded ? Find(Cs2MenusNative.GetActiveMenu(slot)) : null;
 
@@ -413,6 +463,10 @@ public sealed partial class Cs2MenusBridge : IDisposable
 			return;
 		}
 		_disposed = true;
+		for (int slot = 0; slot < _notice.Length; slot++)
+		{
+			HideNotice(slot);
+		}
 		foreach (var menu in _menus.Values) // snapshot: Dispose mutates the dictionary
 		{
 			menu.Dispose();
@@ -426,6 +480,7 @@ public sealed partial class Cs2MenusBridge : IDisposable
 				s_displayCallbacks.TryRemove(token, out _);
 				s_confirmToken.AsSpan().Replace(token, 0);
 				s_inputToken.AsSpan().Replace(token, 0);
+				s_noticeToken.AsSpan().Replace(token, 0);
 			}
 		}
 	}
@@ -464,6 +519,31 @@ public sealed class Cs2Menu : IDisposable
 
 	/// <summary>One of the menu's own tabs was clicked: (menu, slot, tab). Show what it stands for, usually with <see cref="Replace"/>.</summary>
 	public event Action<Cs2Menu, int, int>? TabClicked;
+
+	private Action<Cs2Menu, int, int>? _columnClicked;
+
+	/// <summary>A table heading was clicked: (menu, slot, column). The headings only are buttons while this has a handler.</summary>
+	public event Action<Cs2Menu, int, int>? ColumnClicked
+	{
+		add
+		{
+			bool had = _columnClicked is not null;
+			_columnClicked += value;
+			if (!had && _columnClicked is not null && Handle != 0)
+			{
+				WireColumn(true);
+			}
+		}
+		remove
+		{
+			bool had = _columnClicked is not null;
+			_columnClicked -= value;
+			if (had && _columnClicked is null && Handle != 0)
+			{
+				WireColumn(false);
+			}
+		}
+	}
 
 	/// <summary>
 	/// A chip was clicked: (menu, slot, chip, selected). A filter's selected is already stored: the option picked, -1 for none,
@@ -506,6 +586,9 @@ public sealed class Cs2Menu : IDisposable
 	private unsafe void WireScope(bool on) =>
 		Cs2MenusNative.SetScopeCallback(Handle, on ? (nint)(delegate* unmanaged[Cdecl]<uint, int, void*, void>)&Trampolines.OnScope : 0, on ? Token : null);
 
+	private unsafe void WireColumn(bool on) =>
+		Cs2MenusNative.SetColumnCallback(Handle, on ? (nint)(delegate* unmanaged[Cdecl]<uint, int, int, void*, void>)&Trampolines.OnColumn : 0, on ? Token : null);
+
 	private unsafe void WireInputClear(bool on) =>
 		Cs2MenusNative.SetInputClearCallback(Handle, on ? (nint)(delegate* unmanaged[Cdecl]<uint, int, void*, void>)&Trampolines.OnInputClear : 0, on ? Token : null);
 
@@ -534,6 +617,7 @@ public sealed class Cs2Menu : IDisposable
 	internal void RaiseCorner(int slot, int item) => CornerClicked?.Invoke(this, slot, item);
 	internal void RaiseTab(int slot, int tab) => TabClicked?.Invoke(this, slot, tab);
 	internal void RaiseChip(int slot, int chip, int selected) => ChipClicked?.Invoke(this, slot, chip, selected);
+	internal void RaiseColumn(int slot, int column) => _columnClicked?.Invoke(this, slot, column);
 	internal void RaiseScope(int slot) => _scopeClicked?.Invoke(this, slot);
 	internal void RaiseInputCleared(int slot) => _inputCleared?.Invoke(this, slot);
 
@@ -752,6 +836,18 @@ public sealed class Cs2Menu : IDisposable
 	/// <summary>A row of a chip's list in a tone's color, like Bad for one that deletes.</summary>
 	public void SetChipOptionTone(int chip, int option, MenuTone tone) => Cs2MenusNative.SetChipOptionTone(Handle, chip, option, (int)tone);
 
+	// --- Table ---
+
+	/// <summary>
+	/// A heading. The first is over the items' text, each one after it over <paramref name="cells"/> of their cells.
+	/// <paramref name="sort"/> draws an arrow, 1 up and -1 down. Returns its index, or -1 past 6.
+	/// </summary>
+	public int AddColumn(string label, int cells = 0, int sort = 0) => Cs2MenusNative.AddMenuColumn(Handle, label, cells, sort);
+	/// <summary>Under the headings after the first, 12 at most. Two characters each, in the chat color it starts with. "" keeps its place.</summary>
+	public void SetItemCells(int item, IReadOnlyList<string> cells) => Cs2MenusNative.SetItemCells(Handle, item, cells);
+	/// <summary>More than the row has room for: a button at its end lists the lines in the popup beside the window.</summary>
+	public void SetItemDetails(int item, IReadOnlyList<string> lines) => Cs2MenusNative.SetItemDetails(Handle, item, lines);
+
 	// --- The item area ---
 
 	/// <summary>Showcase and studio: a small button before the pinned item's, on every page. -1 for none. Set after the items.</summary>
@@ -952,6 +1048,30 @@ internal static unsafe class Trampolines
 		try
 		{
 			(Cs2MenusBridge.TakeDisplayCallback((nint)user) as Action<int, bool>)?.Invoke(slot, confirmed != 0);
+		}
+		catch
+		{
+		}
+	}
+
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	public static void OnNotice(int slot, void* user)
+	{
+		try
+		{
+			(Cs2MenusBridge.PeekDisplayCallback((nint)user) as Action<int>)?.Invoke(slot);
+		}
+		catch
+		{
+		}
+	}
+
+	[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+	public static void OnColumn(uint menu, int slot, int column, void* user)
+	{
+		try
+		{
+			Resolve(user)?.RaiseColumn(slot, column);
 		}
 		catch
 		{

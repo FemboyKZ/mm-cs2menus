@@ -1,4 +1,5 @@
-"""Builds grid.xml, showcase.xml, studio.xml and columns.xml, the layouts whose slots repeat. menu.xml is written by hand.
+"""Builds grid.xml, showcase.xml, studio.xml, columns.xml and table.xml, the layouts whose slots repeat.
+menu.xml and notice.xml are written by hand.
 The slot counts are the constants in src/render/panorama_hud.h named beside each below, keep the two in step.
 
     py gen_layouts.py
@@ -33,6 +34,10 @@ HELP_ROWS = 8  # kHelpRows
 HELP_KEYS = 3  # kHelpKeys
 COLUMNS = 4  # kColumns
 COLUMN_ROWS = 16  # kColumnRows
+TABLE_ROWS = 18  # kTableRows
+TABLE_KEYS = 30  # kTableKeys
+TABLE_CELLS = 12  # kTableCells
+TABLE_COLUMNS = 6  # kTableColumns
 
 
 def ind(lines, levels=1):
@@ -572,6 +577,58 @@ def columns():
     )
 
 
+# A row per item: its name, then its cells under the headings and the button for its details.
+# The keys over them open a page, the chips and the page arrows sit at that row's end.
+def table():
+    p = "ct_"
+    keys = [f'<Panel id="{p}pages" class="keys">']
+    for i in range(TABLE_KEYS):
+        keys += [
+            f'  <Button id="{p}nav{i}" class="key hidden">',
+            "    " + label(p, f"nav_lbl{i}", "key-label"),
+            "  </Button>",
+        ]
+    keys.append("</Panel>")
+    row = ['<Panel class="tabrow">'] + ind(keys + chips(p) + pager(p)) + ["</Panel>"]
+
+    heads = ['<Panel class="thead">']
+    for i in range(TABLE_COLUMNS):
+        heads += [
+            f'  <Button id="{p}head{i}" class="thead-col hidden">',
+            "    " + label(p, f"head_lbl{i}", "thead-label"),
+            '    <Panel class="thead-arrow" />',
+            "  </Button>",
+        ]
+    heads.append("</Panel>")
+
+    rows = ['<Panel class="trows">'] + ind(empty(p))
+    for n in range(TABLE_ROWS):
+        rows.append(f'  <Button id="{p}item{n}" class="trow hidden">')
+        rows.append("    " + label(p, f"name{n}", "trow-name"))
+        rows += [
+            "    " + label(p, f"c{n}_{k}", "tcell hidden") for k in range(TABLE_CELLS)
+        ]
+        rows += [
+            f'    <Button id="{p}corner{n}" class="trow-more">',
+            '      <Label class="trow-more-label" text="..." />',
+            "    </Button>",
+            "  </Button>",
+        ]
+    rows.append("</Panel>")
+
+    box = (
+        ['<Panel class="menu-box">']
+        + ind(header(p) + row + input_bar(p) + heads + rows)
+        + ["</Panel>"]
+    )
+    root = (
+        [f'<Panel id="{p}root" class="menu hidden">']
+        + ind(box + list_popup(p) + message(p) + dialog(p))
+        + ["</Panel>"]
+    )
+    return document(("fonts", "menu", "grid", "table"), root)
+
+
 def write(name, lines):
     text = "\n".join(lines) + "\n"
     ET.fromstring(text)
@@ -588,6 +645,7 @@ def main():
     write("showcase.xml", showcase())
     write("studio.xml", studio())
     write("columns.xml", columns())
+    write("table.xml", table())
 
 
 if __name__ == "__main__":

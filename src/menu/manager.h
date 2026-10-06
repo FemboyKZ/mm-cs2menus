@@ -215,6 +215,10 @@ public:
 	int AddMenuNote(MenuHandle menu, const char *label, const char *value);
 	void SetMenuChipOptionTone(MenuHandle menu, int chip, int option, MenuTone tone);
 	void SetMenuChipCallback(MenuHandle menu, MenuChipFn onChip);
+	int AddMenuColumn(MenuHandle menu, const char *label, int cells, int sort);
+	void SetItemCells(MenuHandle menu, int item, const char *const *cells, int count);
+	void SetItemDetails(MenuHandle menu, int item, const char *const *lines, int count);
+	void SetMenuColumnCallback(MenuHandle menu, MenuColumnFn onColumn);
 
 	// Read back per-menu state (create-time default for an unset flag, MenuType::Default / false / etc. for invalid).
 	MenuType GetMenuType(MenuHandle menu) const;
@@ -241,7 +245,7 @@ public:
 	bool GetMenuEdited(MenuHandle menu) const;
 	void SetMenuTextFeatures(MenuHandle menu, int features);
 	int GetMenuTextFeatures(MenuHandle menu) const;
-	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onClick);
+	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1);
 	void HideNotice(int slot);
 	void SetMenuScope(MenuHandle menu, const char *label, int teams);
 	void SetMenuScopeCallback(MenuHandle menu, MenuScopeFn onScope);
@@ -371,6 +375,9 @@ private:
 		int section = -1;
 		std::string image;
 		std::string subtext;
+		// Table: under the headings, and listed in the popup beside the window by the button at the row's end.
+		std::vector<std::string> cells;
+		std::vector<std::string> details;
 		// Studio: in the control panel beside the preview rather than on a page.
 		bool control = false;
 		MenuItemRole role = MenuItemRole::Button;
@@ -474,6 +481,17 @@ private:
 
 		std::vector<Chip> chips;
 		MenuChipFn onChip;
+
+		// The table's headings, see ICS2Menus::AddMenuColumn.
+		struct Column
+		{
+			std::string label;
+			int cells = 0;
+			int sort = 0;
+		};
+
+		std::vector<Column> columns;
+		MenuColumnFn onColumn;
 		bool edited = false;
 		// See ICS2Menus::SetMenuTextFeatures.
 		int textFeatures = 0;
@@ -621,7 +639,7 @@ private:
 		std::string text;
 		std::string hint;
 		float until = 0.0f; // absolute game time, 0 = until hidden
-		MenuNoticeFn onClick;
+		MenuNoticeFn onMouse1;
 		int drawn = -1; // seconds left as drawn
 	};
 
@@ -742,6 +760,12 @@ private:
 
 	// Empty for a menu that gets no index.
 	std::vector<IndexRange> IndexRanges(const MenuDef &def, MenuType type) const;
+
+	// What the panorama list and table page by: the menu's sections, else the first letters of one in their order.
+	// At most `most`, the smallest neighbors sharing one. Empty for a menu with neither.
+	std::vector<IndexRange> Groups(const MenuDef &def, int most) const;
+	// Pages filled group by group, so one only splits when it alone is more than a page. Empty without groups.
+	std::vector<Page> GroupPages(const MenuDef &def, int size) const;
 	// False without an index or already on it.
 	bool EnterIndex(int slot);
 	void OpenRange(int slot, int range);

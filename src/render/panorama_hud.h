@@ -20,6 +20,7 @@ namespace panorama_hud
 		Showcase, // showcase.xml, "cx_"
 		Studio,   // studio.xml, "cs_": the showcase's buttons at the right edge, the rest of the screen a 3D preview
 		Columns,  // columns.xml, "cl_": a column per section, each scrolling on its own
+		Table,    // table.xml, "ct_": a name and its cells per row under column headings
 		Notice,   // notice.xml, "cn_". Last, see kMenuLayouts.
 		Count,
 	};
@@ -56,6 +57,11 @@ namespace panorama_hud
 	constexpr int kColumns = 4;
 	constexpr int kColumnRows = 16;
 	constexpr int kColumnSlots = kColumns * kColumnRows;
+	// The table's rows, the keys over them, the cells in a row and the column headings.
+	constexpr int kTableRows = 18;
+	constexpr int kTableKeys = 30;
+	constexpr int kTableCells = 12;
+	constexpr int kTableColumns = 6;
 	// The info card's label and value pairs, and its bar's bands.
 	constexpr int kInfoRows = 10;
 	constexpr int kInfoBands = 5;
@@ -65,7 +71,7 @@ namespace panorama_hud
 	// The studio's key list: rows, and key caps in each.
 	constexpr int kHelpRows = 8;
 	constexpr int kHelpKeys = 3;
-	// Chips under the tabs, at the tab row's end in the columns. Every layout but the list.
+	// Chips under the tabs, at the tab row's end in the columns and the table. Every layout but the list.
 	constexpr int kChipSlots = 6;
 	// Showcase and studio pages of image tiles (3 x 4), out of the buttons.
 	constexpr int kStudioImageSlots = 12;
@@ -110,6 +116,8 @@ namespace panorama_hud
 		struct Row
 		{
 			std::vector<Segment> segments; // at most kRowSegments
+			std::vector<Segment> cells;    // table: at most kTableCells
+			bool details = false;          // table: the button at the row's end
 			std::string value;             // right-aligned, in the first segment's color
 			bool disabled = false;
 			Control control = Control::None;
@@ -212,7 +220,20 @@ namespace panorama_hud
 		std::vector<Nav> nav; // at most NavSlots(layout): the list's left column or the grid's tabs, empty hides them
 		// The tab the ones without room hide behind, like "+3": its place among `nav`, -1 for none.
 		int navMore = -1;
-		std::vector<Chip> chips;     // at most kChipSlots, empty hides the row
+		std::vector<Chip> chips; // at most kChipSlots, empty hides the row
+
+		// Table: the first is over the rows' text, each one after it over `cells` of their cells.
+		struct Head
+		{
+			std::string label;
+			int cells = 0;
+			int sort = 0; // an arrow: 1 up, -1 down
+		};
+
+		std::vector<Head> heads; // at most kTableColumns
+		bool headButtons = false;
+		// Some row of the menu has details, so every row keeps the button's place.
+		bool details = false;
 		std::vector<Column> columns; // columns only, at most kColumns
 
 		// The input field above the chips: a menu's Input item, or a prompt while waiting for chat.
@@ -369,6 +390,7 @@ namespace panorama_hud
 		PagePrev, // grid page arrows
 		PageNext,
 		Notice,
+		Column, // index = table heading
 	};
 
 	// Plain text, an empty line is left out.

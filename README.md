@@ -102,8 +102,8 @@ The full surface is documented in [`ics2menus.h`](https://github.com/FemboyKZ/mm
 which lives in [mm-utils](https://github.com/FemboyKZ/mm-utils) with a `menus_client.h` helper that does the acquiring above.
 
 Past plain lists it has value items (toggles, steppers, choices), sections, per-menu styling, a history with a back arrow,
-and for Panorama the grid, showcase, studio and columns layouts with tile badges, tabs, chips, an info card, typed input,
-a message line and a confirm dialog. Each of those falls back to a list on chat and HTML menus.
+and for Panorama the grid, showcase, studio, columns and table layouts with tile badges, tabs, chips, an info card,
+typed input, a message line, a confirm dialog and notices. Each of those falls back to a list on chat and HTML menus.
 
 ### SwiftlyS2 and CounterStrikeSharp
 
