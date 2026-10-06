@@ -41,8 +41,6 @@ def additionalIncludes(context, binary, sdk):
         # os.path.join(sdk['path'], 'public', 'entity2'),
         # 'D:/absolute/path/to/include/folder/'
         os.path.join(builder.sourcePath, "src"),
-        # sql_mm public headers for the optional player-preference store
-        os.path.join(builder.sourcePath, "vendor", "sql_mm", "src", "public"),
         os.path.join(builder.sourcePath, "vendor", "mm-utils"),
     ]
 

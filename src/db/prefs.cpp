@@ -4,7 +4,7 @@
 #include "src/common.h"
 #include "src/config/config.h"
 
-#include <sql_mm.h>
+#include "interfaces/sql_mm/sql_mm.h"
 
 #include <cctype>
 #include <cstdio>
