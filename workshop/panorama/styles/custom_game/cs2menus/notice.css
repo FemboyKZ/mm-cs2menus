@@ -1,0 +1,82 @@
+/* notice.xml, see ICS2Menus::ShowNotice. */
+
+.root {
+	width: 100%;
+	height: 100%;
+	z-index: 99999;
+}
+
+/* Ends above the menu window's top edge at 190. */
+#cn_root {
+	horizontal-align: center;
+	vertical-align: top;
+	margin-top: 96px;
+	color: #ffffff;
+}
+
+#cn_root.hidden {
+	visibility: collapse;
+}
+
+.notice-box {
+	flow-children: down;
+	width: 420px;
+	padding: 9px 16px 10px 16px;
+	border: 1px solid #ffffff17;
+	border-radius: 5px;
+	background-color: #0d0f12e6;
+	transition-property: background-color;
+	transition-duration: 0.05s;
+}
+
+.notice-box:hover {
+	background-color: #1c2026f2;
+}
+
+.notice-head {
+	width: 100%;
+	flow-children: right;
+}
+
+.notice-title {
+	width: fill-parent-flow(1);
+	font-size: 16px;
+	font-weight: bold;
+	text-transform: uppercase;
+	letter-spacing: 2px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.notice-time {
+	margin-left: 10px;
+	font-size: 16px;
+	font-weight: bold;
+}
+
+.notice-time.hidden {
+	visibility: collapse;
+}
+
+.notice-text {
+	width: 100%;
+	margin-top: 3px;
+	font-size: 15px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.notice-text.hidden {
+	visibility: collapse;
+}
+
+.notice-hint {
+	width: 100%;
+	margin-top: 2px;
+	font-size: 13px;
+	color: #9aa3ad;
+}
+
+.notice-hint.hidden {
+	visibility: collapse;
+}

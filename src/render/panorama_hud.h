@@ -20,6 +20,7 @@ namespace panorama_hud
 		Showcase, // showcase.xml, "cx_"
 		Studio,   // studio.xml, "cs_": the showcase's buttons at the right edge, the rest of the screen a 3D preview
 		Columns,  // columns.xml, "cl_": a column per section, each scrolling on its own
+		Notice,   // notice.xml, "cn_". Last, see kMenuLayouts.
 		Count,
 	};
 
@@ -367,6 +368,17 @@ namespace panorama_hud
 		ListNext,
 		PagePrev, // grid page arrows
 		PageNext,
+		Notice,
+	};
+
+	// Plain text, an empty line is left out.
+	struct Notice
+	{
+		std::string title;
+		std::string time; // at the title's end
+		std::string text;
+		std::string hint;
+		std::string fontClass;
 	};
 
 	int ItemSlots(Layout layout);
@@ -392,6 +404,10 @@ namespace panorama_hud
 	// Gives movement back. No-op if not shown.
 	void Hide(int slot);
 	bool IsShown(int slot);
+
+	// Never enables cursor mode. False without a usable window.
+	bool ShowNotice(int slot, const Notice &notice);
+	void HideNotice(int slot);
 
 	bool DecodeClick(const void *buf, uint32_t size, uint32_t &layoutHandle, std::string &buttonId);
 	// None for a click on anyone else's window.

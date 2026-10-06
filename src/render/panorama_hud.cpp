@@ -33,12 +33,15 @@ namespace
 	};
 
 	constexpr int kLayoutCount = static_cast<int>(Layout::Count);
+	// The layouts before the notice are the menus', one shown at a time.
+	constexpr int kMenuLayouts = static_cast<int>(Layout::Notice);
 	constexpr LayoutDef kLayouts[kLayoutCount] = {
 		{"panorama/layout/custom_game/cs2menus/menu.vxml_c", "cm_", "list", panorama_hud::kItemSlots, panorama_hud::kNavSlots},
 		{"panorama/layout/custom_game/cs2menus/grid.vxml_c", "cg_", "grid", panorama_hud::kGridSlots, panorama_hud::kGridTabs},
 		{"panorama/layout/custom_game/cs2menus/showcase.vxml_c", "cx_", "showcase", panorama_hud::kShowcaseSlots, panorama_hud::kShowcaseTabs},
 		{"panorama/layout/custom_game/cs2menus/studio.vxml_c", "cs_", "studio", panorama_hud::kShowcaseSlots, panorama_hud::kShowcaseTabs},
 		{"panorama/layout/custom_game/cs2menus/columns.vxml_c", "cl_", "columns", panorama_hud::kColumnSlots, panorama_hud::kGridTabs},
+		{"panorama/layout/custom_game/cs2menus/notice.vxml_c", "cn_", "notice", 0, 0},
 	};
 	// Lets a reloaded plugin find the windows it left behind.
 	constexpr const char *kTargetPrefix = "cs2menus_";
@@ -1215,7 +1218,7 @@ bool panorama_hud::Show(int slot, const View &view)
 		return false;
 	}
 	const int layout = static_cast<int>(view.layout);
-	for (int other = 0; other < kLayoutCount; other++)
+	for (int other = 0; other < kMenuLayouts; other++)
 	{
 		if (other != layout)
 		{
@@ -1440,7 +1443,7 @@ void panorama_hud::Hide(int slot)
 	{
 		return;
 	}
-	for (int layout = 0; layout < kLayoutCount; layout++)
+	for (int layout = 0; layout < kMenuLayouts; layout++)
 	{
 		HideWindow(slot, layout);
 	}
@@ -1452,7 +1455,7 @@ bool panorama_hud::IsShown(int slot)
 	{
 		return false;
 	}
-	for (int layout = 0; layout < kLayoutCount; layout++)
+	for (int layout = 0; layout < kMenuLayouts; layout++)
 	{
 		if (s_windows[slot][layout].shown && GetLayout(slot, layout))
 		{
@@ -1460,6 +1463,42 @@ bool panorama_hud::IsShown(int slot)
 		}
 	}
 	return false;
+}
+
+bool panorama_hud::ShowNotice(int slot, const Notice &notice)
+{
+	if (!ValidSlot(slot))
+	{
+		return false;
+	}
+	const int layout = static_cast<int>(Layout::Notice);
+	CCSCustomHudLayout *entity = EnsureLayout(slot, layout);
+	if (!entity)
+	{
+		return false;
+	}
+	Writer w {s_windows[slot][layout], entity, kLayouts[layout].prefix};
+	const std::string root = w.Id("root");
+	w.Swap(root, notice.fontClass);
+	w.Var(w.Id("title"), notice.title);
+	const std::pair<const char *, const std::string &> lines[] = {{"time", notice.time}, {"text", notice.text}, {"hint", notice.hint}};
+	for (const auto &[suffix, value] : lines)
+	{
+		const std::string label = w.Id(suffix);
+		w.Var(label, value);
+		w.Class(label, "hidden", value.empty());
+	}
+	w.Class(root, "hidden", false);
+	w.window.shown = true;
+	return true;
+}
+
+void panorama_hud::HideNotice(int slot)
+{
+	if (ValidSlot(slot))
+	{
+		HideWindow(slot, static_cast<int>(Layout::Notice));
+	}
 }
 
 bool panorama_hud::DecodeClick(const void *buf, uint32_t size, uint32_t &layoutHandle, std::string &buttonId)
@@ -1583,6 +1622,7 @@ panorama_hud::Click panorama_hud::ParseClick(int slot, uint32_t layoutHandle, co
 		{"dlg_yes", Click::DialogYes},
 		{"dlg_no", Click::DialogNo},
 		{"dlg", Click::DialogNo},
+		{"notice", Click::Notice},
 	};
 	for (const Named &named : kNamed)
 	{

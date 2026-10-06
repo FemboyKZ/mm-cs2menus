@@ -539,6 +539,16 @@ class CS2MenusAPI : public ICS2Menus
 		return g_MenuManager.GetMenuTextFeatures(menu);
 	}
 
+	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onClick) override
+	{
+		return g_MenuManager.ShowNotice(slot, title, text, hint, seconds, std::move(onClick));
+	}
+
+	void HideNotice(int slot) override
+	{
+		g_MenuManager.HideNotice(slot);
+	}
+
 	void SetItemControl(MenuHandle menu, int item, bool control) override
 	{
 		g_MenuManager.SetItemControl(menu, item, control);

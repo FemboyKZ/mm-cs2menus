@@ -2259,6 +2259,58 @@ bool MenuManager::ShowMenuMessage(int slot, const char *text, MenuTone tone, flo
 	return true;
 }
 
+bool MenuManager::ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onClick)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || !OnMainThread())
+	{
+		return false;
+	}
+	Notice &notice = m_notices[slot];
+	notice = {true,
+			  panorama_hud::StripColors(title ? title : ""),
+			  panorama_hud::StripColors(text ? text : ""),
+			  panorama_hud::StripColors(hint ? hint : ""),
+			  seconds > 0.0f ? m_curtime + seconds : 0.0f,
+			  std::move(onClick)};
+	if (!RenderNotice(slot))
+	{
+		notice = {};
+		return false;
+	}
+	return true;
+}
+
+void MenuManager::HideNotice(int slot)
+{
+	ScopedLock lock(m_mutex);
+	if (!ValidSlot(slot) || !m_notices[slot].shown)
+	{
+		return;
+	}
+	if (!OnMainThread())
+	{
+		m_pending.push_back([this, slot] { HideNotice(slot); });
+		return;
+	}
+	m_notices[slot] = {};
+	panorama_hud::HideNotice(slot);
+}
+
+bool MenuManager::RenderNotice(int slot)
+{
+	Notice &notice = m_notices[slot];
+	panorama_hud::Notice view {notice.title, std::string(), notice.text, notice.hint, m_settings.panoramaFontClass};
+	notice.drawn = notice.until > 0.0f ? static_cast<int>(std::ceil(notice.until - m_curtime)) : -1;
+	if (notice.drawn >= 0)
+	{
+		char time[16];
+		snprintf(time, sizeof(time), "%d:%02d", notice.drawn / 60, notice.drawn % 60);
+		view.time = time;
+	}
+	return panorama_hud::Available(panorama_hud::Layout::Notice) && panorama_hud::ShowNotice(slot, view);
+}
+
 bool MenuManager::ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger,
 								  MenuConfirmFn onDone)
 {
@@ -3177,7 +3229,15 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 bool MenuManager::WantsButtonInput(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !m_players[slot].active)
+	if (!ValidSlot(slot))
+	{
+		return false;
+	}
+	if (m_notices[slot].onClick)
+	{
+		return true;
+	}
+	if (!m_players[slot].active)
 	{
 		return false;
 	}
@@ -3203,6 +3263,12 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, uint64_t pressedBu
 	ScopedLock lock(m_mutex);
 	if (!ValidSlot(slot))
 	{
+		return;
+	}
+	// A click on the box itself only comes in cursor mode.
+	if (m_notices[slot].onClick && (heldButtons & in_button::Score) && (pressedButtons & in_button::Attack))
+	{
+		OnPanoramaClick(slot, panorama_hud::Click::Notice, -1, curtime);
 		return;
 	}
 	PlayerMenu &pm = m_players[slot];
@@ -3500,6 +3566,23 @@ void MenuManager::Tick(float curtime)
 			Render(i); // the window went away, e.g. with the map
 		}
 	}
+
+	for (int i = 0; i < MAXPLAYERS; i++)
+	{
+		const Notice &notice = m_notices[i];
+		if (!notice.shown)
+		{
+			continue;
+		}
+		if (notice.until > 0.0f && curtime >= notice.until)
+		{
+			HideNotice(i);
+		}
+		else if (notice.until > 0.0f && static_cast<int>(std::ceil(notice.until - curtime)) != notice.drawn)
+		{
+			RenderNotice(i);
+		}
+	}
 }
 
 void MenuManager::OnPlayerDisconnect(int slot)
@@ -3512,6 +3595,7 @@ void MenuManager::OnPlayerDisconnect(int slot)
 	EndDisplay(slot, MenuEndReason::Disconnect);
 	// Drop busy state so a reconnecting client on this slot starts clean.
 	m_players[slot].externalBusy = false;
+	m_notices[slot] = {};
 }
 
 void MenuManager::SetExternalBusy(int slot, bool busy)
@@ -5213,6 +5297,17 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 	if (!OnMainThread())
 	{
 		m_pending.push_back([this, slot, click, index, curtime] { OnPanoramaClick(slot, click, index, curtime); });
+		return;
+	}
+	if (click == panorama_hud::Click::Notice)
+	{
+		// A copy, the callback may show or hide the notice.
+		MenuNoticeFn onClick = m_notices[slot].onClick;
+		DepthGuard guard(m_callbackDepth);
+		if (onClick && guard.enter())
+		{
+			onClick(slot);
+		}
 		return;
 	}
 	PlayerMenu &pm = m_players[slot];

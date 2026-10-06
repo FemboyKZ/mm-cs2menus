@@ -241,6 +241,8 @@ public:
 	bool GetMenuEdited(MenuHandle menu) const;
 	void SetMenuTextFeatures(MenuHandle menu, int features);
 	int GetMenuTextFeatures(MenuHandle menu) const;
+	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onClick);
+	void HideNotice(int slot);
 	void SetMenuScope(MenuHandle menu, const char *label, int teams);
 	void SetMenuScopeCallback(MenuHandle menu, MenuScopeFn onScope);
 	int AddMenuTab(MenuHandle menu, const char *label, bool selected, bool marked, bool pinned);
@@ -611,6 +613,21 @@ private:
 		HistoryEntry selecting;
 	};
 
+	// See ICS2Menus::ShowNotice.
+	struct Notice
+	{
+		bool shown = false;
+		std::string title;
+		std::string text;
+		std::string hint;
+		float until = 0.0f; // absolute game time, 0 = until hidden
+		MenuNoticeFn onClick;
+		int drawn = -1; // seconds left as drawn
+	};
+
+	// False when the slot has no window for it.
+	bool RenderNotice(int slot);
+
 	MenuDef *Find(MenuHandle menu);
 	const MenuDef *Find(MenuHandle menu) const;
 
@@ -814,6 +831,7 @@ private:
 	std::unordered_map<MenuHandle, MenuDef> m_menus;
 	MenuHandle m_nextHandle = 1;
 	PlayerMenu m_players[MAXPLAYERS + 1];
+	Notice m_notices[MAXPLAYERS];
 	PlayerPrefs m_prefs[MAXPLAYERS + 1];
 
 	// Guards all of the above. Recursive: a callback fired while held may re-enter the API.

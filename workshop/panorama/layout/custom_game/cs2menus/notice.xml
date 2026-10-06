@@ -1,0 +1,18 @@
+<root>
+  <styles>
+    <include src="file://{resources}/styles/custom_game/cs2menus/fonts.css" />
+    <include src="file://{resources}/styles/custom_game/cs2menus/notice.css" />
+  </styles>
+  <Panel class="root" hittest="false">
+    <Panel id="cn_root" class="notice hidden" hittest="false">
+      <Button id="cn_notice" class="notice-box">
+        <Panel class="notice-head">
+          <Label id="cn_title" class="notice-title" text="{s:cn_title}" />
+          <Label id="cn_time" class="notice-time" text="{s:cn_time}" />
+        </Panel>
+        <Label id="cn_text" class="notice-text" text="{s:cn_text}" />
+        <Label id="cn_hint" class="notice-hint" text="{s:cn_hint}" />
+      </Button>
+    </Panel>
+  </Panel>
+</root>
