@@ -2,5 +2,5 @@
 
 git config --global --add safe.directory /app
 cd build
-python3 ../configure.py --enable-optimize
+python3 ../configure.py --enable-optimize --symbol-files
 ambuild
