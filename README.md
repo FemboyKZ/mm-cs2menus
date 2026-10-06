@@ -126,6 +126,12 @@ python3 ../configure.py --enable-optimize
 ambuild
 ```
 
+### Docker
+
+```bash
+docker compose run --rm build
+```
+
 ## Credits
 
 - [zer0.k's MetaMod Sample plugin fork](https://github.com/zer0k-z/mm_misc_plugins)
