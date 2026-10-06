@@ -529,6 +529,16 @@ class CS2MenusAPI : public ICS2Menus
 		g_MenuManager.SetMenuMirrored(slot, mirrored);
 	}
 
+	void SetMenuTextFeatures(MenuHandle menu, int features) override
+	{
+		g_MenuManager.SetMenuTextFeatures(menu, features);
+	}
+
+	int GetMenuTextFeatures(MenuHandle menu) override
+	{
+		return g_MenuManager.GetMenuTextFeatures(menu);
+	}
+
 	void SetItemControl(MenuHandle menu, int item, bool control) override
 	{
 		g_MenuManager.SetItemControl(menu, item, control);
@@ -1215,8 +1225,18 @@ CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_de
 	const bool forced = typeName != nullptr;
 	const MenuType type = forced ? ParseMenuType(*typeName) : MenuType::Default;
 
-	MenuHandle menu = g_MenuManager.CreateMenu(type, "cs2menus demo", [](MenuHandle m, int s, int item)
-											   { MENU_PrintToChat(s, "Selected %s", g_MenuManager.GetItemText(m, item)); });
+	MenuHandle menu = g_MenuManager.CreateMenu(
+		type, "cs2menus demo",
+		[](MenuHandle m, int s, int item)
+		{
+			if (strcmp(g_MenuManager.GetItemInfo(m, item), "confirm") == 0)
+			{
+				g_MenuManager.ShowMenuConfirm(s, "Go ahead?", "It only prints a line.", "Cancel", "Confirm", false,
+											  [](int s2, bool confirmed) { MENU_PrintToChat(s2, confirmed ? "Confirmed" : "Cancelled"); });
+				return;
+			}
+			MENU_PrintToChat(s, "Selected %s", g_MenuManager.GetItemText(m, item));
+		});
 	MenuHandle child = g_MenuManager.CreateMenu(type, "Submenu", nullptr);
 	MenuHandle grid = g_MenuManager.CreateMenu(type, "Grid", [](MenuHandle m, int s, int item)
 											   { MENU_PrintToChat(s, "Selected %s", g_MenuManager.GetItemText(m, item)); });
@@ -1240,6 +1260,7 @@ CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_de
 	g_MenuManager.AddItem(menu, "Plain item", "", false);
 	g_MenuManager.AddItem(menu, "Disabled item", "", true);
 	g_MenuManager.SetItemSubtext(menu, g_MenuManager.AddItem(menu, "Item with subtext", "", false), "$2700");
+	g_MenuManager.AddItem(menu, "Ask to confirm", "confirm", false);
 	g_MenuManager.AddSubMenu(menu, "Submenu", child, "");
 	g_MenuManager.AddSubMenu(menu, "Grid", grid, "");
 	g_MenuManager.AddSection(menu, "Values");
@@ -1261,6 +1282,8 @@ CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_de
 		options.push_back(name.c_str());
 	}
 	g_MenuManager.AddChoice(menu, "Long choice", options.data(), static_cast<int>(options.size()), 0, "");
+	g_MenuManager.SetMenuTextFeatures(menu, kMenuTextConfirm | kMenuTextPinned);
+	g_MenuManager.SetMenuPinnedItem(menu, g_MenuManager.AddItem(menu, "Pinned item", "", false));
 	g_MenuManager.AddToggle(child, "Nested toggle", false, "");
 	g_MenuManager.AddStepper(child, "Nested stepper", 0, -10, 10, 1, "");
 

@@ -19,6 +19,17 @@ public enum MenuNavAction { Up = 0, Down = 1, Select = 2, Back = 3 }
 
 public enum MenuLabel { Exit = 0, NextPage = 1, PrevPage = 2, Move = 3, Scroll = 4, Select = 5, On = 6, Off = 7, Adjust = 8, Done = 9 }
 
+/// <summary>See <see cref="Cs2Menu.SetTextFeatures"/>.</summary>
+[Flags]
+public enum MenuTextFeatures
+{
+	None = 0,
+	/// <summary>ShowConfirm and the unsaved changes question.</summary>
+	Confirm = 1,
+	/// <summary>Chat: the pinned and secondary item on every page.</summary>
+	Pinned = 2,
+}
+
 public enum MenuItemType { Normal = 0, Toggle, Stepper, Choice }
 
 /// <summary>Panorama only, each falls back to List when the addon lacks it. Chat and HTML menus are always lists.</summary>
@@ -648,6 +659,9 @@ public sealed class Cs2Menu : IDisposable
 	/// <summary>Showcase: the item shown as a wide button under the image on every page, -1 for none. Set after adding the items.</summary>
 	public Cs2Menu SetPinnedItem(int item) { Cs2MenusNative.SetMenuPinnedItem(Handle, item); return this; }
 	public int PinnedItem => Cs2MenusNative.GetMenuPinnedItem(Handle);
+	/// <summary>Panorama features for the menu's chat and HTML displays, none by default. Does nothing on cs2menus 2.0.0.</summary>
+	public Cs2Menu SetTextFeatures(MenuTextFeatures features) { Cs2MenusNative.SetMenuTextFeatures(Handle, (int)features); return this; }
+	public MenuTextFeatures TextFeatures => (MenuTextFeatures)Cs2MenusNative.GetMenuTextFeatures(Handle);
 
 	// --- Item presentation, Panorama only ---
 

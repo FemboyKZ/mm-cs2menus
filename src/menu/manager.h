@@ -239,6 +239,8 @@ public:
 	bool ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger, MenuConfirmFn onDone);
 	void SetMenuEdited(MenuHandle menu, bool edited);
 	bool GetMenuEdited(MenuHandle menu) const;
+	void SetMenuTextFeatures(MenuHandle menu, int features);
+	int GetMenuTextFeatures(MenuHandle menu) const;
 	void SetMenuScope(MenuHandle menu, const char *label, int teams);
 	void SetMenuScopeCallback(MenuHandle menu, MenuScopeFn onScope);
 	int AddMenuTab(MenuHandle menu, const char *label, bool selected, bool marked, bool pinned);
@@ -471,6 +473,8 @@ private:
 		std::vector<Chip> chips;
 		MenuChipFn onChip;
 		bool edited = false;
+		// See ICS2Menus::SetMenuTextFeatures.
+		int textFeatures = 0;
 
 		// The plugin's tabs in place of the sections', see ICS2Menus::AddMenuTab.
 		struct Tab
@@ -589,6 +593,8 @@ private:
 			std::string confirm;
 			bool danger = false;
 			MenuConfirmFn onDone;
+			// HTML cursor: 0 confirm, 1 cancel.
+			int row = 1;
 		};
 
 		Dialog dialog;
@@ -638,12 +644,16 @@ private:
 	// Close or Back with unsaved changes: asks first and calls `leave` on Discard. False when nothing is edited.
 	bool GuardLeave(int slot, bool wholeDisplay, std::function<void()> leave);
 	void StopEdit(int slot);
+	// Chat and HTML.
+	void AnswerDialog(int slot, bool confirmed);
+	void SendHtml(int slot, const std::string &html);
 
 	struct ChatRow
 	{
 		std::string text;
 		bool disabled = false;
 		bool current = false; // drawn in the accent color, like a Choice's selected option
+		bool note = false;    // text only, no number
 	};
 
 	// Header, title with page indicator, section line, numbered rows, then Next/Prev/Exit.
@@ -673,7 +683,8 @@ private:
 	bool HasForward(int slot) const;
 
 	// Ends the forward history, as opening something new does in a browser.
-	void DropForward(int slot);
+	// `opening`, the menu about to be shown, doesn't end: it's in there after a Back.
+	void DropForward(int slot, MenuHandle opening);
 	// Fires MenuEnd for every history menu that isn't `current` or still in the history, then forgets them.
 	void EndMenus(int slot, std::vector<MenuHandle> menus, MenuHandle current, MenuEndReason reason);
 
@@ -698,6 +709,8 @@ private:
 	};
 
 	std::vector<Page> Pages(const MenuDef &def, MenuType type) const;
+	// Chat: the page's items, then the pinned ones.
+	std::vector<int> ChatPageItems(const MenuDef &def, const Page &page) const;
 	int PageOf(const MenuDef &def, MenuType type, int item) const;
 	// A Choice the showcase and the studio draw in place, as that many segments. 0 for any other item.
 	static int Segments(const MenuItem &item);

@@ -1028,7 +1028,8 @@ int MenuManager::PinnedItem(const MenuDef &def, MenuType type) const
 {
 	const panorama_hud::Layout layout = type == MenuType::Panorama ? PanoramaLayout(def) : panorama_hud::Layout::List;
 	const bool showcase = layout == panorama_hud::Layout::Showcase || layout == panorama_hud::Layout::Studio;
-	return showcase && def.pinned >= 0 && def.pinned < static_cast<int>(def.items.size()) ? def.pinned : -1;
+	const bool chat = type == MenuType::Chat && (def.textFeatures & kMenuTextPinned);
+	return (showcase || chat) && def.pinned >= 0 && def.pinned < static_cast<int>(def.items.size()) ? def.pinned : -1;
 }
 
 void MenuManager::SetMenuSecondaryItem(MenuHandle menu, int item)
@@ -1523,6 +1524,11 @@ std::vector<MenuManager::Page> MenuManager::Pages(const MenuDef &def, MenuType t
 	// Showcase and studio pages are three columns of buttons.
 	const bool buttons = type == MenuType::Panorama && (layout == panorama_hud::Layout::Showcase || layout == panorama_hud::Layout::Studio);
 	const bool columns = type == MenuType::Panorama && layout == panorama_hud::Layout::Columns;
+	if (type == MenuType::Chat)
+	{
+		// Less the pinned rows.
+		size = (std::max)(1, size - (PinnedItem(def, type) >= 0 ? 1 : 0) - (SecondaryItem(def, type) >= 0 ? 1 : 0));
+	}
 	if (type == MenuType::Panorama)
 	{
 		size = layout == panorama_hud::Layout::Grid ? panorama_hud::TileSlots(TileSize(def))
@@ -1562,6 +1568,26 @@ std::vector<MenuManager::Page> MenuManager::Pages(const MenuDef &def, MenuType t
 		pages.push_back({});
 	}
 	return pages;
+}
+
+std::vector<int> MenuManager::ChatPageItems(const MenuDef &def, const Page &page) const
+{
+	std::vector<int> shown;
+	for (int i = page.first; i < page.end; i++)
+	{
+		if (!OffPage(def, MenuType::Chat, i))
+		{
+			shown.push_back(i);
+		}
+	}
+	for (int item : {SecondaryItem(def, MenuType::Chat), PinnedItem(def, MenuType::Chat)})
+	{
+		if (item >= 0)
+		{
+			shown.push_back(item);
+		}
+	}
+	return shown;
 }
 
 int MenuManager::PageOf(const MenuDef &def, MenuType type, int item) const
@@ -2088,7 +2114,7 @@ bool MenuManager::PushLocked(MenuHandle menu, int slot, float duration)
 		return DisplayLocked(menu, slot, duration);
 	}
 
-	DropForward(slot);
+	DropForward(slot, menu);
 	pm.back.push_back(from);
 	pm.selecting = HistoryEntry {};
 	// A CloseOnSelect pick already closed the display, the push reopens it. The timeout carries on.
@@ -2235,7 +2261,8 @@ bool MenuManager::ShowMenuConfirm(int slot, const char *title, const char *body,
 		return false;
 	}
 	PlayerMenu &pm = m_players[slot];
-	if (!pm.active || pm.suspended || pm.type != MenuType::Panorama || !Find(pm.handle))
+	const MenuDef *def = Find(pm.handle);
+	if (!pm.active || pm.suspended || !def || (pm.type != MenuType::Panorama && !(def->textFeatures & kMenuTextConfirm)))
 	{
 		return false;
 	}
@@ -2257,8 +2284,28 @@ bool MenuManager::ShowMenuConfirm(int slot, const char *title, const char *body,
 			previous(slot, false);
 		}
 	}
-	RedrawPanorama(slot);
+	Render(slot);
 	return true;
+}
+
+void MenuManager::AnswerDialog(int slot, bool confirmed)
+{
+	PlayerMenu &pm = m_players[slot];
+	const MenuHandle handle = pm.handle;
+	MenuConfirmFn onDone = std::move(pm.dialog.onDone);
+	pm.dialog = {};
+	{
+		DepthGuard guard(m_callbackDepth);
+		if (onDone && guard.enter())
+		{
+			onDone(slot, confirmed);
+		}
+	}
+	// Unless the handler showed something else.
+	if (pm.active && pm.handle == handle && !pm.dialog.open)
+	{
+		Render(slot);
+	}
 }
 
 void MenuManager::SetMenuEdited(MenuHandle menu, bool edited)
@@ -2448,6 +2495,22 @@ void MenuManager::SetMenuMirrored(int slot, bool mirrored)
 	}
 	pm.mirrored = mirrored;
 	RedrawPanorama(slot);
+}
+
+void MenuManager::SetMenuTextFeatures(MenuHandle menu, int features)
+{
+	ScopedLock lock(m_mutex);
+	if (MenuDef *def = Find(menu))
+	{
+		def->textFeatures = features;
+	}
+}
+
+int MenuManager::GetMenuTextFeatures(MenuHandle menu) const
+{
+	ScopedLock lock(m_mutex);
+	const MenuDef *def = Find(menu);
+	return def ? def->textFeatures : 0;
 }
 
 bool MenuManager::GetMenuEdited(MenuHandle menu) const
@@ -2744,7 +2807,7 @@ void MenuManager::Select(int slot, int itemIndex)
 	MenuHandle sub = def->items[itemIndex].submenu;
 	if (sub != kInvalidMenuHandle && Find(sub))
 	{
-		DropForward(slot);
+		DropForward(slot, sub);
 		pm.back.push_back(Here(slot));
 		SwitchMenu(slot, sub);
 		return;
@@ -2963,7 +3026,7 @@ bool MenuManager::HasForward(int slot) const
 	return false;
 }
 
-void MenuManager::DropForward(int slot)
+void MenuManager::DropForward(int slot, MenuHandle opening)
 {
 	PlayerMenu &pm = m_players[slot];
 	std::vector<MenuHandle> menus;
@@ -2972,7 +3035,7 @@ void MenuManager::DropForward(int slot)
 		menus.push_back(entry.handle);
 	}
 	pm.forward.clear();
-	EndMenus(slot, menus, kInvalidMenuHandle, MenuEndReason::Cancelled);
+	EndMenus(slot, menus, opening, MenuEndReason::Cancelled);
 }
 
 bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
@@ -3027,6 +3090,15 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 	{
 		return false;
 	}
+	// 1 confirms, 2 or 0 cancels.
+	if (pm.dialog.open)
+	{
+		if (num >= 0 && num <= 2)
+		{
+			AnswerDialog(slot, num == 1);
+		}
+		return true;
+	}
 	if (const MenuItem *edited = EditedItem(slot))
 	{
 		ApplyEditNumber(slot, *edited, num);
@@ -3039,10 +3111,9 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 	bool hasMore = (pm.page + 1 < pageCount);
 	bool hasPrev = (pm.page > 0);
 
-	int pageStart = pages[pm.page].first;
-	int pageItems = pages[pm.page].end - pageStart;
+	const std::vector<int> shown = ChatPageItems(*def, pages[pm.page]);
 
-	// Key layout: items 1..pageItems, Next = itemsPerPage+1, Prev = +2, Exit/Back = 0.
+	// Key layout: the rows from 1, Next = itemsPerPage+1, Prev = +2, Exit/Back = 0.
 	if (num == 0)
 	{
 		// In a submenu, 0 steps back to the parent. Otherwise it exits.
@@ -3071,9 +3142,9 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 		return true;
 	}
 
-	if (num >= 1 && num <= pageItems)
+	if (num >= 1 && num <= static_cast<int>(shown.size()))
 	{
-		Select(slot, pageStart + (num - 1));
+		Select(slot, shown[num - 1]);
 		return true;
 	}
 
@@ -3180,6 +3251,11 @@ void MenuManager::HtmlNavSelect(int slot)
 	{
 		return;
 	}
+	if (pm.dialog.open)
+	{
+		AnswerDialog(slot, pm.dialog.row == 0);
+		return;
+	}
 	if (EditedItem(slot))
 	{
 		StopEdit(slot);
@@ -3202,6 +3278,11 @@ void MenuManager::NavClose(int slot)
 	MenuDef *def = Find(pm.handle);
 	if (!def)
 	{
+		return;
+	}
+	if (pm.dialog.open)
+	{
+		AnswerDialog(slot, false);
 		return;
 	}
 	if (EditedItem(slot))
@@ -3301,6 +3382,12 @@ void MenuManager::HtmlMoveCursor(int slot, int delta)
 	const MenuDef *def = Find(pm.handle);
 	if (!def)
 	{
+		return;
+	}
+	if (pm.dialog.open)
+	{
+		pm.dialog.row = pm.dialog.row == 0 ? 1 : 0;
+		RenderHtml(slot);
 		return;
 	}
 	// Up raises the edited value.
@@ -3623,6 +3710,19 @@ void MenuManager::RenderPage(int slot)
 		return;
 	}
 
+	if (pm.dialog.open)
+	{
+		std::vector<ChatRow> rows;
+		if (!pm.dialog.body.empty())
+		{
+			rows.push_back({pm.dialog.body, false, false, true});
+		}
+		rows.push_back({pm.dialog.confirm});
+		rows.push_back({pm.dialog.cancel});
+		PrintChatPage(slot, *def, pm.dialog.title, std::string(), rows, 0, 1, false);
+		return;
+	}
+
 	if (const MenuItem *edited = EditedItem(slot))
 	{
 		RenderEditPage(slot, *def, *edited);
@@ -3639,7 +3739,7 @@ void MenuManager::RenderPage(int slot)
 	const Page &page = pages[pm.page];
 
 	std::vector<ChatRow> rows;
-	for (int i = page.first; i < page.end; i++)
+	for (int i : ChatPageItems(*def, page))
 	{
 		const MenuItem &item = def->items[i];
 		ChatRow row;
@@ -3687,10 +3787,15 @@ void MenuManager::PrintChatPage(int slot, const MenuDef &def, const std::string 
 	}
 
 	// Item rows: color + numbered template + text. The number is the on-screen 1..N selection key.
-	for (size_t i = 0; i < rows.size(); i++)
+	int number = 0;
+	for (const ChatRow &row : rows)
 	{
-		const ChatRow &row = rows[i];
-		std::string num = std::to_string(i + 1);
+		if (row.note)
+		{
+			MENU_PrintToChat(slot, "%s%s", s.chatItemColor.c_str(), row.text.c_str());
+			continue;
+		}
+		std::string num = std::to_string(++number);
 		std::string line = row.disabled ? (s.chatDisabledColor + FillTemplate(s.chatDisabledFormat, {{"n", num}}))
 										: (s.chatItemColor + FillTemplate(s.chatNumberFormat, {{"n", num}}));
 		if (row.current && !row.disabled)
@@ -3884,6 +3989,30 @@ void MenuManager::RenderHtml(int slot)
 	std::string html;
 	html.reserve(512);
 
+	if (pm.dialog.open)
+	{
+		html += center_html::ColorizeChat(pm.dialog.title, titleColor.c_str(), titleCls.c_str());
+		html += "<br>";
+		if (!pm.dialog.body.empty())
+		{
+			html += center_html::ColorizeChat(pm.dialog.body, itemColor.c_str(), itemCls.c_str());
+			html += "<br>";
+		}
+		const std::string *labels[] = {&pm.dialog.confirm, &pm.dialog.cancel};
+		for (int row = 0; row < 2; row++)
+		{
+			const bool selected = row == pm.dialog.row;
+			if (selected)
+			{
+				html += "<font color='" + navColor + "' class='" + itemCls + "'>" + markerHtml + "</font>";
+			}
+			html += center_html::ColorizeChat(*labels[row], (selected && highlightText) ? navColor.c_str() : itemColor.c_str(), itemCls.c_str());
+			html += "<br>";
+		}
+		SendHtml(slot, html);
+		return;
+	}
+
 	// Title + position counter (counter dimmed so the title reads first).
 	// Raw title keeps the title font/size/color wrapper but emits the text verbatim (like SetItemRaw).
 	if (rawTitle)
@@ -3915,9 +4044,27 @@ void MenuManager::RenderHtml(int slot)
 	{
 		start = (std::max)(0, count - vis);
 	}
+	// Section headers are lines too: rows give way, from the end further off the cursor.
+	auto headed = [&](int i) { return i < itemCount && items[i].section >= 0 && (i == start || items[i - 1].section != items[i].section); };
+	auto lines = [&]
+	{
+		int total = vis;
+		for (int i = start; i < start + vis; i++)
+		{
+			total += headed(i) ? 1 : 0;
+		}
+		return total;
+	};
+	while (vis > 1 && lines() > effVisible)
+	{
+		start += pm.cursor - start > start + vis - 1 - pm.cursor ? 1 : 0;
+		vis--;
+	}
 
+	std::vector<size_t> rowStarts;
 	for (int i = start; i < start + vis; i++)
 	{
+		rowStarts.push_back(html.size());
 		bool selected = (i == pm.cursor);
 
 		// The inline Exit row sits at index == itemCount (after the real items).
@@ -4001,6 +4148,28 @@ void MenuManager::RenderHtml(int slot)
 		html += "<br>";
 	}
 
+	// The engine warns on every message over 1500 bytes, so rows give way until it fits with the footer.
+	constexpr size_t kRowBudget = 1250;
+	if (!rowStarts.empty())
+	{
+		rowStarts.push_back(html.size());
+		int first = 0;
+		int last = static_cast<int>(rowStarts.size()) - 1;
+		const int cursorRow = pm.cursor - start;
+		while (last - first > 1 && rowStarts[0] + rowStarts[last] - rowStarts[first] > kRowBudget)
+		{
+			if (cursorRow - first > last - 1 - cursorRow)
+			{
+				first++;
+			}
+			else
+			{
+				last--;
+			}
+		}
+		html = html.substr(0, rowStarts[0]) + html.substr(rowStarts[first], rowStarts[last] - rowStarts[first]);
+	}
+
 	// Footer key hints, adapting when a direction is disabled
 	// (a single-key scroll shows "Scroll: KEY").
 	bool upOn = EffectiveNavMask(*def, slot, MenuNavAction::Up) != 0;
@@ -4081,6 +4250,12 @@ void MenuManager::RenderHtml(int slot)
 		html += "</font>";
 	}
 
+	SendHtml(slot, html);
+}
+
+void MenuManager::SendHtml(int slot, const std::string &html)
+{
+	PlayerMenu &pm = m_players[slot];
 	// Skip the network send when nothing changed, except a periodic keep-alive so the
 	// decaying panel doesn't blink. Saves bandwidth with many viewers idling on a menu.
 	bool changed = (html != pm.lastHtml);

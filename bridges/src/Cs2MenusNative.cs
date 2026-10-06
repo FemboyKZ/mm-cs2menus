@@ -165,6 +165,8 @@ internal static unsafe class Cs2MenusNative
 	private static delegate* unmanaged[Cdecl]<int, byte*, byte*, int> _addHelp;
 	private static delegate* unmanaged[Cdecl]<int, void> _clearHelp;
 	private static delegate* unmanaged[Cdecl]<int, int, void> _setMirrored;
+	private static delegate* unmanaged[Cdecl]<uint, int, void> _setTextFeatures;
+	private static delegate* unmanaged[Cdecl]<uint, int> _getTextFeatures;
 
 	public static bool Loaded { get; private set; }
 
@@ -173,6 +175,8 @@ internal static unsafe class Cs2MenusNative
 
 	/// <summary>True when it also exports the later 004 additions: showcase, tile sizes, menu image, history and pausing.</summary>
 	public static bool SupportsHistory { get; private set; }
+	/// <summary>Newer than cs2menus 2.0.0.</summary>
+	public static bool SupportsTextFeatures { get; private set; }
 
 	/// <summary>True when it exports the ICS2Menus005 additions too: badges, the info card, tabs, chips, dialogs and the studio.</summary>
 	public static bool Supports005 { get; private set; }
@@ -327,6 +331,13 @@ internal static unsafe class Cs2MenusNative
 			_setRefreshCallback = (delegate* unmanaged[Cdecl]<uint, nint, void*, void>)setRefreshCallback;
 			_suspend = (delegate* unmanaged[Cdecl]<int, void>)suspend;
 			_resume = (delegate* unmanaged[Cdecl]<int, void>)resume;
+		}
+
+		if (TryGet(lib, "cs2m_set_text_features", out nint setTextFeatures) && TryGet(lib, "cs2m_get_text_features", out nint getTextFeatures))
+		{
+			SupportsTextFeatures = true;
+			_setTextFeatures = (delegate* unmanaged[Cdecl]<uint, int, void>)setTextFeatures;
+			_getTextFeatures = (delegate* unmanaged[Cdecl]<uint, int>)getTextFeatures;
 		}
 
 		// And the ICS2Menus005 exports, all of them or none.
@@ -672,6 +683,17 @@ internal static unsafe class Cs2MenusNative
 	}
 
 	public static int GetMenuPinnedItem(uint menu) => SupportsHistory ? _getMenuPinnedItem(menu) : -1;
+
+	// Without the exports: as no bits.
+	public static void SetMenuTextFeatures(uint menu, int features)
+	{
+		if (SupportsTextFeatures)
+		{
+			_setTextFeatures(menu, features);
+		}
+	}
+
+	public static int GetMenuTextFeatures(uint menu) => SupportsTextFeatures ? _getTextFeatures(menu) : 0;
 
 	// --- History ---
 	public static bool Push(uint menu, int slot, float duration)

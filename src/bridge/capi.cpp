@@ -759,3 +759,13 @@ CS2M_API void CS2M_CALL cs2m_set_mirrored(int slot, int mirrored)
 {
 	API()->SetMenuMirrored(slot, mirrored != 0);
 }
+
+CS2M_API void CS2M_CALL cs2m_set_text_features(cs2m_handle menu, int features)
+{
+	API()->SetMenuTextFeatures(menu, features);
+}
+
+CS2M_API int CS2M_CALL cs2m_get_text_features(cs2m_handle menu)
+{
+	return API()->GetMenuTextFeatures(menu);
+}
