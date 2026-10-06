@@ -41,7 +41,7 @@ def additionalIncludes(context, binary, sdk):
         # os.path.join(sdk['path'], 'public', 'entity2'),
         # 'D:/absolute/path/to/include/folder/'
         os.path.join(builder.sourcePath, "src"),
-        os.path.join(builder.sourcePath, "vendor", "mm-utils"),
+        os.path.join(builder.sourcePath, "mm-utils"),
     ]
 
 

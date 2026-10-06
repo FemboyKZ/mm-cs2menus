@@ -6,6 +6,6 @@
 	path = hl2sdk-cs2
 	url = https://github.com/alliedmodders/hl2sdk
 	branch = cs2
-[submodule "vendor/mm-utils"]
-	path = vendor/mm-utils
+[submodule "mm-utils"]
+	path = mm-utils
 	url = https://github.com/FemboyKZ/mm-utils
