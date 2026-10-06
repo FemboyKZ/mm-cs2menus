@@ -1,9 +1,9 @@
 #include "center_html.h"
-#include "mmu/log.h"
+#include "utils/log.h"
 #include "src/common.h"
-#include "mmu/gamedata.h"
-#include "mmu/sigscan.h"
-#include "mmu/recipient_filter.h"
+#include "sdk/gamedata.h"
+#include "sdk/sigscan.h"
+#include "sdk/recipient_filter.h"
 
 #include <igameevents.h>
 #include <engine/igameeventsystem.h>

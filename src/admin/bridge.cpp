@@ -1,5 +1,5 @@
 #include "bridge.h"
-#include "mmu/log.h"
+#include "utils/log.h"
 #include "src/common.h"
 
 static mmu::AdminAccess s_admin("cs2menus");

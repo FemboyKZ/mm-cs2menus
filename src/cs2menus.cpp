@@ -5,9 +5,9 @@
 
 #include "config/config.h"
 #include "db/prefs.h"
-#include "mmu/entity/ccsplayercontroller.h"
+#include "sdk/entity/ccsplayercontroller.h"
 #include "entity/cgamerules.h"
-#include "mmu/entity/entity_system.h"
+#include "sdk/entity/entity_system.h"
 #include "lang/translations.h"
 #include "menu/key_table.h"
 #include "menu/manager.h"
@@ -17,13 +17,13 @@
 #include "render/panorama_hud.h"
 #include "utils/html_style.h"
 #include "utils/print.h"
-#include "mmu/cvarquery.h"
-#include "mmu/interface_bridge.h"
-#include "mmu/log.h"
-#include "mmu/print.h"
-#include "mmu/str_utils.h"
-#include "mmu/command_args.h"
-#include "mmu/target.h"
+#include "game/cvarquery.h"
+#include "interfaces/interface_bridge.h"
+#include "utils/log.h"
+#include "game/print.h"
+#include "utils/str.h"
+#include "utils/command_args.h"
+#include "game/target.h"
 
 #include <cctype>
 #include <cstdio>

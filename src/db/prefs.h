@@ -1,7 +1,7 @@
 #ifndef _INCLUDE_MENU_PREFS_DB_H_
 #define _INCLUDE_MENU_PREFS_DB_H_
 
-#include "mmu/sql.h"
+#include "utils/sql.h"
 
 #include <cstdint>
 #include <functional>

@@ -26,14 +26,14 @@ for sdk_target in MMSPlugin.sdk_targets:
         "src/render/panorama_hud.cpp",
         "src/utils/print.cpp",
 
-        "vendor/mm-utils/mmu/chat_colors.cpp",
-        "vendor/mm-utils/mmu/cvarquery.cpp",
-        "vendor/mm-utils/mmu/log.cpp",
-        "vendor/mm-utils/mmu/print.cpp",
-        "vendor/mm-utils/mmu/schema.cpp",
-        "vendor/mm-utils/mmu/sigscan.cpp",
-        "vendor/mm-utils/mmu/sql.cpp",
-        "vendor/mm-utils/mmu/translations.cpp",
+        "vendor/mm-utils/utils/chat_colors.cpp",
+        "vendor/mm-utils/game/cvarquery.cpp",
+        "vendor/mm-utils/utils/log.cpp",
+        "vendor/mm-utils/game/print.cpp",
+        "vendor/mm-utils/sdk/schema.cpp",
+        "vendor/mm-utils/sdk/sigscan.cpp",
+        "vendor/mm-utils/utils/sql.cpp",
+        "vendor/mm-utils/utils/translations.cpp",
     ]
 
     binary.custom = [

@@ -1,7 +1,7 @@
 #ifndef _INCLUDE_MENU_TRANSLATIONS_H_
 #define _INCLUDE_MENU_TRANSLATIONS_H_
 
-#include "mmu/translations.h"
+#include "utils/translations.h"
 
 // SourceMod-style phrase tables for the built-in menu chrome labels
 // (Exit / page nav / footer hints), resolved per client language.

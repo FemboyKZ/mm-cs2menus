@@ -1,7 +1,7 @@
 #include "config.h"
-#include "mmu/kv_parser.h"
-#include "mmu/log.h"
-#include "mmu/str_utils.h"
+#include "utils/kv_parser.h"
+#include "utils/log.h"
+#include "utils/str.h"
 
 #include <cstdlib>
 #include <string>

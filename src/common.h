@@ -1,8 +1,8 @@
 #ifndef _INCLUDE_MENU_COMMON_H_
 #define _INCLUDE_MENU_COMMON_H_
 
-#include "mmu/chat_colors.h"
-#include "mmu/plugin_globals.h"
+#include "utils/chat_colors.h"
+#include "sdk/plugin_globals.h"
 
 #include <ISmmPlugin.h>
 #include <igameevents.h>
@@ -21,7 +21,7 @@ inline bool ValidSlot(int slot)
 	return slot >= 0 && slot < MAXPLAYERS;
 }
 
-// Plugin-specific engine interfaces. Shared ones live in mmu/plugin_globals.h.
+// Plugin-specific engine interfaces. Shared ones live in sdk/plugin_globals.h.
 extern INetworkServerService *g_pNetworkServerService;
 
 class INetworkMessages;
@@ -40,7 +40,7 @@ class IGameEventManager2;
 extern IGameEventManager2 *g_pGameEventManager;
 
 // CGlobalVars accessor, only valid during an active game
-#include "mmu/print.h"
+#include "game/print.h"
 
 inline CGlobalVars *GetGameGlobals()
 {

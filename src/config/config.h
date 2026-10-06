@@ -1,7 +1,7 @@
 #ifndef _INCLUDE_MENU_CONFIG_H_
 #define _INCLUDE_MENU_CONFIG_H_
 
-#include "mmu/config_blocks.h"
+#include "utils/config_blocks.h"
 
 #include <string>
 

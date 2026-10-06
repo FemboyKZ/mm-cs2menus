@@ -1,8 +1,8 @@
 #ifndef _INCLUDE_MENU_ENTITY_CCSCUSTOMHUDLAYOUT_H_
 #define _INCLUDE_MENU_ENTITY_CCSCUSTOMHUDLAYOUT_H_
 
-#include "mmu/entity/cbaseentity.h"
-#include "mmu/schema.h"
+#include "sdk/entity/cbaseentity.h"
+#include "sdk/schema.h"
 
 // The layout's state is written directly (see panorama_hud.cpp),
 // like cs2kz-metamod's sdk/entity/ccscustomhudlayout.h.

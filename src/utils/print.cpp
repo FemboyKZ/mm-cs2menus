@@ -1,7 +1,7 @@
 #include "print.h"
 #include "src/common.h"
 
-#include "mmu/print.h"
+#include "game/print.h"
 
 #include <cstdarg>
 #include <cstdio>

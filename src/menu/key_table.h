@@ -1,7 +1,7 @@
 #ifndef _INCLUDE_MENU_KEY_TABLE_H_
 #define _INCLUDE_MENU_KEY_TABLE_H_
 
-#include "mmu/entity/in_buttons.h"
+#include "sdk/entity/in_buttons.h"
 #include "interfaces/cs2menus/ics2menus.h"
 
 #include <cstdint>

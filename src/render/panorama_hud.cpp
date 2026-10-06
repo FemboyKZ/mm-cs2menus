@@ -2,9 +2,9 @@
 #include "src/common.h"
 #include "src/entity/ccscustomhudlayout.h"
 #include "src/render/center_html.h"
-#include "mmu/gamedata.h"
-#include "mmu/log.h"
-#include "mmu/sigscan.h"
+#include "sdk/gamedata.h"
+#include "utils/log.h"
+#include "sdk/sigscan.h"
 
 #include <algorithm>
 #include <cctype>
