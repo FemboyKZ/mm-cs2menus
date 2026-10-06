@@ -143,6 +143,9 @@ namespace
 	constexpr int kEditTabs = -100;
 	constexpr int kNavMore = -2;
 
+	// kMenuTextIndex: shorter lists get no index.
+	constexpr int kIndexMinPages = 4;
+
 	// What a tab row holds, in pixels as the layouts' styles lay it out. The server can't measure text, so a tab's width
 	// is guessed from its characters, on the wide side: one that would have fit going behind "+N" beats one cut off.
 	constexpr int kTabCell = 10;     // a 15px uppercase character
@@ -1845,7 +1848,9 @@ bool MenuManager::HtmlShowsExitRow(const MenuDef &def, int slot) const
 
 int MenuManager::HtmlRowCount(const MenuDef &def, int slot) const
 {
-	return static_cast<int>(def.items.size()) + (HtmlShowsExitRow(def, slot) ? 1 : 0);
+	const PlayerMenu &pm = m_players[slot];
+	const size_t rows = pm.index ? IndexRanges(def, pm.type).size() : def.items.size();
+	return static_cast<int>(rows) + (HtmlShowsExitRow(def, slot) ? 1 : 0);
 }
 
 uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, int slot, MenuNavAction action) const
@@ -2076,6 +2081,8 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 	pm.selecting = HistoryEntry {};
 	pm.editItem = -1;
 	pm.editPage = 0;
+	pm.index = false;
+	EnterIndex(slot);
 
 	Render(slot);
 	return true;
@@ -2637,7 +2644,7 @@ int MenuManager::GetSelectedItem(int slot) const
 	const PlayerMenu &pm = m_players[slot];
 	const MenuDef *def = Find(pm.handle);
 	// HTML only, and only when the cursor sits on a real item (not the Exit row).
-	if (!def || pm.type != MenuType::Html || pm.cursor < 0 || pm.cursor >= static_cast<int>(def->items.size()))
+	if (!def || pm.type != MenuType::Html || pm.index || pm.cursor < 0 || pm.cursor >= static_cast<int>(def->items.size()))
 	{
 		return -1;
 	}
@@ -2900,6 +2907,11 @@ void MenuManager::SwitchMenu(int slot, MenuHandle handle, const HistoryEntry *re
 	pm.lastHtml.clear();
 	pm.editItem = -1;
 	pm.editPage = 0;
+	pm.index = restore && restore->index;
+	if (!restore)
+	{
+		EnterIndex(slot);
+	}
 	// expireTime is kept so the whole submenu stack shares one timeout.
 
 	Render(slot);
@@ -2924,7 +2936,7 @@ std::vector<MenuHandle> MenuManager::TakeHistory(int slot)
 MenuManager::HistoryEntry MenuManager::Here(int slot) const
 {
 	const PlayerMenu &pm = m_players[slot];
-	return HistoryEntry {pm.handle, pm.page, pm.cursor};
+	return HistoryEntry {pm.handle, pm.page, pm.cursor, pm.index};
 }
 
 bool MenuManager::InHistory(int slot, MenuHandle menu) const
@@ -3104,6 +3116,11 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 		ApplyEditNumber(slot, *edited, num);
 		return true;
 	}
+	if (pm.index && num != 0)
+	{
+		OpenRange(slot, num - 1);
+		return true;
+	}
 
 	const std::vector<Page> pages = Pages(*def, pm.type);
 	int pageCount = static_cast<int>(pages.size());
@@ -3116,6 +3133,11 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 	// Key layout: the rows from 1, Next = itemsPerPage+1, Prev = +2, Exit/Back = 0.
 	if (num == 0)
 	{
+		if (EnterIndex(slot))
+		{
+			RenderPage(slot);
+			return true;
+		}
 		// In a submenu, 0 steps back to the parent. Otherwise it exits.
 		if (StepBack(slot))
 		{
@@ -3262,9 +3284,13 @@ void MenuManager::HtmlNavSelect(int slot)
 		return;
 	}
 	// Selecting the inline Exit row closes the menu, otherwise pick the cursor item.
-	if (HtmlShowsExitRow(*def, slot) && pm.cursor == static_cast<int>(def->items.size()))
+	if (HtmlShowsExitRow(*def, slot) && pm.cursor == HtmlRowCount(*def, slot) - 1)
 	{
 		EndDisplay(slot, MenuEndReason::Exit);
+	}
+	else if (pm.index)
+	{
+		OpenRange(slot, pm.cursor);
 	}
 	else
 	{
@@ -3288,6 +3314,11 @@ void MenuManager::NavClose(int slot)
 	if (EditedItem(slot))
 	{
 		StopEdit(slot);
+		return;
+	}
+	if (EnterIndex(slot))
+	{
+		Render(slot);
 		return;
 	}
 	// Step up to the parent in a submenu, else exit (if exitable).
@@ -3729,6 +3760,20 @@ void MenuManager::RenderPage(int slot)
 		return;
 	}
 
+	const std::vector<IndexRange> ranges = IndexRanges(*def, pm.type);
+	// A live item removal can leave the list too short for an index.
+	pm.index = pm.index && !ranges.empty();
+	if (pm.index)
+	{
+		std::vector<ChatRow> rows;
+		for (const IndexRange &range : ranges)
+		{
+			rows.push_back({range.label});
+		}
+		PrintChatPage(slot, *def, def->title, std::string(), rows, 0, 1, def->exitButton);
+		return;
+	}
+
 	const std::vector<Page> pages = Pages(*def, pm.type);
 	const int pageCount = static_cast<int>(pages.size());
 	// Clamp a page left stale by a live item removal / start-item past the end.
@@ -3754,7 +3799,8 @@ void MenuManager::RenderPage(int slot)
 		rows.push_back(std::move(row));
 	}
 	const std::string section = page.section >= 0 ? def->sections[page.section] : std::string();
-	PrintChatPage(slot, *def, def->title, section, rows, pm.page, pageCount, def->exitButton);
+	// 0 goes back to the index even without an exit button.
+	PrintChatPage(slot, *def, def->title, section, rows, pm.page, pageCount, def->exitButton || !ranges.empty());
 }
 
 void MenuManager::PrintChatPage(int slot, const MenuDef &def, const std::string &titleText, const std::string &section,
@@ -3931,7 +3977,9 @@ void MenuManager::RenderHtml(int slot)
 	pm.nextHtmlRender = m_curtime + m_settings.htmlRefreshInterval;
 
 	const auto &items = def->items;
-	int itemCount = static_cast<int>(items.size());
+	const std::vector<IndexRange> ranges = IndexRanges(*def, pm.type);
+	pm.index = pm.index && !ranges.empty();
+	int itemCount = static_cast<int>(pm.index ? ranges.size() : items.size());
 	bool exitRow = HtmlShowsExitRow(*def, slot);
 	int count = itemCount + (exitRow ? 1 : 0); // navigable rows (Exit is the last)
 
@@ -4083,6 +4131,17 @@ void MenuManager::RenderHtml(int slot)
 			html += "' class='" + itemCls + "'>";
 			html += center_html::Escape(ResolveLabel(slot, *def, MenuLabel::Exit));
 			html += "</font><br>";
+			continue;
+		}
+
+		if (pm.index)
+		{
+			if (selected)
+			{
+				html += "<font color='" + navColor + "' class='" + itemCls + "'>" + markerHtml + "</font>";
+			}
+			html += center_html::ColorizeChat(ranges[i].label, (selected && highlightText) ? navColor.c_str() : itemColor.c_str(), itemCls.c_str());
+			html += "<br>";
 			continue;
 		}
 
@@ -4300,6 +4359,101 @@ static std::string IndexLetter(const std::string &text, char delimiter)
 		letter[0] = static_cast<char>(toupper(static_cast<unsigned char>(letter[0])));
 	}
 	return letter;
+}
+
+std::vector<MenuManager::IndexRange> MenuManager::IndexRanges(const MenuDef &def, MenuType type) const
+{
+	const int htmlVisible = def.style.visibleItems > 0 ? (std::min)(def.style.visibleItems, MENU_MAX_HTML_VISIBLE) : m_htmlVisibleItems;
+	const int size = type == MenuType::Chat ? m_itemsPerPage : type == MenuType::Html ? htmlVisible : 0;
+	const int count = static_cast<int>(def.items.size());
+	if (!(def.textFeatures & kMenuTextIndex) || !def.sections.empty() || size < 2 || count < kIndexMinPages * size)
+	{
+		return {};
+	}
+
+	std::vector<int> starts;
+	std::vector<std::string> letters;
+	for (int i = 0; i < count; i++)
+	{
+		if (OffPage(def, type, i))
+		{
+			continue;
+		}
+		std::string letter = IndexLetter(panorama_hud::StripColors(def.items[i].text), def.style.pagePrefixDelimiter);
+		if (letters.empty() || letter != letters.back())
+		{
+			starts.push_back(i);
+			letters.push_back(std::move(letter));
+		}
+	}
+
+	// Each even share of the list starts at the letter change nearest to it.
+	std::vector<size_t> cuts = {0};
+	for (int share = 1; share < size; share++)
+	{
+		const int even = count * share / size;
+		auto at = std::lower_bound(starts.begin(), starts.end(), even);
+		if (at == starts.end() || (at != starts.begin() && even - *(at - 1) < *at - even))
+		{
+			--at;
+		}
+		const size_t cut = static_cast<size_t>(at - starts.begin());
+		if (cut > cuts.back())
+		{
+			cuts.push_back(cut);
+		}
+	}
+	if (cuts.size() < 2)
+	{
+		return {};
+	}
+
+	std::vector<IndexRange> ranges;
+	for (size_t i = 0; i < cuts.size(); i++)
+	{
+		const std::string &from = letters[cuts[i]];
+		const std::string &to = letters[(i + 1 < cuts.size() ? cuts[i + 1] : letters.size()) - 1];
+		ranges.push_back({starts[cuts[i]], from == to ? from : from + " - " + to});
+	}
+	return ranges;
+}
+
+bool MenuManager::EnterIndex(int slot)
+{
+	PlayerMenu &pm = m_players[slot];
+	const MenuDef *def = Find(pm.handle);
+	if (!def || pm.index)
+	{
+		return false;
+	}
+	const std::vector<IndexRange> ranges = IndexRanges(*def, pm.type);
+	if (ranges.empty())
+	{
+		return false;
+	}
+	int range = 0;
+	while (range + 1 < static_cast<int>(ranges.size()) && ranges[range + 1].first <= pm.cursor)
+	{
+		range++;
+	}
+	pm.index = true;
+	pm.cursor = range;
+	return true;
+}
+
+void MenuManager::OpenRange(int slot, int range)
+{
+	PlayerMenu &pm = m_players[slot];
+	const MenuDef *def = Find(pm.handle);
+	const std::vector<IndexRange> ranges = def ? IndexRanges(*def, pm.type) : std::vector<IndexRange>();
+	if (range < 0 || range >= static_cast<int>(ranges.size()))
+	{
+		return;
+	}
+	pm.index = false;
+	pm.cursor = ranges[range].first;
+	pm.page = PageOf(*def, pm.type, pm.cursor);
+	Render(slot);
 }
 
 std::vector<MenuManager::TabEntry> MenuManager::Tabs(int slot, const MenuDef &def, const std::vector<Page> &pages, int page) const
@@ -5017,6 +5171,7 @@ void MenuManager::RenderPanorama(int slot)
 		// No window for this player: fall back so the menu stays usable.
 		pm.type = m_htmlAvailable ? MenuType::Html : MenuType::Chat;
 		pm.page = 0;
+		EnterIndex(slot);
 		Render(slot);
 	}
 }

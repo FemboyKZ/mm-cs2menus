@@ -527,6 +527,7 @@ private:
 		MenuHandle handle = kInvalidMenuHandle;
 		int page = 0;
 		int cursor = 0;
+		bool index = false;
 	};
 
 	struct PlayerMenu
@@ -543,8 +544,10 @@ private:
 		MenuHandle handle = kInvalidMenuHandle;
 		// Resolved render type for this display (see ResolveType). Set in DisplayLocked.
 		MenuType type = MenuType::Chat;
-		int page = 0;            // chat pagination
-		int cursor = 0;          // html selected option (abs index)
+		int page = 0;   // chat pagination
+		int cursor = 0; // html selected option (abs index)
+		// kMenuTextIndex: the ranges are up, the cursor is on one.
+		bool index = false;
 		float expireTime = 0.0f; // absolute game time, 0 = no expire
 		uint64_t prevButtons = 0;
 		bool buttonsPrimed = false;
@@ -712,6 +715,19 @@ private:
 	// Chat: the page's items, then the pinned ones.
 	std::vector<int> ChatPageItems(const MenuDef &def, const Page &page) const;
 	int PageOf(const MenuDef &def, MenuType type, int item) const;
+
+	// kMenuTextIndex
+	struct IndexRange
+	{
+		int first = 0;
+		std::string label;
+	};
+
+	// Empty for a menu that gets no index.
+	std::vector<IndexRange> IndexRanges(const MenuDef &def, MenuType type) const;
+	// False without an index or already on it.
+	bool EnterIndex(int slot);
+	void OpenRange(int slot, int range);
 	// A Choice the showcase and the studio draw in place, as that many segments. 0 for any other item.
 	static int Segments(const MenuItem &item);
 	// An option's own text, and the second line it carries after a line break.

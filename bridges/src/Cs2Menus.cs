@@ -28,6 +28,8 @@ public enum MenuTextFeatures
 	Confirm = 1,
 	/// <summary>Chat: the pinned and secondary item on every page.</summary>
 	Pinned = 2,
+	/// <summary>A long sorted list opens on its letter ranges.</summary>
+	Index = 4,
 }
 
 public enum MenuItemType { Normal = 0, Toggle, Stepper, Choice }
