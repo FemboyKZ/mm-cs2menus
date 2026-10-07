@@ -134,6 +134,11 @@ SdkHelpers = builder.Eval(
     os.path.join(hl2sdk_manifests_root, "SdkHelpers.ambuild"), {"Project": "metamod"}
 )
 
+# Keep linking the prebuilt libs from the manifest.
+SdkHelpers.findSdks.__globals__["SdkTarget"].findLibrary = staticmethod(
+    lambda context, sdk, cxx, name: None
+)
+
 
 class MMSPluginConfig(object):
     def __init__(self):
