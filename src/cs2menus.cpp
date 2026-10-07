@@ -26,6 +26,7 @@
 #include "game/target.h"
 
 #include <cctype>
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -56,6 +57,24 @@ static std::string SlotLanguage(int slot)
 {
 	const char *raw = mmu::cvarquery::GetClientLanguage(slot);
 	return g_Translations.MapClientLanguage(raw);
+}
+
+// A phrase in the caller's language, the default language for the console.
+static std::string Tr(int slot, const char *phrase)
+{
+	return g_Translations.Translate(ValidSlot(slot) ? SlotLanguage(slot) : std::string(), phrase);
+}
+
+// Tr with the phrase's format specifiers filled in.
+static std::string TrFormat(int slot, const char *phrase, ...)
+{
+	std::string tmpl = Tr(slot, phrase);
+	char buffer[512];
+	va_list args;
+	va_start(args, phrase);
+	vsnprintf(buffer, sizeof(buffer), tmpl.c_str(), args);
+	va_end(args);
+	return buffer;
 }
 
 CGameEntitySystem *g_pEntitySystem = nullptr;
@@ -1173,7 +1192,7 @@ static bool RequireAccess(int slot, const char *commandName, uint32_t defaultFla
 	{
 		return true;
 	}
-	MENU_PrintToChat(slot, "You don't have permission to use this command.");
+	MENU_PrintToChat(slot, "%s", Tr(slot, "You don't have permission to use this command.").c_str());
 	return false;
 }
 
@@ -1399,24 +1418,24 @@ namespace
 	}
 
 	// Human-readable label for a stored key name.
-	std::string KeyDisplay(const std::string &name)
+	std::string KeyDisplay(int slot, const std::string &name)
 	{
 		if (name.empty() || name == "default")
 		{
-			return "Default";
+			return Tr(slot, "Default");
 		}
 		if (name == "none" || name == "off")
 		{
-			return "Disabled";
+			return Tr(slot, "Disabled");
 		}
 		return NavKeyLabel(name); // uppercased key name, e.g. "SHIFT"
 	}
 
-	std::string TypeDisplay(const std::string &type)
+	std::string TypeDisplay(int slot, const std::string &type)
 	{
 		if (type == "chat")
 		{
-			return "Chat";
+			return Tr(slot, "Chat");
 		}
 		if (type == "html")
 		{
@@ -1426,7 +1445,7 @@ namespace
 		{
 			return "Panorama";
 		}
-		return "Server default";
+		return Tr(slot, "Server default");
 	}
 
 	// Push one action's stored name into the manager as a per-player nav preference.
@@ -1558,7 +1577,7 @@ namespace
 		{
 			return true;
 		}
-		MENU_PrintToChat(slot, "Menu preferences are not available on this server.");
+		MENU_PrintToChat(slot, "%s", Tr(slot, "Menu preferences are not available on this server.").c_str());
 		return false;
 	}
 
@@ -1579,7 +1598,7 @@ namespace
 			return;
 		}
 
-		MenuHandle menu = g_MenuManager.CreateMenu(MenuType::Default, "Menu Preferences", nullptr);
+		MenuHandle menu = g_MenuManager.CreateMenu(MenuType::Default, Tr(slot, "Menu Preferences").c_str(), nullptr);
 		if (menu == kInvalidMenuHandle)
 		{
 			return;
@@ -1605,21 +1624,21 @@ namespace
 		std::vector<std::string> typeLabels;
 		for (const std::string &type : types)
 		{
-			typeLabels.push_back(TypeDisplay(type));
+			typeLabels.push_back(TypeDisplay(slot, type));
 		}
 		std::vector<std::string> keyLabels;
 		for (int option = 0; option <= keys::kKeyCount + 1; option++)
 		{
-			keyLabels.push_back(KeyDisplay(KeyOptionName(option)));
+			keyLabels.push_back(KeyDisplay(slot, KeyOptionName(option)));
 		}
-		auto addChoice = [menu](const char *text, const std::vector<std::string> &labels)
+		auto addChoice = [menu, slot](const char *phrase, const std::vector<std::string> &labels)
 		{
 			std::vector<const char *> options;
 			for (const std::string &label : labels)
 			{
 				options.push_back(label.c_str());
 			}
-			g_MenuManager.AddChoice(menu, text, options.data(), static_cast<int>(options.size()), 0, "");
+			g_MenuManager.AddChoice(menu, Tr(slot, phrase).c_str(), options.data(), static_cast<int>(options.size()), 0, "");
 		};
 		addChoice("Menu style", typeLabels);
 		addChoice("Up key", keyLabels);
@@ -1722,13 +1741,13 @@ CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | panora
 	}
 	else
 	{
-		MENU_PrintToChat(slot, "Usage: mm_pref_type chat | html | panorama | default");
+		MENU_PrintToChat(slot, "%s", Tr(slot, "Usage: mm_pref_type chat | html | panorama | default").c_str());
 		return;
 	}
 	ApplyPrefsToManager(slot);
 	SaveSlotPrefs(slot);
 	RefreshPrefsItems(slot);
-	MENU_PrintToChat(slot, "Menu style set to %s.", TypeDisplay(s_prefs[slot].type).c_str());
+	MENU_PrintToChat(slot, "%s", TrFormat(slot, "Menu style set to %s.", TypeDisplay(slot, s_prefs[slot].type).c_str()).c_str());
 }
 
 CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|select|back> key=<key|default|none>.",
@@ -1750,7 +1769,7 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 	}
 	if (!parsed.Has("action") || !parsed.Has("key"))
 	{
-		MENU_PrintToChat(slot, "Usage: mm_pref_key <up|down|select|back> key=<key|default|none>");
+		MENU_PrintToChat(slot, "%s", Tr(slot, "Usage: mm_pref_key <up|down|select|back> key=<key|default|none>").c_str());
 		return;
 	}
 	if (!RequirePrefsDB(slot))
@@ -1762,20 +1781,20 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 	MenuNavAction action;
 	if (!ParseNavActionName(actionName, action))
 	{
-		MENU_PrintToChat(slot, "Unknown action. Use up, down, select or back.");
+		MENU_PrintToChat(slot, "%s", Tr(slot, "Unknown action. Use up, down, select or back.").c_str());
 		return;
 	}
 	// Validate the key: a name ParseNavKey accepts, or the special "default"/"none".
 	if (keyName != "default" && keyName != "none" && keyName != "off" && ParseNavKey(keyName) == 0)
 	{
-		MENU_PrintToChat(slot, "Unknown key \"%s\".", keyName.c_str());
+		MENU_PrintToChat(slot, "%s", TrFormat(slot, "Unknown key \"%s\".", keyName.c_str()).c_str());
 		return;
 	}
 	s_prefs[slot].keys[static_cast<int>(action)] = keyName;
 	ApplyPrefsToManager(slot);
 	SaveSlotPrefs(slot);
 	RefreshPrefsItems(slot);
-	MENU_PrintToChat(slot, "%s key set to %s.", actionName.c_str(), KeyDisplay(keyName).c_str());
+	MENU_PrintToChat(slot, "%s", TrFormat(slot, "%s key set to %s.", actionName.c_str(), KeyDisplay(slot, keyName).c_str()).c_str());
 }
 
 CON_COMMAND_F(mm_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
@@ -1794,8 +1813,11 @@ CON_COMMAND_F(mm_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_
 		return;
 	}
 	const SlotPrefs &p = s_prefs[slot];
-	MENU_PrintToChat(slot, "Style: %s | Up: %s | Down: %s | Select: %s | Back: %s", TypeDisplay(p.type).c_str(), KeyDisplay(p.keys[0]).c_str(),
-					 KeyDisplay(p.keys[1]).c_str(), KeyDisplay(p.keys[2]).c_str(), KeyDisplay(p.keys[3]).c_str());
+	MENU_PrintToChat(slot, "%s",
+					 TrFormat(slot, "Style: %s | Up: %s | Down: %s | Select: %s | Back: %s", TypeDisplay(slot, p.type).c_str(),
+							  KeyDisplay(slot, p.keys[0]).c_str(), KeyDisplay(slot, p.keys[1]).c_str(), KeyDisplay(slot, p.keys[2]).c_str(),
+							  KeyDisplay(slot, p.keys[3]).c_str())
+						 .c_str());
 }
 
 // Console has no chat, so it gets the server log.
@@ -1821,9 +1843,9 @@ static bool ParseCommandArgs(int slot, const CCommand &args, const mmu::ArgSpec 
 	{
 		return true;
 	}
-	std::string msg = error == mmu::ArgError::UnknownKey  ? "Unknown key " + what + "=."
-					  : error == mmu::ArgError::StrayText ? "Put " + what + " after a key, like key=value."
-														  : "A quote is left open.";
+	std::string msg = error == mmu::ArgError::UnknownKey  ? TrFormat(slot, "Unknown key %s=.", what.c_str())
+					  : error == mmu::ArgError::StrayText ? TrFormat(slot, "Put %s after a key, like key=value.", what.c_str())
+														  : Tr(slot, "A quote is left open.");
 	ReplyToCaller(slot, msg.c_str());
 	return false;
 }
@@ -1847,19 +1869,19 @@ CON_COMMAND_F(mm_pref_reset, "Reset menu style and keys to server defaults: mm_p
 	}
 	if (!MENU_AdminBridge_CanUseCommand(slot, self ? "pref_reset" : "pref_reset_other", self ? 0 : CS2ADMIN_FLAG_GENERIC))
 	{
-		ReplyToCaller(slot, "You don't have permission to use this command.");
+		ReplyToCaller(slot, Tr(slot, "You don't have permission to use this command.").c_str());
 		return;
 	}
 	if (!g_MenuPrefsDB.IsConnected())
 	{
-		ReplyToCaller(slot, "Menu preferences are not available on this server.");
+		ReplyToCaller(slot, Tr(slot, "Menu preferences are not available on this server.").c_str());
 		return;
 	}
 
 	if (self)
 	{
 		ResetSlotPrefs(slot);
-		MENU_PrintToChat(slot, "Your menu preferences were reset to server defaults.");
+		MENU_PrintToChat(slot, "%s", Tr(slot, "Your menu preferences were reset to server defaults.").c_str());
 		return;
 	}
 
@@ -1874,39 +1896,39 @@ CON_COMMAND_F(mm_pref_reset, "Reset menu style and keys to server defaults: mm_p
 		mmu::TargetMode::OneOrOffline);
 	const int target = found.slots.empty() ? -1 : found.slots[0];
 	const uint64_t xuid = found.offlineSteamid64;
-	char msg[256];
+	std::string msg;
 	if (target != -1)
 	{
 		if (!MENU_AdminBridge_CanTarget(slot, target))
 		{
-			ReplyToCaller(slot, "Cannot target this player (higher immunity).");
+			ReplyToCaller(slot, Tr(slot, "Cannot target this player (higher immunity).").c_str());
 			return;
 		}
 		ResetSlotPrefs(target);
 		if (target != slot)
 		{
-			MENU_PrintToChat(target, "An admin reset your menu preferences to server defaults.");
+			MENU_PrintToChat(target, "%s", Tr(target, "An admin reset your menu preferences to server defaults.").c_str());
 		}
 		CCSPlayerController *controller = CCSPlayerController::FromSlot(target);
-		snprintf(msg, sizeof(msg), "Reset menu preferences for %s.", controller ? controller->GetPlayerName() : "player");
+		msg = TrFormat(slot, "Reset menu preferences for %s.", controller ? controller->GetPlayerName() : "player");
 	}
 	else if (xuid != 0)
 	{
 		// ICS2Admin only exposes immunity for online slots.
 		if (!MENU_AdminBridge_CanUseCommand(slot, "pref_reset_offline", CS2ADMIN_FLAG_ROOT))
 		{
-			ReplyToCaller(slot, "That player is offline. Resetting offline players needs root.");
+			ReplyToCaller(slot, Tr(slot, "That player is offline. Resetting offline players needs root.").c_str());
 			return;
 		}
 		g_MenuPrefsDB.SavePrefs(xuid, MenuPrefsRow {});
-		snprintf(msg, sizeof(msg), "Reset menu preferences for offline SteamID64 %llu.", static_cast<unsigned long long>(xuid));
+		msg = TrFormat(slot, "Reset menu preferences for offline SteamID64 %llu.", static_cast<unsigned long long>(xuid));
 	}
 	else
 	{
-		ReplyToCaller(slot, found.error.c_str());
+		ReplyToCaller(slot, Tr(slot, found.error.c_str()).c_str());
 		return;
 	}
-	ReplyToCaller(slot, msg);
+	ReplyToCaller(slot, msg.c_str());
 }
 
 CS2MenusPlugin::CS2MenusPlugin()

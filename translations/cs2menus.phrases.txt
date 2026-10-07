@@ -78,4 +78,158 @@
 	{
 		"en"	"Done"
 	}
+
+	// Preferences menu
+	"Menu Preferences"
+	{
+		"en"	"Menu Preferences"
+	}
+	"Menu style"
+	{
+		"en"	"Menu style"
+	}
+	"Up key"
+	{
+		"en"	"Up key"
+	}
+	"Down key"
+	{
+		"en"	"Down key"
+	}
+	"Select key"
+	{
+		"en"	"Select key"
+	}
+	"Back key"
+	{
+		"en"	"Back key"
+	}
+	"Default"
+	{
+		"en"	"Default"
+	}
+	"Disabled"
+	{
+		"en"	"Disabled"
+	}
+	"Chat"
+	{
+		"en"	"Chat"
+	}
+	"Server default"
+	{
+		"en"	"Server default"
+	}
+
+	// Preference commands
+	"You don't have permission to use this command."
+	{
+		"en"	"You don't have permission to use this command."
+	}
+	"Menu preferences are not available on this server."
+	{
+		"en"	"Menu preferences are not available on this server."
+	}
+	"Usage: mm_pref_type chat | html | panorama | default"
+	{
+		"en"	"Usage: mm_pref_type chat | html | panorama | default"
+	}
+	"Menu style set to %s."
+	{
+		"en"	"Menu style set to %s."
+	}
+	"Usage: mm_pref_key <up|down|select|back> key=<key|default|none>"
+	{
+		"en"	"Usage: mm_pref_key <up|down|select|back> key=<key|default|none>"
+	}
+	"Unknown action. Use up, down, select or back."
+	{
+		"en"	"Unknown action. Use up, down, select or back."
+	}
+	"Unknown key \"%s\"."
+	{
+		"en"	"Unknown key \"%s\"."
+	}
+	"%s key set to %s."
+	{
+		"en"	"%s key set to %s."
+	}
+	"Style: %s | Up: %s | Down: %s | Select: %s | Back: %s"
+	{
+		"en"	"Style: %s | Up: %s | Down: %s | Select: %s | Back: %s"
+	}
+	"Unknown key %s=."
+	{
+		"en"	"Unknown key %s=."
+	}
+	"Put %s after a key, like key=value."
+	{
+		"en"	"Put %s after a key, like key=value."
+	}
+	"A quote is left open."
+	{
+		"en"	"A quote is left open."
+	}
+	"Your menu preferences were reset to server defaults."
+	{
+		"en"	"Your menu preferences were reset to server defaults."
+	}
+	"An admin reset your menu preferences to server defaults."
+	{
+		"en"	"An admin reset your menu preferences to server defaults."
+	}
+	"Reset menu preferences for %s."
+	{
+		"en"	"Reset menu preferences for %s."
+	}
+	"Reset menu preferences for offline SteamID64 %llu."
+	{
+		"en"	"Reset menu preferences for offline SteamID64 %llu."
+	}
+	"Cannot target this player (higher immunity)."
+	{
+		"en"	"Cannot target this player (higher immunity)."
+	}
+	"That player is offline. Resetting offline players needs root."
+	{
+		"en"	"That player is offline. Resetting offline players needs root."
+	}
+
+	// Target errors
+	"No player with that SteamID is online."
+	{
+		"en"	"No player with that SteamID is online."
+	}
+	"No player found matching that name."
+	{
+		"en"	"No player found matching that name."
+	}
+	"You are not in-game."
+	{
+		"en"	"You are not in-game."
+	}
+	"Multiple players matched. Use a more specific target."
+	{
+		"en"	"Multiple players matched. Use a more specific target."
+	}
+	"No matching players found."
+	{
+		"en"	"No matching players found."
+	}
+	"Invalid SteamID64."
+	{
+		"en"	"Invalid SteamID64."
+	}
+	"Player not found with that slot/userid."
+	{
+		"en"	"Player not found with that slot/userid."
+	}
+	"No player found with exact name."
+	{
+		"en"	"No player found with exact name."
+	}
+	"Multiple players match that name. Be more specific."
+	{
+		"en"	"Multiple players match that name. Be more specific."
+	}
 }
