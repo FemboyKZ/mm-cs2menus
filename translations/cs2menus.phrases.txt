@@ -1,7 +1,10 @@
-// Built-in menu labels. 
+// CS2Menus menu labels and chat replies. Section name is the phrase key used in code.
+// To add a language, copy the "en" line and change the key, keeping the SAME format specifiers and {tokens}.
+// Menu labels carry no color tags, they would show as text.
 
 "Phrases"
 {
+	// Menu chrome: navigation labels and footer hints
 	"Exit"
 	{
 		"en"	"Exit"
@@ -14,6 +17,52 @@
 	{
 		"en"	"Previous Page"
 	}
+	"Page {n}"
+	{
+		"en"	"Page {n}"
+	}
+	"Move"
+	{
+		"en"	"Move"
+	}
+	"Scroll"
+	{
+		"en"	"Scroll"
+	}
+	"Select"
+	{
+		"en"	"Select"
+	}
+	"Adjust"
+	{
+		"en"	"Adjust"
+	}
+	"Done"
+	{
+		"en"	"Done"
+	}
+	"On"
+	{
+		"en"	"On"
+	}
+	"Off"
+	{
+		"en"	"Off"
+	}
+	"Keys"
+	{
+		"en"	"Keys"
+	}
+	"Turn the view"
+	{
+		"en"	"Turn the view"
+	}
+	"Stop turning"
+	{
+		"en"	"Stop turning"
+	}
+
+	// Menu chrome: unsaved edits
 	"Edited"
 	{
 		"en"	"Edited"
@@ -33,50 +82,6 @@
 	"Discard"
 	{
 		"en"	"Discard"
-	}
-	"Turn the view"
-	{
-		"en"	"Turn the view"
-	}
-	"Stop turning"
-	{
-		"en"	"Stop turning"
-	}
-	"Keys"
-	{
-		"en"	"Keys"
-	}
-	"Page {n}"
-	{
-		"en"	"Page {n}"
-	}
-	"Move"
-	{
-		"en"	"Move"
-	}
-	"Scroll"
-	{
-		"en"	"Scroll"
-	}
-	"Select"
-	{
-		"en"	"Select"
-	}
-	"On"
-	{
-		"en"	"On"
-	}
-	"Off"
-	{
-		"en"	"Off"
-	}
-	"Adjust"
-	{
-		"en"	"Adjust"
-	}
-	"Done"
-	{
-		"en"	"Done"
 	}
 
 	// Preferences menu
@@ -121,8 +126,8 @@
 		"en"	"Server default"
 	}
 
-	// Preference commands, sent to chat
-	// Colors: text is {default} unless the line is an error or a denial, which is {red} throughout.
+	// Chat replies: permissions and availability
+	// Colors, for every chat reply below: text is {default} unless the line is an error or a denial, which is {red} throughout.
 	// On default lines the values are {green}. On red lines every inserted value is {default}. Usage lines carry no tags.
 	"You don't have permission to use this command."
 	{
@@ -132,6 +137,22 @@
 	{
 		"en"	"{red}Menu preferences are not available on this server."
 	}
+
+	// Chat replies: command arguments
+	"Unknown key %s=."
+	{
+		"en"	"{red}Unknown key {default}%s={red}."
+	}
+	"Put %s after a key, like key=value."
+	{
+		"en"	"{red}Put {default}%s{red} after a key, like key=value."
+	}
+	"A quote is left open."
+	{
+		"en"	"{red}A quote is left open."
+	}
+
+	// Chat replies: mm_pref_type, mm_pref_key and mm_pref_show
 	"Usage: mm_pref_type chat | html | panorama | default"
 	{
 		"en"	"Usage: mm_pref_type chat | html | panorama | default"
@@ -160,18 +181,8 @@
 	{
 		"en"	"Style: {green}%s{default} | Up: {green}%s{default} | Down: {green}%s{default} | Select: {green}%s{default} | Back: {green}%s"
 	}
-	"Unknown key %s=."
-	{
-		"en"	"{red}Unknown key {default}%s={red}."
-	}
-	"Put %s after a key, like key=value."
-	{
-		"en"	"{red}Put {default}%s{red} after a key, like key=value."
-	}
-	"A quote is left open."
-	{
-		"en"	"{red}A quote is left open."
-	}
+
+	// Chat replies: mm_pref_reset
 	"Your menu preferences were reset to server defaults."
 	{
 		"en"	"Your menu preferences were reset to server defaults."
@@ -197,34 +208,14 @@
 		"en"	"{red}That player is offline. Resetting offline players needs root."
 	}
 
-	// Target errors
-	"No player with that SteamID is online."
-	{
-		"en"	"{red}No player with that SteamID is online."
-	}
-	"No player found matching that name."
-	{
-		"en"	"{red}No player found matching that name."
-	}
-	"You are not in-game."
-	{
-		"en"	"{red}You are not in-game."
-	}
-	"Multiple players matched. Use a more specific target."
-	{
-		"en"	"{red}Multiple players matched. Use a more specific target."
-	}
+	// Chat replies: target errors
 	"No matching players found."
 	{
 		"en"	"{red}No matching players found."
 	}
-	"Invalid SteamID64."
+	"No player found matching that name."
 	{
-		"en"	"{red}Invalid SteamID64."
-	}
-	"Player not found with that slot/userid."
-	{
-		"en"	"{red}Player not found with that slot/userid."
+		"en"	"{red}No player found matching that name."
 	}
 	"No player found with exact name."
 	{
@@ -233,5 +224,25 @@
 	"Multiple players match that name. Be more specific."
 	{
 		"en"	"{red}Multiple players match that name. Be more specific."
+	}
+	"Multiple players matched. Use a more specific target."
+	{
+		"en"	"{red}Multiple players matched. Use a more specific target."
+	}
+	"Player not found with that slot/userid."
+	{
+		"en"	"{red}Player not found with that slot/userid."
+	}
+	"Invalid SteamID64."
+	{
+		"en"	"{red}Invalid SteamID64."
+	}
+	"No player with that SteamID is online."
+	{
+		"en"	"{red}No player with that SteamID is online."
+	}
+	"You are not in-game."
+	{
+		"en"	"{red}You are not in-game."
 	}
 }
