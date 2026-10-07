@@ -121,14 +121,16 @@
 		"en"	"Server default"
 	}
 
-	// Preference commands
+	// Preference commands, sent to chat
+	// Colors: text is {default} unless the line is an error or a denial, which is {red} throughout.
+	// On default lines the values are {green}. On red lines every inserted value is {default}. Usage lines carry no tags.
 	"You don't have permission to use this command."
 	{
-		"en"	"You don't have permission to use this command."
+		"en"	"{red}You don't have permission to use this command."
 	}
 	"Menu preferences are not available on this server."
 	{
-		"en"	"Menu preferences are not available on this server."
+		"en"	"{red}Menu preferences are not available on this server."
 	}
 	"Usage: mm_pref_type chat | html | panorama | default"
 	{
@@ -136,7 +138,7 @@
 	}
 	"Menu style set to %s."
 	{
-		"en"	"Menu style set to %s."
+		"en"	"Menu style set to {green}%s{default}."
 	}
 	"Usage: mm_pref_key <up|down|select|back> key=<key|default|none>"
 	{
@@ -144,31 +146,31 @@
 	}
 	"Unknown action. Use up, down, select or back."
 	{
-		"en"	"Unknown action. Use up, down, select or back."
+		"en"	"{red}Unknown action. Use up, down, select or back."
 	}
 	"Unknown key \"%s\"."
 	{
-		"en"	"Unknown key \"%s\"."
+		"en"	"{red}Unknown key \"{default}%s{red}\"."
 	}
 	"%s key set to %s."
 	{
-		"en"	"%s key set to %s."
+		"en"	"{green}%s{default} key set to {green}%s{default}."
 	}
 	"Style: %s | Up: %s | Down: %s | Select: %s | Back: %s"
 	{
-		"en"	"Style: %s | Up: %s | Down: %s | Select: %s | Back: %s"
+		"en"	"Style: {green}%s{default} | Up: {green}%s{default} | Down: {green}%s{default} | Select: {green}%s{default} | Back: {green}%s"
 	}
 	"Unknown key %s=."
 	{
-		"en"	"Unknown key %s=."
+		"en"	"{red}Unknown key {default}%s={red}."
 	}
 	"Put %s after a key, like key=value."
 	{
-		"en"	"Put %s after a key, like key=value."
+		"en"	"{red}Put {default}%s{red} after a key, like key=value."
 	}
 	"A quote is left open."
 	{
-		"en"	"A quote is left open."
+		"en"	"{red}A quote is left open."
 	}
 	"Your menu preferences were reset to server defaults."
 	{
@@ -180,56 +182,56 @@
 	}
 	"Reset menu preferences for %s."
 	{
-		"en"	"Reset menu preferences for %s."
+		"en"	"Reset menu preferences for {green}%s{default}."
 	}
 	"Reset menu preferences for offline SteamID64 %llu."
 	{
-		"en"	"Reset menu preferences for offline SteamID64 %llu."
+		"en"	"Reset menu preferences for offline SteamID64 {green}%llu{default}."
 	}
 	"Cannot target this player (higher immunity)."
 	{
-		"en"	"Cannot target this player (higher immunity)."
+		"en"	"{red}Cannot target this player (higher immunity)."
 	}
 	"That player is offline. Resetting offline players needs root."
 	{
-		"en"	"That player is offline. Resetting offline players needs root."
+		"en"	"{red}That player is offline. Resetting offline players needs root."
 	}
 
 	// Target errors
 	"No player with that SteamID is online."
 	{
-		"en"	"No player with that SteamID is online."
+		"en"	"{red}No player with that SteamID is online."
 	}
 	"No player found matching that name."
 	{
-		"en"	"No player found matching that name."
+		"en"	"{red}No player found matching that name."
 	}
 	"You are not in-game."
 	{
-		"en"	"You are not in-game."
+		"en"	"{red}You are not in-game."
 	}
 	"Multiple players matched. Use a more specific target."
 	{
-		"en"	"Multiple players matched. Use a more specific target."
+		"en"	"{red}Multiple players matched. Use a more specific target."
 	}
 	"No matching players found."
 	{
-		"en"	"No matching players found."
+		"en"	"{red}No matching players found."
 	}
 	"Invalid SteamID64."
 	{
-		"en"	"Invalid SteamID64."
+		"en"	"{red}Invalid SteamID64."
 	}
 	"Player not found with that slot/userid."
 	{
-		"en"	"Player not found with that slot/userid."
+		"en"	"{red}Player not found with that slot/userid."
 	}
 	"No player found with exact name."
 	{
-		"en"	"No player found with exact name."
+		"en"	"{red}No player found with exact name."
 	}
 	"Multiple players match that name. Be more specific."
 	{
-		"en"	"Multiple players match that name. Be more specific."
+		"en"	"{red}Multiple players match that name. Be more specific."
 	}
 }

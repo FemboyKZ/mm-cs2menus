@@ -22,6 +22,7 @@
 #include "utils/log.h"
 #include "game/print.h"
 #include "utils/str.h"
+#include "utils/chat_colors.h"
 #include "utils/command_args.h"
 #include "game/target.h"
 
@@ -60,9 +61,10 @@ static std::string SlotLanguage(int slot)
 }
 
 // A phrase in the caller's language, the default language for the console.
+// Its {color} tags become chat colors here, the tables are loaded with them left literal for the menu labels.
 static std::string Tr(int slot, const char *phrase)
 {
-	return g_Translations.Translate(ValidSlot(slot) ? SlotLanguage(slot) : std::string(), phrase);
+	return mmu::ResolveColorTags(g_Translations.Translate(ValidSlot(slot) ? SlotLanguage(slot) : std::string(), phrase));
 }
 
 // Tr with the phrase's format specifiers filled in.
@@ -1829,7 +1831,9 @@ static void ReplyToCaller(int slot, const char *msg)
 	}
 	else
 	{
-		MMU_LOG_INFO("%s\n", msg);
+		char plain[512];
+		mmu::StripChatColors(msg, plain, sizeof(plain));
+		MMU_LOG_INFO("%s\n", plain);
 	}
 }
 
