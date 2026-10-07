@@ -38,9 +38,9 @@ jobs:
         shell: bash
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git init -q hl2sdk-cs2
-          git -C hl2sdk-cs2 fetch -q --depth 1 "$(git config -f .gitmodules submodule.hl2sdk-cs2.url)" "$(git rev-parse HEAD:hl2sdk-cs2)"
-          git -C hl2sdk-cs2 checkout -q FETCH_HEAD
+          git init -q s2sdk
+          git -C s2sdk fetch -q --depth 1 "$(git config -f .gitmodules submodule.s2sdk.url)" "$(git rev-parse HEAD:s2sdk)"
+          git -C s2sdk checkout -q FETCH_HEAD
           git submodule update --init --depth 1 --jobs 4
           git -C metamod-source submodule update --init --depth 1 hl2sdk-manifests third_party/khook
 
@@ -88,9 +88,9 @@ jobs:
         shell: bash
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git init -q hl2sdk-cs2
-          git -C hl2sdk-cs2 fetch -q --depth 1 "$(git config -f .gitmodules submodule.hl2sdk-cs2.url)" "$(git rev-parse HEAD:hl2sdk-cs2)"
-          git -C hl2sdk-cs2 checkout -q FETCH_HEAD
+          git init -q s2sdk
+          git -C s2sdk fetch -q --depth 1 "$(git config -f .gitmodules submodule.s2sdk.url)" "$(git rev-parse HEAD:s2sdk)"
+          git -C s2sdk checkout -q FETCH_HEAD
           git submodule update --init --depth 1 --jobs 4
           git -C metamod-source submodule update --init --depth 1 hl2sdk-manifests third_party/khook
 
@@ -216,9 +216,9 @@ jobs:
         shell: bash
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git init -q hl2sdk-cs2
-          git -C hl2sdk-cs2 fetch -q --depth 1 "$(git config -f .gitmodules submodule.hl2sdk-cs2.url)" "$(git rev-parse HEAD:hl2sdk-cs2)"
-          git -C hl2sdk-cs2 checkout -q FETCH_HEAD
+          git init -q s2sdk
+          git -C s2sdk fetch -q --depth 1 "$(git config -f .gitmodules submodule.s2sdk.url)" "$(git rev-parse HEAD:s2sdk)"
+          git -C s2sdk checkout -q FETCH_HEAD
           git submodule update --init --depth 1 --jobs 4
           git -C metamod-source submodule update --init --depth 1 hl2sdk-manifests third_party/khook
 

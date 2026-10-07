@@ -180,7 +180,7 @@ class MMSPluginConfig(object):
             raise Exception("No suitable C/C++ compiler was found.")
 
     def findSdkPath(self, sdk_name):
-        dir_name = "hl2sdk-{}".format(sdk_name)
+        dir_name = "s2sdk"
         hl2sdk_root = builder.options.hl2sdk_root
         if not hl2sdk_root:
             hl2sdk_root = resolveEnvPath("HL2SDKROOT")
