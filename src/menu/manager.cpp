@@ -14,6 +14,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <map>
+#include <new>
 #include <utility>
 
 // Recursive so a callback can re-enter the API on the same thread.
@@ -274,11 +275,12 @@ const MenuManager::MenuItem *MenuManager::FindItem(MenuHandle menu, int item) co
 	return &def->items[item];
 }
 
-MenuHandle MenuManager::CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect)
+MenuHandle MenuManager::CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect, int owner)
 {
 	ScopedLock lock(m_mutex);
 	MenuHandle h = m_nextHandle++;
 	MenuDef def;
+	def.owner = owner;
 	// Store the base type as-is (including the Default sentinel).
 	// The effective type is resolved per viewer at display time (see ResolveType),
 	// where the player's preference and HTML availability are applied.
@@ -2320,7 +2322,7 @@ bool MenuManager::ShowMenuMessage(int slot, const char *text, MenuTone tone, flo
 	return true;
 }
 
-bool MenuManager::ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1)
+bool MenuManager::ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1, int owner)
 {
 	ScopedLock lock(m_mutex);
 	if (!ValidSlot(slot) || !OnMainThread())
@@ -2334,6 +2336,7 @@ bool MenuManager::ShowNotice(int slot, const char *title, const char *text, cons
 			  panorama_hud::StripColors(hint ? hint : ""),
 			  seconds > 0.0f ? m_curtime + seconds : 0.0f,
 			  std::move(onMouse1)};
+	notice.owner = owner;
 	if (!RenderNotice(slot))
 	{
 		notice = {};
@@ -3709,6 +3712,63 @@ void MenuManager::Shutdown()
 		m_players[i].handle = kInvalidMenuHandle;
 	}
 	m_menus.clear();
+}
+
+// Starts `object` over without destroying what it held, which leaks.
+// Destroying or moving a std::function runs code of the plugin that made it, and that plugin is already unmapped.
+template<typename T>
+static void Abandon(T &object)
+{
+	new (&object) T();
+}
+
+int MenuManager::DropOwnedBy(int owner)
+{
+	ScopedLock lock(m_mutex);
+	// Gone before anything else, so nothing below can reach one of their callbacks.
+	std::vector<MenuHandle> owned;
+	for (auto it = m_menus.begin(); it != m_menus.end();)
+	{
+		if (it->second.owner == owner)
+		{
+			owned.push_back(it->first);
+			Abandon(it->second);
+			it = m_menus.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+
+	for (int slot = 0; slot <= MAXPLAYERS; slot++)
+	{
+		PlayerMenu &pm = m_players[slot];
+		if (!pm.active || std::find(owned.begin(), owned.end(), pm.handle) == owned.end())
+		{
+			continue;
+		}
+		// A question or typing on their menu is theirs too.
+		Abandon(pm.dialog);
+		Abandon(pm.onInputCancel);
+		// EndDisplay only clears the panel of a menu that still exists.
+		if (pm.type == MenuType::Html)
+		{
+			center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
+		}
+		// Other plugins' menus in the display's history end as usual, so their owners can free them.
+		EndDisplay(slot, MenuEndReason::Destroyed);
+	}
+
+	for (int slot = 0; slot < MAXPLAYERS; slot++)
+	{
+		if (m_notices[slot].shown && m_notices[slot].owner == owner)
+		{
+			Abandon(m_notices[slot]);
+			panorama_hud::HideNotice(slot);
+		}
+	}
+	return static_cast<int>(owned.size());
 }
 
 void MenuManager::Configure(const MenuManagerSettings &settings)

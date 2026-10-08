@@ -122,7 +122,8 @@ class MenuManager
 {
 public:
 	// --- API ---
-	MenuHandle CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect);
+	// `owner` is the Metamod plugin the callbacks point into, 0 for none.
+	MenuHandle CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect, int owner = 0);
 	int AddItem(MenuHandle menu, const char *text, const char *info, bool disabled);
 	int AddSubMenu(MenuHandle parent, const char *text, MenuHandle child, const char *info);
 	void SetTitle(MenuHandle menu, const char *title);
@@ -247,7 +248,7 @@ public:
 	bool GetMenuEdited(MenuHandle menu) const;
 	void SetMenuTextFeatures(MenuHandle menu, int features);
 	int GetMenuTextFeatures(MenuHandle menu) const;
-	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1);
+	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1, int owner = 0);
 	void HideNotice(int slot);
 	void SetMenuScope(MenuHandle menu, const char *label, int teams);
 	void SetMenuScopeCallback(MenuHandle menu, MenuScopeFn onScope);
@@ -319,6 +320,10 @@ public:
 
 	// Drop everything without firing callbacks. Call from plugin Unload().
 	void Shutdown();
+
+	// Takes an unloaded plugin's menus and notices out of use, without calling or destroying anything of theirs.
+	// Main thread. Returns how many menus it had left.
+	int DropOwnedBy(int owner);
 
 	// Apply settings parsed from core.cfg.
 	void Configure(const MenuManagerSettings &settings);
@@ -459,6 +464,8 @@ private:
 		MenuType type = MenuType::Chat;
 		// When set, the per-player type preference can't override this menu (see SetMenuForceType).
 		bool forced = false;
+		// See CreateMenu.
+		int owner = 0;
 		std::string title;
 		std::vector<MenuItem> items;
 		MenuItemSelectFn onSelect;
@@ -643,6 +650,7 @@ private:
 		float until = 0.0f; // absolute game time, 0 = until hidden
 		MenuNoticeFn onMouse1;
 		int drawn = -1; // seconds left as drawn
+		int owner = 0;
 	};
 
 	// False when the slot has no window for it.

@@ -142,7 +142,7 @@ class CS2MenusAPI : public ICS2Menus
 {
 	// --- Lifetime ---
 
-	MenuHandle CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect) override
+	MenuHandle CreateMenuUnowned(MenuType type, const char *title, MenuItemSelectFn onSelect) override
 	{
 		return g_MenuManager.CreateMenu(type, title, std::move(onSelect));
 	}
@@ -554,7 +554,7 @@ class CS2MenusAPI : public ICS2Menus
 		return g_MenuManager.GetMenuTextFeatures(menu);
 	}
 
-	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1) override
+	bool ShowNoticeUnowned(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1) override
 	{
 		return g_MenuManager.ShowNotice(slot, title, text, hint, seconds, std::move(onMouse1));
 	}
@@ -834,6 +834,16 @@ class CS2MenusAPI : public ICS2Menus
 	{
 		g_MenuManager.SetMenuChipCallback(menu, std::move(onChip));
 	}
+
+	MenuHandle CreateMenuFor(PluginId owner, MenuType type, const char *title, MenuItemSelectFn onSelect) override
+	{
+		return g_MenuManager.CreateMenu(type, title, std::move(onSelect), owner);
+	}
+
+	bool ShowNoticeFor(PluginId owner, int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1) override
+	{
+		return g_MenuManager.ShowNotice(slot, title, text, hint, seconds, std::move(onMouse1), owner);
+	}
 };
 
 static CS2MenusAPI g_CS2MenusAPI;
@@ -848,7 +858,7 @@ ICS2Menus *Cs2Menus_GetLocalAPI()
 void *CS2MenusPlugin::OnMetamodQuery(const char *iface, int *ret)
 {
 	// An older client calls a shorter prefix of the same table, by position.
-	if (!strcmp(iface, CS2MENUS_INTERFACE) || !strcmp(iface, "ICS2Menus004") || !strcmp(iface, "ICS2Menus003"))
+	if (!strcmp(iface, CS2MENUS_INTERFACE) || !strcmp(iface, "ICS2Menus005") || !strcmp(iface, "ICS2Menus004") || !strcmp(iface, "ICS2Menus003"))
 	{
 		if (ret)
 		{
@@ -2068,10 +2078,16 @@ void CS2MenusPlugin::OnPluginLoad(PluginId /*id*/)
 	s_multiAddonManager.Refresh();
 }
 
-void CS2MenusPlugin::OnPluginUnload(PluginId /*id*/)
+void CS2MenusPlugin::OnPluginUnload(PluginId id)
 {
 	MENU_AdminBridge_Refresh();
 	s_multiAddonManager.Refresh();
+
+	// Metamod tells listeners after the plugin's code is unmapped, so its callbacks can no longer be called.
+	if (const int left = g_MenuManager.DropOwnedBy(id))
+	{
+		MMU_LOG_WARN("Plugin %d unloaded without destroying %d of its menus. They are out of use and leaked.\n", id, left);
+	}
 }
 
 bool CS2MenusPlugin::Unload(char *error, size_t maxlen)

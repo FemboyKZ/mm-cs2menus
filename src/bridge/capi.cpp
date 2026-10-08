@@ -60,7 +60,8 @@ CS2M_API cs2m_handle CS2M_CALL cs2m_create(int type, const char *title, cs2m_sel
 		// the host owns lifetime and must cs2m_destroy before its assembly unloads.
 		fn = [on_select, user](MenuHandle menu, int slot, int item) { on_select(menu, slot, item, user); };
 	}
-	return API()->CreateMenu(static_cast<MenuType>(type), title ? title : "", std::move(fn));
+	// No owner: the C ABI's callers are not Metamod plugins.
+	return API()->CreateMenuUnowned(static_cast<MenuType>(type), title ? title : "", std::move(fn));
 }
 
 CS2M_API void CS2M_CALL cs2m_destroy(cs2m_handle menu)
@@ -780,7 +781,7 @@ CS2M_API int CS2M_CALL cs2m_show_notice(int slot, const char *title, const char 
 	{
 		fn = [on_mouse1, user](int s) { on_mouse1(s, user); };
 	}
-	return API()->ShowNotice(slot, title ? title : "", text ? text : "", hint ? hint : "", seconds, std::move(fn)) ? 1 : 0;
+	return API()->ShowNoticeUnowned(slot, title ? title : "", text ? text : "", hint ? hint : "", seconds, std::move(fn)) ? 1 : 0;
 }
 
 CS2M_API void CS2M_CALL cs2m_hide_notice(int slot)
