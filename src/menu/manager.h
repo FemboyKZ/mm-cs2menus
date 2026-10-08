@@ -5,6 +5,8 @@
 #include "src/render/panorama_hud.h"
 #include "interfaces/cs2menus/ics2menus.h"
 
+#include <in_buttons.h>
+
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -58,10 +60,10 @@ struct MenuManagerSettings
 	// HTML: rows visible at once (clamped 1..MENU_MAX_HTML_VISIBLE).
 	int htmlVisibleItems = 7;
 	// HTML: button bitmasks (IN_*) for navigation. Defaults = WASD.
-	uint64_t keyUp = 0x8;       // W (IN_FORWARD)
-	uint64_t keyDown = 0x10;    // S (IN_BACK)
-	uint64_t keySelect = 0x400; // D (IN_MOVERIGHT)
-	uint64_t keyBack = 0x200;   // A (IN_MOVELEFT)
+	uint64_t keyUp = IN_FORWARD;       // W
+	uint64_t keyDown = IN_BACK;        // S
+	uint64_t keySelect = IN_MOVERIGHT; // D
+	uint64_t keyBack = IN_MOVELEFT;    // A
 	// HTML: display labels for the footer key hints (uppercased key names).
 	std::string keyUpLabel = "W";
 	std::string keyDownLabel = "S";

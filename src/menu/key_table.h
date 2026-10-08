@@ -19,19 +19,19 @@ namespace keys
 	};
 
 	inline const KeyDef kKeys[] = {
-		{MenuButton::W, in_button::Forward, "W"},
-		{MenuButton::S, in_button::Back, "S"},
-		{MenuButton::A, in_button::MoveLeft, "A"},
-		{MenuButton::D, in_button::MoveRight, "D"},
-		{MenuButton::Use, in_button::Use, "E"},
-		{MenuButton::Speed, in_button::Speed, "SHIFT"},
-		{MenuButton::Duck, in_button::Duck, "CTRL"},
-		{MenuButton::Jump, in_button::Jump, "SPACE"},
-		{MenuButton::Reload, in_button::Reload, "R"},
-		{MenuButton::Attack, in_button::Attack, "MOUSE1"},
-		{MenuButton::Attack2, in_button::Attack2, "MOUSE2"},
-		{MenuButton::Score, in_button::Score, "TAB"},
-		{MenuButton::Inspect, in_button::Inspect, "F"},
+		{MenuButton::W, IN_FORWARD, "W"},
+		{MenuButton::S, IN_BACK, "S"},
+		{MenuButton::A, IN_MOVELEFT, "A"},
+		{MenuButton::D, IN_MOVERIGHT, "D"},
+		{MenuButton::Use, IN_USE, "E"},
+		{MenuButton::Speed, IN_SPEED, "SHIFT"},
+		{MenuButton::Duck, IN_DUCK, "CTRL"},
+		{MenuButton::Jump, IN_JUMP, "SPACE"},
+		{MenuButton::Reload, IN_RELOAD, "R"},
+		{MenuButton::Attack, IN_ATTACK, "MOUSE1"},
+		{MenuButton::Attack2, IN_ATTACK2, "MOUSE2"},
+		{MenuButton::Score, IN_SCORE, "TAB"},
+		{MenuButton::Inspect, IN_LOOK_AT_WEAPON, "F"},
 	};
 	inline constexpr int kKeyCount = static_cast<int>(sizeof(kKeys) / sizeof(kKeys[0]));
 	static_assert(kKeyCount == kMenuButtonNameCount, "every key needs an entry in kMenuButtonNames");

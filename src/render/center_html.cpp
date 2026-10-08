@@ -3,13 +3,12 @@
 #include "src/common.h"
 #include "sdk/gamedata.h"
 #include "sdk/sigscan.h"
-#include "sdk/recipient_filter.h"
 
 #include <igameevents.h>
 #include <engine/igameeventsystem.h>
-#include <irecipientfilter.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/netmessage.h>
+#include <recipientfilter.h>
 #include <gameevents.pb.h>
 
 #include <unordered_map>
@@ -138,7 +137,7 @@ void center_html::Send(int slot, const char *html, int durationSecs)
 	CNetMessagePB<CMsgSource1LegacyGameEvent> *data = raw->ToPB<CMsgSource1LegacyGameEvent>();
 	g_pGameEventManager->SerializeEvent(s_pEvent, data);
 
-	CSingleRecipientFilter filter(slot);
+	CReliableSingleUserRecipientFilter filter(slot);
 	g_pGameEventSystem->PostEventAbstract(-1, false, &filter, pMsg, data, 0);
 
 	g_pNetworkMessages->DeallocateNetMessageAbstract(pMsg, data);

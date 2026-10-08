@@ -3327,7 +3327,7 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, uint64_t pressedBu
 		return;
 	}
 	// A click on the box itself only comes in cursor mode.
-	if (m_notices[slot].onMouse1 && (heldButtons & in_button::Score) && (pressedButtons & in_button::Attack))
+	if (m_notices[slot].onMouse1 && (heldButtons & IN_SCORE) && (pressedButtons & IN_ATTACK))
 	{
 		OnPanoramaClick(slot, panorama_hud::Click::Notice, -1, curtime);
 		return;
@@ -3366,7 +3366,7 @@ void MenuManager::PollButtons(int slot, uint64_t heldButtons, uint64_t pressedBu
 	// The studio's cursor comes back.
 	if (pm.turning)
 	{
-		if (newly & in_button::Attack)
+		if (newly & IN_ATTACK)
 		{
 			pm.turning = false;
 			RenderPanorama(slot);
