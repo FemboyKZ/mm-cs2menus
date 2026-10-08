@@ -7,7 +7,6 @@
 #include "db/prefs.h"
 #include "sdk/entity/ccsplayercontroller.h"
 #include "entity/cgamerules.h"
-#include "sdk/entity/entity_system.h"
 #include "lang/translations.h"
 #include "menu/key_table.h"
 #include "menu/manager.h"
@@ -80,11 +79,6 @@ static std::string TrFormat(int slot, const char *phrase, ...)
 }
 
 CGameEntitySystem *g_pEntitySystem = nullptr;
-
-CGameEntitySystem *GameEntitySystem()
-{
-	return mmu::EntitySystem();
-}
 
 // Cached gamerules for the HUD-flashing workaround. Re-found each map.
 static CCSGameRules *s_pGameRules = nullptr;
@@ -2057,7 +2051,7 @@ void CS2MenusPlugin::AllPluginsLoaded()
 				return;
 			}
 			// Late load: pick up players already connected.
-			for (int slot = 0; slot <= MAXPLAYERS; slot++)
+			for (int slot = 0; slot < MAXPLAYERS; slot++)
 			{
 				uint64 xuid = g_pEngine->GetClientXUID(CPlayerSlot(slot));
 				if (xuid != 0)
@@ -2143,6 +2137,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_GameFrame(IServerGameDLL *, bool /*simu
 
 	g_MenuManager.Tick(curtime);
 	ApplyHudFlashingFix(curtime);
+	g_MenuPrefsDB.RunFrame(Plat_FloatTime());
 	return {KHook::Action::Ignore};
 }
 

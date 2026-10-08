@@ -100,7 +100,7 @@ void MenuPrefsDB::CreateSchema()
 		  });
 }
 
-void MenuPrefsDB::LoadPrefs(uint64_t steamId64, std::function<void(bool, const MenuPrefsRow &)> cb)
+void MenuPrefsDB::LoadPrefs(uint64_t steamId64, std::function<void(bool, const MenuPrefsRow &)> cb, bool retry)
 {
 	if (!m_conn.IsConnected())
 	{
@@ -116,8 +116,15 @@ void MenuPrefsDB::LoadPrefs(uint64_t steamId64, std::function<void(bool, const M
 			 static_cast<unsigned long long>(steamId64));
 
 	Query(query,
-		  [cb](ISQLQuery *result)
+		  [this, steamId64, cb, retry](ISQLQuery *result)
 		  {
+			  // Left at the defaults, the player's next change would overwrite the stored row with them.
+			  // A failure is only reported once a later query has answered, so the connection is back.
+			  if (!result && retry)
+			  {
+				  LoadPrefs(steamId64, cb, false);
+				  return;
+			  }
 			  if (!result || !cb)
 			  {
 				  if (cb)

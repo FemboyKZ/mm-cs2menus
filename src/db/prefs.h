@@ -34,6 +34,12 @@ public:
 
 	void Shutdown();
 
+	// Call every frame. A connect that failed is tried again, and Connect's cb(true) fires when one gets through.
+	void RunFrame(double now)
+	{
+		m_conn.RunFrame(now);
+	}
+
 	bool IsConnected() const
 	{
 		return m_conn.IsConnected();
@@ -44,8 +50,8 @@ public:
 		return m_conn.IsShuttingDown();
 	}
 
-	// Load one player's prefs. cb(found, row) fires on the main thread.
-	void LoadPrefs(uint64_t steamId64, std::function<void(bool found, const MenuPrefsRow &row)> cb);
+	// Load one player's prefs. cb(found, row) fires on the main thread. A query that fails is sent once more.
+	void LoadPrefs(uint64_t steamId64, std::function<void(bool found, const MenuPrefsRow &row)> cb, bool retry = true);
 
 	// Insert-or-update one player's prefs. Empty strings clear that field.
 	void SavePrefs(uint64_t steamId64, const MenuPrefsRow &row);

@@ -56,7 +56,7 @@ inline float MenuNow()
 	return static_cast<float>(Plat_FloatTime() - start);
 }
 
-// Resolve CGameEntitySystem via g_pGameResourceServiceServer + gamedata offset.
+// The SDK's, in entity2/entitysystem.cpp.
 CGameEntitySystem *GameEntitySystem();
 
 #endif // _INCLUDE_MENU_COMMON_H_

@@ -5464,15 +5464,17 @@ void MenuManager::RedrawPanorama(int slot)
 int MenuManager::ClickedItem(int slot, int index) const
 {
 	const PlayerMenu &pm = m_players[slot];
-	// Columns, showcase and studio keep which item each slot drew. The list and the grid draw a page in order.
-	if (!pm.panoramaSlots.empty())
-	{
-		return index >= 0 && index < static_cast<int>(pm.panoramaSlots.size()) ? pm.panoramaSlots[index] : -1;
-	}
 	const MenuDef *shown = Find(pm.handle);
 	if (!shown)
 	{
 		return -1;
+	}
+	// Columns, showcase and studio keep which item each slot drew. The list and the grid draw a page in order.
+	if (!pm.panoramaSlots.empty())
+	{
+		const int item = index >= 0 && index < static_cast<int>(pm.panoramaSlots.size()) ? pm.panoramaSlots[index] : -1;
+		// As last drawn: an item removed off the main thread is gone before the redraw.
+		return item < static_cast<int>(shown->items.size()) ? item : -1;
 	}
 	const std::vector<Page> pages = Pages(*shown, pm.type);
 	return pm.page < static_cast<int>(pages.size()) ? PageItem(*shown, pm.type, pages[pm.page], index) : -1;
