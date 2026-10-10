@@ -1748,7 +1748,7 @@ void panorama_hud::OnCheckTransmit(CCheckTransmitInfo **infos, int count)
 	for (int i = 0; i < count; i++)
 	{
 		CCheckTransmitInfo *info = infos[i];
-		const int recipient = *reinterpret_cast<int *>(reinterpret_cast<uintptr_t>(info) + mmu::gamedata::kCheckTransmitPlayerSlotOffset);
+		const int recipient = info->m_nPlayerSlot.Get();
 		for (int owner = 0; owner < MAXPLAYERS; owner++)
 		{
 			for (int layout = 0; layout < kLayoutCount; layout++)
