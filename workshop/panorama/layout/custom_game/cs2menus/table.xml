@@ -516,6 +516,19 @@
           </Button>
         </Panel>
       </Panel>
+      <Panel id="ct_step" class="popup step-popup hidden">
+        <Panel class="window-header">
+          <Label id="ct_step_title" class="popup-title" text="{s:ct_step_title}" />
+          <Button id="ct_step_close" class="close-btn" />
+        </Panel>
+        <Panel class="step-row">
+          <Button id="ct_step_b0" class="step-btn"><Label id="ct_step_l0" class="step-btn-label" text="{s:ct_step_l0}" /></Button>
+          <Button id="ct_step_b1" class="step-btn"><Label id="ct_step_l1" class="step-btn-label" text="{s:ct_step_l1}" /></Button>
+          <Label id="ct_step_val" class="step-readout" text="{s:ct_step_val}" />
+          <Button id="ct_step_b2" class="step-btn"><Label id="ct_step_l2" class="step-btn-label" text="{s:ct_step_l2}" /></Button>
+          <Button id="ct_step_b3" class="step-btn"><Label id="ct_step_l3" class="step-btn-label" text="{s:ct_step_l3}" /></Button>
+        </Panel>
+      </Panel>
       <Panel id="ct_list" class="popup list-popup hidden">
         <Panel class="window-header">
           <Label id="ct_list_title" class="popup-title" text="{s:ct_list_title}" />

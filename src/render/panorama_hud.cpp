@@ -1037,8 +1037,8 @@ namespace
 	{
 		const bool popup = view.step.open || view.list.open;
 		w.Class(w.Id("root"), "shift", popup);
-		// The showcase draws the image inside, the studio has none, the others beside the box.
-		if (view.layout != Layout::Showcase && view.layout != Layout::Studio)
+		// Only the list and the grid have the preview panel.
+		if (view.layout == Layout::List || view.layout == Layout::Grid)
 		{
 			const bool preview = !popup && !view.image.empty();
 			w.Class(w.Id("root"), "preview", preview);

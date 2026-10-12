@@ -97,6 +97,18 @@ static bool IsSizeOrEmpty(const std::string &v)
 	return v.empty() || !SizeClass(v).empty();
 }
 
+// Goes into color='' unescaped.
+static bool IsColorOrEmpty(const std::string &v)
+{
+	return v.empty() || html_style::IsHexColor(v);
+}
+
+// Goes into class='' unescaped.
+static bool IsClassList(const std::string &v)
+{
+	return std::all_of(v.begin(), v.end(), [](unsigned char c) { return isalnum(c) || c == '-' || c == '_' || c == ' '; });
+}
+
 // The per-menu override when set, else the server setting.
 static const char *Pick(const std::string &over, const std::string &fallback)
 {
@@ -468,7 +480,10 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 			}
 			break;
 		case MenuStyle::FontFace:
-			s.fontFace = v;
+			if (IsClassList(v))
+			{
+				s.fontFace = v;
+			}
 			break;
 		case MenuStyle::VisibleItems:
 			// Empty clears the override. A positive integer sets the scroll window (clamped at render).
@@ -483,7 +498,10 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 			break;
 		// Title
 		case MenuStyle::TitleColor:
-			s.titleColor = v;
+			if (IsColorOrEmpty(v))
+			{
+				s.titleColor = v;
+			}
 			break;
 		case MenuStyle::TitleSize:
 			if (IsSizeOrEmpty(v))
@@ -496,7 +514,10 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 			break;
 		// Items
 		case MenuStyle::ItemColor:
-			s.itemColor = v;
+			if (IsColorOrEmpty(v))
+			{
+				s.itemColor = v;
+			}
 			break;
 		case MenuStyle::ItemSize:
 			if (IsSizeOrEmpty(v))
@@ -505,14 +526,20 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 			}
 			break;
 		case MenuStyle::DisabledColor:
-			s.disabledColor = v;
+			if (IsColorOrEmpty(v))
+			{
+				s.disabledColor = v;
+			}
 			break;
 		case MenuStyle::SubmenuSuffix:
 			s.submenuSuffix = v;
 			break;
 		// Cursor row
 		case MenuStyle::NavColor:
-			s.navColor = v;
+			if (IsColorOrEmpty(v))
+			{
+				s.navColor = v;
+			}
 			break;
 		case MenuStyle::Marker:
 			s.marker = v;
@@ -525,7 +552,10 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 			s.showCounter = ParseTriState(v);
 			break;
 		case MenuStyle::CounterColor:
-			s.counterColor = v;
+			if (IsColorOrEmpty(v))
+			{
+				s.counterColor = v;
+			}
 			break;
 		case MenuStyle::CounterSize:
 			if (IsSizeOrEmpty(v))
@@ -541,7 +571,10 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 			s.showFooter = ParseTriState(v);
 			break;
 		case MenuStyle::FooterColor:
-			s.footerColor = v;
+			if (IsColorOrEmpty(v))
+			{
+				s.footerColor = v;
+			}
 			break;
 		case MenuStyle::FooterSize:
 			if (IsSizeOrEmpty(v))
@@ -574,7 +607,10 @@ void MenuManager::SetMenuStyle(MenuHandle menu, MenuStyle field, const char *val
 			s.sectionFormat = v;
 			break;
 		case MenuStyle::SectionColor:
-			s.sectionColor = v;
+			if (IsColorOrEmpty(v))
+			{
+				s.sectionColor = v;
+			}
 			break;
 	}
 	RefreshMenu(menu);
@@ -748,7 +784,46 @@ void MenuManager::RemoveItem(MenuHandle menu, int item)
 		return;
 	}
 	def->items.erase(def->items.begin() + item);
+	ShiftItemIndexes(menu, *def, item, -1);
 	RefreshMenu(menu); // RenderHtml/RenderPage clamp any now-stale cursor/page
+}
+
+// `index` after an insert (`delta` 1) or a removal (-1) at `pos`, -1 if it was the one removed.
+static int ShiftedIndex(int index, int pos, int delta)
+{
+	if (index < pos)
+	{
+		return index;
+	}
+	return delta < 0 && index == pos ? -1 : index + delta;
+}
+
+void MenuManager::ShiftItemIndexes(MenuHandle menu, MenuDef &def, int pos, int delta)
+{
+	def.pinned = ShiftedIndex(def.pinned, pos, delta);
+	def.secondary = ShiftedIndex(def.secondary, pos, delta);
+	// 0 also means "never set", so an insert doesn't move it.
+	if (def.startItem > 0 && (def.startItem > pos || (delta > 0 && def.startItem == pos)))
+	{
+		def.startItem += delta;
+	}
+	for (int slot = 0; slot <= MAXPLAYERS; slot++)
+	{
+		PlayerMenu &pm = m_players[slot];
+		if (!pm.active || pm.handle != menu)
+		{
+			continue;
+		}
+		if (pm.editItem >= 0)
+		{
+			pm.editItem = ShiftedIndex(pm.editItem, pos, delta);
+		}
+		else if (pm.editItem <= kEditDetails)
+		{
+			const int item = ShiftedIndex(kEditDetails - pm.editItem, pos, delta);
+			pm.editItem = item < 0 ? -1 : kEditDetails - item;
+		}
+	}
 }
 
 void MenuManager::RemoveAllItems(MenuHandle menu)
@@ -827,6 +902,7 @@ int MenuManager::InsertItem(MenuHandle menu, int pos, const char *text, const ch
 		item.section = def->items[0].section;
 	}
 	def->items.insert(def->items.begin() + pos, std::move(item));
+	ShiftItemIndexes(menu, *def, pos, 1);
 	RefreshMenu(menu); // RenderHtml/RenderPage clamp any now-stale cursor/page
 	return pos;
 }
@@ -1246,7 +1322,7 @@ int MenuManager::AddMenuInfoRow(MenuHandle menu, const char *label, const char *
 {
 	ScopedLock lock(m_mutex);
 	MenuDef *def = Find(menu);
-	if (!def)
+	if (!def || static_cast<int>(def->info.rows.size()) >= panorama_hud::kInfoRows)
 	{
 		return -1;
 	}
@@ -1390,7 +1466,8 @@ void MenuManager::SetItemCorner(MenuHandle menu, int item, MenuCorner corner)
 	ScopedLock lock(m_mutex);
 	if (MenuItem *it = FindItem(menu, item))
 	{
-		it->corner = corner;
+		// The renderer indexes a table with it.
+		it->corner = corner >= MenuCorner::None && corner <= MenuCorner::Copy ? corner : MenuCorner::None;
 		RefreshMenu(menu);
 	}
 }
@@ -1757,7 +1834,7 @@ void MenuManager::ChangeValue(int slot, int itemIndex, int value)
 void MenuManager::StepValue(int slot, int itemIndex, int steps)
 {
 	const MenuItem *item = FindItem(m_players[slot].handle, itemIndex);
-	if (!item || item->disabled)
+	if (!item || Inert(*item))
 	{
 		return;
 	}
@@ -1942,6 +2019,12 @@ uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, int slot, MenuNavActi
 		}
 	}
 	// 3. Server config.
+	return ServerNavMask(action);
+}
+
+uint64_t MenuManager::ServerNavMask(MenuNavAction action) const
+{
+	ScopedLock lock(m_mutex);
 	switch (action)
 	{
 		case MenuNavAction::Up:
@@ -2049,6 +2132,15 @@ std::string MenuManager::ResolveLabel(int slot, const MenuDef &def, MenuLabel la
 	return g_Translations.Translate(Lang(slot), def.labels[static_cast<int>(label)]);
 }
 
+std::string MenuManager::LeaveLabel(int slot, const MenuDef &def, bool toIndex) const
+{
+	if (toIndex || HasBack(slot))
+	{
+		return g_Translations.Translate(Lang(slot), "Back");
+	}
+	return def.exitButton ? ResolveLabel(slot, def, MenuLabel::Exit) : std::string();
+}
+
 bool MenuManager::DisplayMenu(MenuHandle menu, int slot, float duration, float curtime)
 {
 	ScopedLock lock(m_mutex);
@@ -2121,6 +2213,9 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 		}
 	}
 
+	// A CloseOnSelect pick that shows a fresh menu never went through EndDisplay.
+	ClearDisplayState(slot);
+
 	PlayerMenu &pm = m_players[slot];
 	pm.active = true;
 	pm.suspended = false;
@@ -2178,13 +2273,27 @@ bool MenuManager::PushLocked(MenuHandle menu, int slot, float duration)
 {
 	PlayerMenu &pm = m_players[slot];
 	const HistoryEntry from = pm.active ? Here(slot) : pm.selecting;
+	// Already up: the history stays.
+	if (from.handle == menu && !pm.externalBusy)
+	{
+		pm.selecting = HistoryEntry {};
+		pm.active = true;
+		SwitchMenu(slot, menu, &from);
+		return true;
+	}
 	// Nothing to go back to, or not allowed on this slot, is a plain display.
 	if (from.handle == kInvalidMenuHandle || from.handle == menu || !Find(from.handle) || pm.externalBusy)
 	{
 		return DisplayLocked(menu, slot, duration);
 	}
 
+	const bool wasActive = pm.active;
 	DropForward(slot, menu);
+	// DropForward's end callbacks may have changed the display.
+	if (!Find(menu) || pm.active != wasActive || (wasActive && pm.handle != from.handle))
+	{
+		return false;
+	}
 	pm.back.push_back(from);
 	pm.selecting = HistoryEntry {};
 	// A CloseOnSelect pick already closed the display, the push reopens it. The timeout carries on.
@@ -2227,7 +2336,11 @@ bool MenuManager::ReplaceLocked(MenuHandle menu, int slot, float duration)
 	HistoryEntry here = Here(slot);
 	const MenuHandle old = here.handle;
 	here.handle = menu;
-	here.cursor = Find(menu)->startItem;
+	// On the index the cursor is a range.
+	if (!here.index)
+	{
+		here.cursor = Find(menu)->startItem;
+	}
 	SwitchMenu(slot, menu, &here);
 	EndMenus(slot, {old}, menu, MenuEndReason::Cancelled);
 	return true;
@@ -2259,7 +2372,7 @@ void MenuManager::CancelMenu(int slot)
 	EndDisplay(slot, MenuEndReason::Cancelled);
 }
 
-bool MenuManager::BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel)
+bool MenuManager::BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel, int owner)
 {
 	ScopedLock lock(m_mutex);
 	if (!ValidSlot(slot) || !OnMainThread())
@@ -2277,6 +2390,7 @@ bool MenuManager::BeginMenuInput(int slot, const char *prompt, const char *hint,
 	pm.inputPrompt = prompt ? prompt : "";
 	pm.inputHint = hint ? hint : "";
 	pm.onInputCancel = std::move(onCancel);
+	pm.inputOwner = owner;
 	RenderPanorama(slot);
 	return true;
 }
@@ -2345,16 +2459,16 @@ bool MenuManager::ShowNotice(int slot, const char *title, const char *text, cons
 	return true;
 }
 
-void MenuManager::HideNotice(int slot)
+void MenuManager::HideNotice(int slot, int owner)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !m_notices[slot].shown)
+	if (!ValidSlot(slot) || !m_notices[slot].shown || (owner != kAnyOwner && m_notices[slot].owner != owner))
 	{
 		return;
 	}
 	if (!OnMainThread())
 	{
-		m_pending.push_back([this, slot] { HideNotice(slot); });
+		m_pending.push_back([this, slot, owner] { HideNotice(slot, owner); });
 		return;
 	}
 	m_notices[slot] = {};
@@ -2376,7 +2490,7 @@ bool MenuManager::RenderNotice(int slot)
 }
 
 bool MenuManager::ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger,
-								  MenuConfirmFn onDone)
+								  MenuConfirmFn onDone, int owner)
 {
 	ScopedLock lock(m_mutex);
 	if (!ValidSlot(slot) || !OnMainThread())
@@ -2399,6 +2513,7 @@ bool MenuManager::ShowMenuConfirm(int slot, const char *title, const char *body,
 				 panorama_hud::StripColors(confirm ? confirm : ""),
 				 danger,
 				 std::move(onDone)};
+	pm.dialog.owner = owner;
 	if (previous)
 	{
 		DepthGuard guard(m_callbackDepth);
@@ -2793,8 +2908,6 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 		// Use the per-viewer resolved type, not the menu's base type:
 		// a Default/HTML menu can render as chat for some viewers, and only an HTML display needs the panel cleared.
 		bool slotHtml = (pm.type == MenuType::Html);
-		pm.active = false;
-		pm.handle = kInvalidMenuHandle;
 
 		if (onMain)
 		{
@@ -2802,17 +2915,34 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 			{
 				center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs); // clear the panel immediately
 			}
+			// Ends the history's menus too. This one is already erased, so its own callback is fired below.
+			EndDisplay(slot, MenuEndReason::Destroyed);
 			DepthGuard guard(m_callbackDepth);
 			if (onEnd && guard.enter())
 			{
 				onEnd(menu, slot, MenuEndReason::Destroyed);
 			}
 		}
-		else if (slotHtml)
+		else
 		{
-			// Defer the panel clear to main. The Destroyed callback is skipped:
+			pm.active = false;
+			pm.handle = kInvalidMenuHandle;
+			ClearDisplayState(slot);
+			// Defer the panel clear and the history's end callbacks to main. The Destroyed callback is skipped:
 			// the consumer initiated this, and running its lambda off-thread is unsafe.
-			m_pending.push_back([this, slot] { center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs); });
+			m_pending.push_back(
+				[this, slot, slotHtml]
+				{
+					if (slotHtml)
+					{
+						center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
+					}
+					// A display opened since has already ended them.
+					if (!m_players[slot].active)
+					{
+						EndMenus(slot, TakeHistory(slot), kInvalidMenuHandle, MenuEndReason::Destroyed);
+					}
+				});
 		}
 	}
 }
@@ -2838,13 +2968,9 @@ const char *MenuManager::GetItemInfo(MenuHandle menu, int item) const
 	return it ? it->info.c_str() : "";
 }
 
-void MenuManager::EndDisplay(int slot, MenuEndReason reason)
+void MenuManager::ClearDisplayState(int slot)
 {
 	PlayerMenu &pm = m_players[slot];
-	if (!pm.active)
-	{
-		return;
-	}
 	// An open dialog goes with it, unanswered, and so do the typing and the message line.
 	pm.dialog = {};
 	pm.hint.clear();
@@ -2856,6 +2982,16 @@ void MenuManager::EndDisplay(int slot, MenuEndReason reason)
 	pm.onInputCancel = nullptr;
 	pm.message.clear();
 	pm.messageUntil = 0.0f;
+}
+
+void MenuManager::EndDisplay(int slot, MenuEndReason reason)
+{
+	PlayerMenu &pm = m_players[slot];
+	if (!pm.active)
+	{
+		return;
+	}
+	ClearDisplayState(slot);
 
 	MenuHandle handle = pm.handle;
 	pm.active = false;
@@ -2930,7 +3066,13 @@ void MenuManager::Select(int slot, int itemIndex)
 	MenuHandle sub = def->items[itemIndex].submenu;
 	if (sub != kInvalidMenuHandle && Find(sub))
 	{
+		const MenuHandle from = pm.handle;
 		DropForward(slot, sub);
+		// DropForward's end callbacks may have changed the display.
+		if (!pm.active || pm.handle != from || !Find(sub))
+		{
+			return;
+		}
 		pm.back.push_back(Here(slot));
 		SwitchMenu(slot, sub);
 		return;
@@ -2966,6 +3108,7 @@ void MenuManager::Select(int slot, int itemIndex)
 		if (!pm.active)
 		{
 			// The pick ended the display, and the history ends with it.
+			ClearDisplayState(slot);
 			std::vector<MenuHandle> menus = TakeHistory(slot);
 			menus.push_back(handle);
 			EndMenus(slot, menus, kInvalidMenuHandle, MenuEndReason::Selected);
@@ -3255,13 +3398,8 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 			return true;
 		}
 		// In a submenu, 0 steps back to the parent. Otherwise it exits.
-		if (StepBack(slot))
+		if (LeaveMenu(slot))
 		{
-			return true;
-		}
-		if (def->exitButton)
-		{
-			EndDisplay(slot, MenuEndReason::Exit);
 			return true;
 		}
 	}
@@ -3416,7 +3554,10 @@ void MenuManager::HtmlNavSelect(int slot)
 	// Selecting the inline Exit row closes the menu, otherwise pick the cursor item.
 	if (HtmlShowsExitRow(*def, slot) && pm.cursor == HtmlRowCount(*def, slot) - 1)
 	{
-		EndDisplay(slot, MenuEndReason::Exit);
+		if (!GuardLeave(slot, true, [this, slot] { EndDisplay(slot, MenuEndReason::Exit); }))
+		{
+			EndDisplay(slot, MenuEndReason::Exit);
+		}
 	}
 	else if (pm.index)
 	{
@@ -3451,11 +3592,30 @@ void MenuManager::NavClose(int slot)
 		Render(slot);
 		return;
 	}
-	// Step up to the parent in a submenu, else exit (if exitable).
-	if (!StepBack(slot) && def->exitButton)
+	LeaveMenu(slot);
+}
+
+bool MenuManager::LeaveMenu(int slot)
+{
+	PlayerMenu &pm = m_players[slot];
+	const MenuDef *def = Find(pm.handle);
+	const bool exitable = def && def->exitButton;
+	if (pm.back.empty() && !exitable)
 	{
-		EndDisplay(slot, MenuEndReason::Exit);
+		return false;
 	}
+	auto leave = [this, slot, exitable]
+	{
+		if (!StepBack(slot) && exitable)
+		{
+			EndDisplay(slot, MenuEndReason::Exit);
+		}
+	};
+	if (!GuardLeave(slot, false, leave))
+	{
+		leave();
+	}
+	return true;
 }
 
 void MenuManager::CommandNav(int slot, MenuNavAction action, float curtime)
@@ -3608,6 +3768,10 @@ void MenuManager::Tick(float curtime)
 			pm.message.clear();
 			RedrawPanorama(i);
 		}
+		if (pm.chatStale)
+		{
+			Render(i);
+		}
 		// HTML messages decay, refresh periodically.
 		const MenuDef *def = Find(pm.handle);
 		if (def && !pm.suspended && pm.type == MenuType::Html && curtime >= pm.nextHtmlRender)
@@ -3744,13 +3908,28 @@ int MenuManager::DropOwnedBy(int owner)
 	for (int slot = 0; slot <= MAXPLAYERS; slot++)
 	{
 		PlayerMenu &pm = m_players[slot];
-		if (!pm.active || std::find(owned.begin(), owned.end(), pm.handle) == owned.end())
+		const bool theirMenu = pm.active && std::find(owned.begin(), owned.end(), pm.handle) != owned.end();
+		// Over whoever's menu. Unowned ones count as their menu's owner's.
+		const bool dialog = pm.dialog.open && (pm.dialog.owner == owner || (theirMenu && pm.dialog.owner == 0));
+		const bool input = pm.inputMenu != kInvalidMenuHandle && (pm.inputOwner == owner || (theirMenu && pm.inputOwner == 0));
+		if (dialog)
 		{
+			Abandon(pm.dialog);
+		}
+		if (input)
+		{
+			Abandon(pm.onInputCancel);
+			pm.inputMenu = kInvalidMenuHandle;
+		}
+		if (!theirMenu)
+		{
+			// Another plugin's menu stays up, without them.
+			if (dialog || input)
+			{
+				Render(slot);
+			}
 			continue;
 		}
-		// A question or typing on their menu is theirs too.
-		Abandon(pm.dialog);
-		Abandon(pm.onInputCancel);
 		// EndDisplay only clears the panel of a menu that still exists.
 		if (pm.type == MenuType::Html)
 		{
@@ -3890,6 +4069,12 @@ void MenuManager::RefreshMenu(MenuHandle menu)
 		PlayerMenu &pm = m_players[slot];
 		if (pm.active && pm.handle == menu)
 		{
+			// Printed once on the next Tick: a page per update would flood the chat.
+			if (pm.type == MenuType::Chat)
+			{
+				pm.chatStale = true;
+				continue;
+			}
 			Render(slot);
 		}
 	}
@@ -3945,6 +4130,7 @@ void MenuManager::RenderPage(int slot)
 		pm.handle = kInvalidMenuHandle;
 		return;
 	}
+	pm.chatStale = false;
 
 	if (pm.dialog.open)
 	{
@@ -3955,7 +4141,7 @@ void MenuManager::RenderPage(int slot)
 		}
 		rows.push_back({pm.dialog.confirm});
 		rows.push_back({pm.dialog.cancel});
-		PrintChatPage(slot, *def, pm.dialog.title, std::string(), rows, 0, 1, false);
+		PrintChatPage(slot, *def, pm.dialog.title, std::string(), rows, 0, 1, std::string());
 		return;
 	}
 
@@ -3975,7 +4161,7 @@ void MenuManager::RenderPage(int slot)
 		{
 			rows.push_back({range.label});
 		}
-		PrintChatPage(slot, *def, def->title, std::string(), rows, 0, 1, def->exitButton);
+		PrintChatPage(slot, *def, def->title, std::string(), rows, 0, 1, LeaveLabel(slot, *def, false));
 		return;
 	}
 
@@ -4005,11 +4191,11 @@ void MenuManager::RenderPage(int slot)
 	}
 	const std::string section = page.section >= 0 ? def->sections[page.section] : std::string();
 	// 0 goes back to the index even without an exit button.
-	PrintChatPage(slot, *def, def->title, section, rows, pm.page, pageCount, def->exitButton || !ranges.empty());
+	PrintChatPage(slot, *def, def->title, section, rows, pm.page, pageCount, LeaveLabel(slot, *def, !ranges.empty()));
 }
 
 void MenuManager::PrintChatPage(int slot, const MenuDef &def, const std::string &titleText, const std::string &section,
-								const std::vector<ChatRow> &rows, int page, int pageCount, bool exitRow)
+								const std::vector<ChatRow> &rows, int page, int pageCount, const std::string &exitRow)
 {
 	const MenuManagerSettings &s = m_settings;
 
@@ -4058,23 +4244,23 @@ void MenuManager::PrintChatPage(int slot, const MenuDef &def, const std::string 
 	}
 
 	// Nav/exit rows: item-colored number, then arrow-colored arrow + label.
-	auto navRow = [&](int key, MenuLabel label)
+	auto navRow = [&](int key, const std::string &label)
 	{
 		std::string line = s.chatItemColor + FillTemplate(s.chatNumberFormat, {{"n", std::to_string(key)}});
-		line += s.chatArrowColor + s.chatArrow + ResolveLabel(slot, def, label);
+		line += s.chatArrowColor + s.chatArrow + label;
 		MENU_PrintToChat(slot, "%s", line.c_str());
 	};
 	if (page + 1 < pageCount)
 	{
-		navRow(m_itemsPerPage + 1, MenuLabel::NextPage);
+		navRow(m_itemsPerPage + 1, ResolveLabel(slot, def, MenuLabel::NextPage));
 	}
 	if (page > 0)
 	{
-		navRow(m_itemsPerPage + 2, MenuLabel::PrevPage);
+		navRow(m_itemsPerPage + 2, ResolveLabel(slot, def, MenuLabel::PrevPage));
 	}
-	if (exitRow)
+	if (!exitRow.empty())
 	{
-		navRow(0, MenuLabel::Exit);
+		navRow(0, exitRow);
 	}
 }
 
@@ -4096,7 +4282,7 @@ void MenuManager::RenderEditPage(int slot, const MenuDef &def, const MenuItem &i
 			row.disabled = count < 0 ? item.value <= item.min : item.value >= item.max;
 			rows.push_back(std::move(row));
 		}
-		PrintChatPage(slot, def, title, std::string(), rows, 0, 1, true);
+		PrintChatPage(slot, def, title, std::string(), rows, 0, 1, ResolveLabel(slot, def, MenuLabel::Exit));
 		return;
 	}
 
@@ -4112,7 +4298,7 @@ void MenuManager::RenderEditPage(int slot, const MenuDef &def, const MenuItem &i
 		row.current = i == item.value;
 		rows.push_back(std::move(row));
 	}
-	PrintChatPage(slot, def, title, std::string(), rows, pm.editPage, pageCount, true);
+	PrintChatPage(slot, def, title, std::string(), rows, pm.editPage, pageCount, ResolveLabel(slot, def, MenuLabel::Exit));
 }
 
 void MenuManager::ApplyEditNumber(int slot, const MenuItem &item, int num)
@@ -4439,7 +4625,8 @@ void MenuManager::RenderHtml(int slot)
 	bool upOn = EffectiveNavMask(*def, slot, MenuNavAction::Up) != 0;
 	bool downOn = EffectiveNavMask(*def, slot, MenuNavAction::Down) != 0;
 	bool selectOn = EffectiveNavMask(*def, slot, MenuNavAction::Select) != 0;
-	bool backOn = def->exitButton && EffectiveNavMask(*def, slot, MenuNavAction::Back) != 0;
+	const std::string leave = LeaveLabel(slot, *def, !pm.index && !ranges.empty());
+	bool backOn = !leave.empty() && EffectiveNavMask(*def, slot, MenuNavAction::Back) != 0;
 
 	std::string footerSepEsc = center_html::Escape(footerSep);
 	std::string footer;
@@ -4502,7 +4689,8 @@ void MenuManager::RenderHtml(int slot)
 	}
 	if (backOn && !edited)
 	{
-		addSegment(hint(MenuLabel::Exit, EffectiveNavLabel(*def, slot, MenuNavAction::Back)));
+		addSegment(
+			center_html::Escape(FillTemplate(footerHintFormat, {{"label", leave}, {"keys", EffectiveNavLabel(*def, slot, MenuNavAction::Back)}})));
 	}
 
 	if (showFooter && !footer.empty())
@@ -5677,9 +5865,14 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 		case panorama_hud::Click::InputClear:
 		{
 			const MenuHandle handle = pm.handle;
-			MenuInputClearFn onClear = Find(handle)->onInputClear;
+			const MenuDef &shown = *Find(handle);
+			// Only drawn off the list, while the field has text.
+			const bool drawn = PanoramaLayout(shown) != panorama_hud::Layout::List
+							   && std::any_of(shown.items.begin(), shown.items.end(),
+											  [](const MenuItem &item) { return item.role == MenuItemRole::Input && !item.text.empty(); });
+			MenuInputClearFn onClear = shown.onInputClear;
 			DepthGuard guard(m_callbackDepth);
-			if (onClear && guard.enter())
+			if (drawn && onClear && guard.enter())
 			{
 				pm.editItem = -1;
 				onClear(handle, slot);
@@ -5715,7 +5908,8 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 		case panorama_hud::Click::Chip:
 		{
 			const MenuDef &shown = *Find(pm.handle);
-			if (index < 0 || index >= static_cast<int>(shown.chips.size()))
+			// The list draws no chips.
+			if (index < 0 || index >= static_cast<int>(shown.chips.size()) || PanoramaLayout(shown) == panorama_hud::Layout::List)
 			{
 				break;
 			}
@@ -5814,7 +6008,7 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 			{
 				// A segment of a Choice drawn in place: the pick is the click.
 				pm.editItem = -1;
-				if (shown.items[item].disabled)
+				if (Inert(shown.items[item]))
 				{
 					Render(slot);
 				}
@@ -5860,7 +6054,7 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 			}
 			MenuItemCornerFn onCorner = Find(handle)->onCorner;
 			DepthGuard guard(m_callbackDepth);
-			if (item >= 0 && onCorner && guard.enter())
+			if (item >= 0 && Find(handle)->items[item].corner != MenuCorner::None && onCorner && guard.enter())
 			{
 				onCorner(handle, slot, item);
 			}
@@ -5899,7 +6093,7 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 				break;
 			}
 			pm.editItem = -1;
-			if (const MenuItem *control = FindItem(pm.handle, item); control && !control->disabled)
+			if (const MenuItem *control = FindItem(pm.handle, item); control && !Inert(*control))
 			{
 				ChangeValue(slot, item, option);
 			}
@@ -5921,6 +6115,10 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 			break;
 		}
 		case panorama_hud::Click::Stage:
+			if (PanoramaLayout(*Find(pm.handle)) != panorama_hud::Layout::Studio)
+			{
+				break;
+			}
 			// The cursor goes, so the mouse turns the view. PollButtons brings it back on the next attack press.
 			pm.editItem = -1;
 			pm.turning = true;

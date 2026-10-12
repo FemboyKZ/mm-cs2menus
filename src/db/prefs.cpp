@@ -33,6 +33,8 @@ std::string MenuPrefsDB::Table() const
 bool MenuPrefsDB::Init()
 {
 	m_isSqlite = !g_MenusConfig.database.IsMySQL();
+	// Pinned: the config reloads each map, the schema is only made on connect.
+	m_table = Table();
 	if (!m_conn.Init(m_isSqlite ? mmu::sql::DbType::SQLite : mmu::sql::DbType::MySQL))
 	{
 		return false;
@@ -55,7 +57,6 @@ void MenuPrefsDB::Shutdown()
 
 void MenuPrefsDB::CreateSchema()
 {
-	std::string table = Table();
 	char query[1024];
 
 	if (m_isSqlite)
@@ -69,7 +70,7 @@ void MenuPrefsDB::CreateSchema()
 				 "key_select TEXT NOT NULL DEFAULT '', "
 				 "key_back TEXT NOT NULL DEFAULT ''"
 				 ")",
-				 table.c_str());
+				 m_table.c_str());
 	}
 	else
 	{
@@ -83,7 +84,7 @@ void MenuPrefsDB::CreateSchema()
 				 "`key_back` varchar(16) NOT NULL DEFAULT '', "
 				 "PRIMARY KEY (`steamid64`)"
 				 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-				 table.c_str());
+				 m_table.c_str());
 	}
 	// Logged from the query callback, which only fires once the statement actually round-trips.
 	Query(query,
@@ -112,7 +113,7 @@ void MenuPrefsDB::LoadPrefs(uint64_t steamId64, std::function<void(bool, const M
 	}
 
 	char query[512];
-	snprintf(query, sizeof(query), "SELECT menu_type, key_up, key_down, key_select, key_back FROM %s WHERE steamid64 = %llu", Table().c_str(),
+	snprintf(query, sizeof(query), "SELECT menu_type, key_up, key_down, key_select, key_back FROM %s WHERE steamid64 = %llu", m_table.c_str(),
 			 static_cast<unsigned long long>(steamId64));
 
 	Query(query,
@@ -175,7 +176,7 @@ void MenuPrefsDB::SavePrefs(uint64_t steamId64, const MenuPrefsRow &row)
 				 "VALUES (%llu, '%s', '%s', '%s', '%s', '%s') "
 				 "ON CONFLICT(steamid64) DO UPDATE SET "
 				 "menu_type='%s', key_up='%s', key_down='%s', key_select='%s', key_back='%s'",
-				 Table().c_str(), static_cast<unsigned long long>(steamId64), type.c_str(), up.c_str(), down.c_str(), sel.c_str(), back.c_str(),
+				 m_table.c_str(), static_cast<unsigned long long>(steamId64), type.c_str(), up.c_str(), down.c_str(), sel.c_str(), back.c_str(),
 				 type.c_str(), up.c_str(), down.c_str(), sel.c_str(), back.c_str());
 	}
 	else
@@ -185,7 +186,7 @@ void MenuPrefsDB::SavePrefs(uint64_t steamId64, const MenuPrefsRow &row)
 				 "VALUES (%llu, '%s', '%s', '%s', '%s', '%s') "
 				 "ON DUPLICATE KEY UPDATE "
 				 "menu_type='%s', key_up='%s', key_down='%s', key_select='%s', key_back='%s'",
-				 Table().c_str(), static_cast<unsigned long long>(steamId64), type.c_str(), up.c_str(), down.c_str(), sel.c_str(), back.c_str(),
+				 m_table.c_str(), static_cast<unsigned long long>(steamId64), type.c_str(), up.c_str(), down.c_str(), sel.c_str(), back.c_str(),
 				 type.c_str(), up.c_str(), down.c_str(), sel.c_str(), back.c_str());
 	}
 	Query(query, [](ISQLQuery *) {});

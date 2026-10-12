@@ -559,7 +559,7 @@ def columns():
     )
     root = (
         [f'<Panel id="{p}root" class="menu hidden">']
-        + ind(box + list_popup(p) + message(p) + dialog(p))
+        + ind(box + step_popup(p) + list_popup(p) + message(p) + dialog(p))
         + ["</Panel>"]
     )
     return document(
@@ -623,7 +623,7 @@ def table():
     )
     root = (
         [f'<Panel id="{p}root" class="menu hidden">']
-        + ind(box + list_popup(p) + message(p) + dialog(p))
+        + ind(box + step_popup(p) + list_popup(p) + message(p) + dialog(p))
         + ["</Panel>"]
     )
     return document(("fonts", "menu", "grid", "table"), root)

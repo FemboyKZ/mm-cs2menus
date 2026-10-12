@@ -304,8 +304,8 @@ public sealed partial class Cs2MenusBridge : IDisposable
 	private static readonly nint[] s_inputToken = new nint[65];
 	private static readonly nint[] s_noticeToken = new nint[65];
 	private static long s_nextToken;
-	// Notices this bridge has up, so its Dispose hides them.
-	private readonly bool[] _notice = new bool[65];
+	// Whose notice each slot has up, so Dispose leaves another bridge's alone.
+	private static readonly Cs2MenusBridge?[] s_noticeOwner = new Cs2MenusBridge?[65];
 
 	internal static Delegate? TakeDisplayCallback(nint token) => s_displayCallbacks.TryRemove(token, out var kept) ? kept.Callback : null;
 
@@ -401,18 +401,25 @@ public sealed partial class Cs2MenusBridge : IDisposable
 				onMouse1 is null ? 0 : (nint)(delegate* unmanaged[Cdecl]<int, void*, void>)&Trampolines.OnNotice, (void*)token);
 		}
 		SettleDisplayCallback(s_noticeToken, slot, token, previous, shown);
-		_notice[slot] = shown;
+		if (shown)
+		{
+			s_noticeOwner[slot] = this;
+		}
+		else if (s_noticeOwner[slot] == this)
+		{
+			s_noticeOwner[slot] = null;
+		}
 		return shown;
 	}
 
 	/// <summary>Hides the notice this bridge showed on the slot. Another plugin's stays.</summary>
 	public void HideNotice(int slot)
 	{
-		if (slot < 0 || slot >= _notice.Length || !_notice[slot])
+		if (slot < 0 || slot >= s_noticeOwner.Length || s_noticeOwner[slot] != this)
 		{
 			return;
 		}
-		_notice[slot] = false;
+		s_noticeOwner[slot] = null;
 		Cs2MenusNative.HideNotice(slot);
 		s_displayCallbacks.TryRemove(s_noticeToken[slot], out _);
 		s_noticeToken[slot] = 0;
@@ -463,7 +470,7 @@ public sealed partial class Cs2MenusBridge : IDisposable
 			return;
 		}
 		_disposed = true;
-		for (int slot = 0; slot < _notice.Length; slot++)
+		for (int slot = 0; slot < s_noticeOwner.Length; slot++)
 		{
 			HideNotice(slot);
 		}
@@ -739,7 +746,7 @@ public sealed class Cs2Menu : IDisposable
 	/// <summary>A grid's smallest tiles, default Small. It grows them when the items fit.</summary>
 	public Cs2Menu SetTileSize(MenuTileSize size) { Cs2MenusNative.SetMenuTileSize(Handle, (int)size); return this; }
 	public MenuTileSize TileSize => (MenuTileSize)Cs2MenusNative.GetMenuTileSize(Handle);
-	/// <summary>Shown inside a showcase, beside the box otherwise. An addon image class like <see cref="SetItemImage"/>'s. "" removes it.</summary>
+	/// <summary>Shown inside a showcase, beside the box of a list or a grid. An addon image class like <see cref="SetItemImage"/>'s. "" removes it.</summary>
 	public Cs2Menu SetImage(string image) { Cs2MenusNative.SetMenuImage(Handle, image); return this; }
 	public string Image => Cs2MenusNative.GetMenuImage(Handle);
 	/// <summary>Showcase: the item shown as a wide button under the image on every page, -1 for none. Set after adding the items.</summary>

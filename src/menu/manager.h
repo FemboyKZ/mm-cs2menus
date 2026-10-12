@@ -239,17 +239,20 @@ public:
 	void SuspendMenu(int slot);
 	void ResumeMenu(int slot);
 	MenuType GetSlotMenuType(int slot, MenuType type) const;
-	bool BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel);
+	bool BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel, int owner = 0);
 	void EndMenuInput(int slot);
 	void SetMenuInputClearCallback(MenuHandle menu, MenuInputClearFn onClear);
 	bool ShowMenuMessage(int slot, const char *text, MenuTone tone, float seconds);
-	bool ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger, MenuConfirmFn onDone);
+	bool ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger, MenuConfirmFn onDone,
+						 int owner = 0);
 	void SetMenuEdited(MenuHandle menu, bool edited);
 	bool GetMenuEdited(MenuHandle menu) const;
 	void SetMenuTextFeatures(MenuHandle menu, int features);
 	int GetMenuTextFeatures(MenuHandle menu) const;
 	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1, int owner = 0);
-	void HideNotice(int slot);
+	// Only a notice shown with this `owner`, kAnyOwner for whoever's.
+	static constexpr int kAnyOwner = -1;
+	void HideNotice(int slot, int owner = kAnyOwner);
 	void SetMenuScope(MenuHandle menu, const char *label, int teams);
 	void SetMenuScopeCallback(MenuHandle menu, MenuScopeFn onScope);
 	int AddMenuTab(MenuHandle menu, const char *label, bool selected, bool marked, bool pinned);
@@ -333,6 +336,15 @@ public:
 	void SetMainThread();
 
 	bool OnMainThread() const;
+
+	// The server config's key for an action.
+	uint64_t ServerNavMask(MenuNavAction action) const;
+
+	// Held by a caller copying a getter's string.
+	std::unique_lock<std::recursive_mutex> Lock() const
+	{
+		return std::unique_lock<std::recursive_mutex>(m_mutex);
+	}
 
 	// Whether HTML menus can render + receive input (set by the plugin after probing).
 	// When false, CreateMenu downgrades any HTML menu to chat so it stays usable.
@@ -573,7 +585,9 @@ private:
 		MenuHandle handle = kInvalidMenuHandle;
 		// Resolved render type for this display (see ResolveType). Set in DisplayLocked.
 		MenuType type = MenuType::Chat;
-		int page = 0;   // chat pagination
+		int page = 0; // chat pagination
+		// Chat: the menu changed since its page was printed, see RefreshMenu.
+		bool chatStale = false;
 		int cursor = 0; // html selected option (abs index)
 		// kMenuTextIndex: the ranges are up, the cursor is on one.
 		bool index = false;
@@ -603,6 +617,8 @@ private:
 		std::string inputPrompt;
 		std::string inputHint;
 		MenuInputCancelFn onInputCancel;
+		// onInputCancel's plugin, 0 for unknown.
+		int inputOwner = 0;
 		// The message line, see ShowMenuMessage. Gone at messageUntil.
 		std::string message;
 		MenuTone messageTone = MenuTone::Info;
@@ -627,6 +643,8 @@ private:
 			MenuConfirmFn onDone;
 			// HTML cursor: 0 confirm, 1 cancel.
 			int row = 1;
+			// onDone's plugin, 0 for unknown.
+			int owner = 0;
 		};
 
 		Dialog dialog;
@@ -670,6 +688,8 @@ private:
 	// Close slot's display and fire its MenuEnd.
 	// Safe against the callback destroying the menu.
 	void EndDisplay(int slot, MenuEndReason reason);
+	// What a display holds besides its menus, so the slot's next one doesn't open with it.
+	void ClearDisplayState(int slot);
 
 	// Run a selection: invoke onSelect, then close + fire End(Selected)
 	// if closeOnSelect, else re-render. Shared by chat and html.
@@ -688,6 +708,8 @@ private:
 	void ActivateValueItem(int slot, int itemIndex);
 	// The item behind pm.editItem, or nullptr once it's gone, disabled or not a Stepper/Choice.
 	const MenuItem *EditedItem(int slot) const;
+	// Stored item indexes follow an insert (`delta` 1) or a removal (-1) at `pos`.
+	void ShiftItemIndexes(MenuHandle menu, MenuDef &def, int pos, int delta);
 	void PickChip(int slot, int chip, int selected);
 	// Close or Back with unsaved changes: asks first and calls `leave` on Discard. False when nothing is edited.
 	bool GuardLeave(int slot, bool wholeDisplay, std::function<void()> leave);
@@ -704,9 +726,11 @@ private:
 		bool note = false;    // text only, no number
 	};
 
-	// Header, title with page indicator, section line, numbered rows, then Next/Prev/Exit.
+	// Header, title with page indicator, section line, numbered rows, then Next/Prev and 0's row (`exitRow`, "" for none).
 	void PrintChatPage(int slot, const MenuDef &def, const std::string &title, const std::string &section, const std::vector<ChatRow> &rows, int page,
-					   int pageCount, bool exitRow);
+					   int pageCount, const std::string &exitRow);
+	// For chat's 0 and the HTML Back key: "Back", the Exit label, or "" when they do nothing.
+	std::string LeaveLabel(int slot, const MenuDef &def, bool toIndex) const;
 	// Chat edit view: a Stepper's steps or a page of a Choice's options.
 	void RenderEditPage(int slot, const MenuDef &def, const MenuItem &item);
 	void ApplyEditNumber(int slot, const MenuItem &item, int num);
@@ -836,6 +860,8 @@ private:
 	void HtmlNavSelect(int slot);
 	// Step back to the parent submenu, or exit the menu. Chat or HTML.
 	void NavClose(int slot);
+	// Back or exit, asking first with unsaved changes. False with nowhere to go.
+	bool LeaveMenu(int slot);
 	// Apply a chat-menu number (1..page select, Next/Prev/Exit reserved). True if consumed.
 	bool ApplyChatNumber(int slot, int num);
 

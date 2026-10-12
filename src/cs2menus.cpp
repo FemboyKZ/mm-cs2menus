@@ -103,14 +103,18 @@ static CCSGameRules *FindGameRules()
 
 // Fake CCSGameRules::m_bGameRestart to stop the center-HTML panel flashing while a
 // menu is shown. Throttled ~0.5s.
-static void ApplyHudFlashingFix(float curtime)
+// On because of us, so only our own fake is ever undone.
+static bool s_gameRestartFaked = false;
+
+static void ApplyHudFlashingFix(float curtime, bool unloading = false)
 {
-	if (!g_MenusConfig.menu.htmlFixFlashing)
+	const bool enabled = g_MenusConfig.menu.htmlFixFlashing && !unloading;
+	if (!enabled && !s_gameRestartFaked)
 	{
 		return;
 	}
 	static float s_next = 0.0f;
-	if (curtime < s_next)
+	if (curtime < s_next && !unloading)
 	{
 		return;
 	}
@@ -129,8 +133,12 @@ static void ApplyHudFlashingFix(float curtime)
 	}
 
 	// Only fake it while a menu is up and no real round restart is scheduled.
-	bool fake = g_MenuManager.AnyHtmlMenuActive() && restartTime == 0.0f;
-	rules->SetGameRestart(fake);
+	bool fake = enabled && g_MenuManager.AnyHtmlMenuActive() && restartTime == 0.0f;
+	if (fake || s_gameRestartFaked)
+	{
+		rules->SetGameRestart(fake);
+		s_gameRestartFaked = fake;
+	}
 }
 
 CS2MenusPlugin g_ThisPlugin;
@@ -424,7 +432,8 @@ class CS2MenusAPI : public ICS2Menus
 				float curtime = MenuNow();
 				for (int slot = 0; slot < maxClients && slot <= MAXPLAYERS; slot++)
 				{
-					if (!CCSPlayerController::FromSlot(slot))
+					// No SteamID: a bot or SourceTV.
+					if (!CCSPlayerController::FromSlot(slot) || g_pEngine->GetClientXUID(CPlayerSlot(slot)) == 0)
 					{
 						continue;
 					}
@@ -448,7 +457,7 @@ class CS2MenusAPI : public ICS2Menus
 		g_MenuManager.ResumeMenu(slot);
 	}
 
-	bool BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel) override
+	bool BeginMenuInputUnowned(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel) override
 	{
 		return g_MenuManager.BeginMenuInput(slot, prompt, hint, std::move(onCancel));
 	}
@@ -468,8 +477,8 @@ class CS2MenusAPI : public ICS2Menus
 		return g_MenuManager.ShowMenuMessage(slot, text, tone, seconds);
 	}
 
-	bool ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger,
-						 MenuConfirmFn onDone) override
+	bool ShowMenuConfirmUnowned(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger,
+								MenuConfirmFn onDone) override
 	{
 		return g_MenuManager.ShowMenuConfirm(slot, title, body, cancel, confirm, danger, std::move(onDone));
 	}
@@ -559,7 +568,7 @@ class CS2MenusAPI : public ICS2Menus
 		return g_MenuManager.ShowNotice(slot, title, text, hint, seconds, std::move(onMouse1));
 	}
 
-	void HideNotice(int slot) override
+	void HideNoticeUnowned(int slot) override
 	{
 		g_MenuManager.HideNotice(slot);
 	}
@@ -844,6 +853,22 @@ class CS2MenusAPI : public ICS2Menus
 	{
 		return g_MenuManager.ShowNotice(slot, title, text, hint, seconds, std::move(onMouse1), owner);
 	}
+
+	bool BeginMenuInputFor(PluginId owner, int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel) override
+	{
+		return g_MenuManager.BeginMenuInput(slot, prompt, hint, std::move(onCancel), owner);
+	}
+
+	bool ShowMenuConfirmFor(PluginId owner, int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger,
+							MenuConfirmFn onDone) override
+	{
+		return g_MenuManager.ShowMenuConfirm(slot, title, body, cancel, confirm, danger, std::move(onDone), owner);
+	}
+
+	void HideNoticeFor(PluginId owner, int slot) override
+	{
+		g_MenuManager.HideNotice(slot, owner);
+	}
 };
 
 static CS2MenusAPI g_CS2MenusAPI;
@@ -855,10 +880,25 @@ ICS2Menus *Cs2Menus_GetLocalAPI()
 	return &g_CS2MenusAPI;
 }
 
+// A managed host keeps the library mapped past Unload.
+static bool s_loaded = false;
+
+bool Cs2Menus_IsLoaded()
+{
+	return s_loaded;
+}
+
+std::unique_lock<std::recursive_mutex> Cs2Menus_Lock()
+{
+	return g_MenuManager.Lock();
+}
+
 void *CS2MenusPlugin::OnMetamodQuery(const char *iface, int *ret)
 {
 	// An older client calls a shorter prefix of the same table, by position.
-	if (!strcmp(iface, CS2MENUS_INTERFACE) || !strcmp(iface, "ICS2Menus005") || !strcmp(iface, "ICS2Menus004") || !strcmp(iface, "ICS2Menus003"))
+	// Except one built on cs2menus 1.9.0/1.9.1, whose ICS2Menus004 had slots 59-64 in another order.
+	if (!strcmp(iface, CS2MENUS_INTERFACE) || !strcmp(iface, "ICS2Menus006") || !strcmp(iface, "ICS2Menus005") || !strcmp(iface, "ICS2Menus004")
+		|| !strcmp(iface, "ICS2Menus003"))
 	{
 		if (ret)
 		{
@@ -973,26 +1013,10 @@ static void EvaluateHtmlAvailability()
 
 // True for a "#RRGGBB" or "#RRGGBBAA" hex color. Malformed values would silently break the
 // HTML markup, so we reject them and keep the built-in default.
-static bool IsValidHexColor(const std::string &s)
-{
-	if ((s.size() != 7 && s.size() != 9) || s[0] != '#')
-	{
-		return false;
-	}
-	for (size_t i = 1; i < s.size(); i++)
-	{
-		if (!isxdigit(static_cast<unsigned char>(s[i])))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
 // Keeps `target` and says so when a color key can't be used, since a silently ignored color reads as a broken setting.
 static void ApplyHexColor(const char *key, const std::string &value, std::string &target)
 {
-	if (IsValidHexColor(value))
+	if (html_style::IsHexColor(value))
 	{
 		target = value;
 		return;
@@ -1059,10 +1083,13 @@ static void LoadAndApplyConfig()
 	char cfgPath[512];
 	snprintf(cfgPath, sizeof(cfgPath), "%s/cfg/cs2menus/core.cfg", g_SMAPI->GetBaseDir());
 
-	if (!MENU_LoadConfig(cfgPath, g_MenusConfig))
+	// Fresh, so a key removed from the file goes back to its default.
+	MenusConfig loaded;
+	if (!MENU_LoadConfig(cfgPath, loaded))
 	{
 		MMU_LOG_INFO("No core.cfg at %s - using defaults.\n", cfgPath);
 	}
+	g_MenusConfig = std::move(loaded);
 
 	MenuManagerSettings settings;
 	const MenuDefaultsCfg &m = g_MenusConfig.menu;
@@ -1301,10 +1328,14 @@ CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_de
 		g_MenuManager.SetCloseOnSelect(m, false);
 		g_MenuManager.SetMenuChangeCallback(m, [](MenuHandle changed, int s, int item, int value)
 											{ MENU_PrintToChat(s, "%s = %d", g_MenuManager.GetItemText(changed, item), value); });
-		// Only the menu on screen at the end fires this, so any one frees all three.
+		// Any one frees all three, but only at the display's end: one dropped from the forward history ends earlier.
 		g_MenuManager.SetMenuEndCallback(m,
-										 [menu, child, grid](MenuHandle, int, MenuEndReason)
+										 [menu, child, grid](MenuHandle, int s, MenuEndReason)
 										 {
+											 if (g_MenuManager.HasMenu(s))
+											 {
+												 return;
+											 }
 											 g_MenuManager.DestroyMenu(menu);
 											 g_MenuManager.DestroyMenu(child);
 											 g_MenuManager.DestroyMenu(grid);
@@ -1391,6 +1422,8 @@ namespace
 		uint64_t xuid = 0;
 		std::string type;                  // "", "chat", "html", "panorama"
 		std::string keys[kNavActionCount]; // by MenuNavAction, "" / "default" / "none" / "w" / ...
+		// Row not loaded yet: a save now would overwrite it with defaults.
+		bool loading = false;
 	};
 
 	void PrefsFromRow(SlotPrefs &p, const MenuPrefsRow &row)
@@ -1478,6 +1511,33 @@ namespace
 		}
 	}
 
+	// As ApplyOneNav resolves it, 0 for none.
+	uint64_t NavMaskOf(const std::string &name, int action)
+	{
+		if (name == "none" || name == "off")
+		{
+			return 0;
+		}
+		const uint64_t mask = name.empty() || name == "default" ? 0 : ParseNavKey(name);
+		return mask != 0 ? mask : g_MenuManager.ServerNavMask(static_cast<MenuNavAction>(action));
+	}
+
+	const char *const kNavActionNames[kNavActionCount] = {"up", "down", "select", "back"};
+
+	// The other action already on that key, -1 for none. Of two on one key only the first ever fires.
+	int NavKeyClash(int slot, int action, const std::string &name)
+	{
+		const uint64_t mask = NavMaskOf(name, action);
+		for (int other = 0; other < kNavActionCount; other++)
+		{
+			if (other != action && (mask & NavMaskOf(s_prefs[slot].keys[other], other)) != 0)
+			{
+				return other;
+			}
+		}
+		return -1;
+	}
+
 	// Push a slot's stored preference names into the menu manager.
 	void ApplyPrefsToManager(int slot)
 	{
@@ -1556,7 +1616,7 @@ namespace
 	}
 
 	// Saved at once but applied on close, since HTML edits key rows with the very nav keys being rebound.
-	void OnPrefsChange(MenuHandle /*menu*/, int slot, int item, int value)
+	void OnPrefsChange(MenuHandle menu, int slot, int item, int value)
 	{
 		SlotPrefs &p = s_prefs[slot];
 		if (item == kPrefsType)
@@ -1565,7 +1625,14 @@ namespace
 		}
 		else if (item >= kPrefsFirstKey && item < kPrefsFirstKey + kNavActionCount)
 		{
-			p.keys[item - kPrefsFirstKey] = KeyOptionName(value);
+			const int action = item - kPrefsFirstKey;
+			if (const int clash = NavKeyClash(slot, action, KeyOptionName(value)); clash >= 0)
+			{
+				MENU_PrintToChat(slot, "%s", TrFormat(slot, "That key is already used for %s.", kNavActionNames[clash]).c_str());
+				g_MenuManager.SetItemValue(menu, item, KeyOptionIndex(p.keys[action]));
+				return;
+			}
+			p.keys[action] = KeyOptionName(value);
 		}
 		else
 		{
@@ -1579,12 +1646,17 @@ namespace
 	// so callers can `if (!RequirePrefsDB(slot)) return;`.
 	bool RequirePrefsDB(int slot)
 	{
-		if (g_MenuPrefsDB.IsConnected())
+		if (!g_MenuPrefsDB.IsConnected())
 		{
-			return true;
+			MENU_PrintToChat(slot, "%s", Tr(slot, "Menu preferences are not available on this server.").c_str());
+			return false;
 		}
-		MENU_PrintToChat(slot, "%s", Tr(slot, "Menu preferences are not available on this server.").c_str());
-		return false;
+		if (s_prefs[slot].loading)
+		{
+			MENU_PrintToChat(slot, "%s", Tr(slot, "Your menu preferences are still loading. Try again in a moment.").c_str());
+			return false;
+		}
+		return true;
 	}
 
 	void ResetSlotPrefs(int slot)
@@ -1687,11 +1759,17 @@ namespace
 		{
 			return;
 		}
+		s_prefs[slot].loading = true;
 		g_MenuPrefsDB.LoadPrefs(xuid,
 								[slot, xuid](bool found, const MenuPrefsRow &row)
 								{
-									// The slot may have a different occupant by the time this returns.
-									if (s_prefs[slot].xuid != xuid || !found)
+									// The slot may have a different occupant by the time this returns, or an admin reset it meanwhile.
+									if (s_prefs[slot].xuid != xuid || !s_prefs[slot].loading)
+									{
+										return;
+									}
+									s_prefs[slot].loading = false;
+									if (!found)
 									{
 										return;
 									}
@@ -1719,7 +1797,7 @@ CON_COMMAND_F(mm_menu_prefs, "Open your personal menu-preferences menu.", FCVAR_
 CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | panorama | default.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!ValidSlot(slot) || args.ArgC() < 2)
+	if (!ValidSlot(slot))
 	{
 		return;
 	}
@@ -1794,6 +1872,11 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 	if (keyName != "default" && keyName != "none" && keyName != "off" && ParseNavKey(keyName) == 0)
 	{
 		MENU_PrintToChat(slot, "%s", TrFormat(slot, "Unknown key \"%s\".", keyName.c_str()).c_str());
+		return;
+	}
+	if (const int clash = NavKeyClash(slot, static_cast<int>(action), keyName); clash >= 0)
+	{
+		MENU_PrintToChat(slot, "%s", TrFormat(slot, "That key is already used for %s.", kNavActionNames[clash]).c_str());
 		return;
 	}
 	s_prefs[slot].keys[static_cast<int>(action)] = keyName;
@@ -1996,6 +2079,11 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 		for (int slot = 0; slot < MAXPLAYERS; slot++)
 		{
 			s_inGame[slot] = g_pEngine->GetClientXUID(CPlayerSlot(slot)) != 0;
+			// Their connect, where the language is asked for, was before us too.
+			if (s_inGame[slot])
+			{
+				mmu::cvarquery::OnClientConnected(slot, false);
+			}
 		}
 		g_pEntitySystem = GameEntitySystem();
 		// A reload leaves the previous load's panorama windows behind.
@@ -2005,6 +2093,7 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	EvaluateHtmlAvailability();
 	LoadAndApplyConfig();
 
+	s_loaded = true;
 	MMU_LOG_INFO("Plugin loaded.\n");
 	return true;
 }
@@ -2092,6 +2181,8 @@ void CS2MenusPlugin::OnPluginUnload(PluginId id)
 
 bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 {
+	s_loaded = false;
+	ApplyHudFlashingFix(0.0f, true);
 	MENU_AdminBridge_Shutdown();
 
 	m_GameFrame.Remove(g_pServerGameDLL);
@@ -2301,10 +2392,9 @@ static bool ParseChatMenuNav(const char *rawMsg, MenuNavAction &action, int &num
 	{
 		return false;
 	}
-	if (!arg.empty())
-	{
-		number = atoi(arg.c_str());
-	}
+	// atoi's 0 for a typo would close a chat menu.
+	arg.erase(arg.find_last_not_of(" \t") + 1);
+	mmu::ParseInt(arg, number);
 	return true;
 }
 
@@ -2354,9 +2444,11 @@ CON_COMMAND_F(mm_menu_select, "Select a menu item: no arg = highlighted row, a n
 		return;
 	}
 	float curtime = MenuNow();
-	if (const std::string *item = parsed.Get("item"))
+	// atoi's 0 for a typo would close a chat menu.
+	int number;
+	if (const std::string *item = parsed.Get("item"); item && mmu::ParseInt(*item, number))
 	{
-		g_MenuManager.CommandSelectNumber(slot, atoi(item->c_str()), curtime);
+		g_MenuManager.CommandSelectNumber(slot, number, curtime);
 	}
 	else
 	{

@@ -6,10 +6,14 @@
 #include "interfaces/cs2menus/ics2menus.h"
 
 #include <cstring>
+#include <mutex>
 
 // Defined in cs2menus.cpp: the singleton ICS2Menus005 implementation.
 // Routing through it inherits the curtime stamping and off-thread queueing the interface wrapper already does.
 extern ICS2Menus *Cs2Menus_GetLocalAPI();
+extern bool Cs2Menus_IsLoaded();
+// Held while a getter's string is copied.
+extern std::unique_lock<std::recursive_mutex> Cs2Menus_Lock();
 
 namespace
 {
@@ -46,7 +50,7 @@ CS2M_API int CS2M_CALL cs2m_abi_version(void)
 
 CS2M_API int CS2M_CALL cs2m_available(void)
 {
-	return 1;
+	return Cs2Menus_IsLoaded() ? 1 : 0;
 }
 
 // --- Lifetime ---
@@ -83,6 +87,7 @@ CS2M_API void CS2M_CALL cs2m_set_title(cs2m_handle menu, const char *title)
 
 CS2M_API int CS2M_CALL cs2m_get_title(cs2m_handle menu, char *buf, int buflen)
 {
+	auto lock = Cs2Menus_Lock();
 	return CopyOut(API()->GetTitle(menu), buf, buflen);
 }
 
@@ -168,6 +173,7 @@ CS2M_API void CS2M_CALL cs2m_set_menu_label(cs2m_handle menu, int label, const c
 
 CS2M_API int CS2M_CALL cs2m_get_menu_label(cs2m_handle menu, int label, char *buf, int buflen)
 {
+	auto lock = Cs2Menus_Lock();
 	return CopyOut(API()->GetMenuLabel(menu, static_cast<MenuLabel>(label)), buf, buflen);
 }
 
@@ -178,6 +184,7 @@ CS2M_API void CS2M_CALL cs2m_set_menu_style(cs2m_handle menu, int field, const c
 
 CS2M_API int CS2M_CALL cs2m_get_menu_style(cs2m_handle menu, int field, char *buf, int buflen)
 {
+	auto lock = Cs2Menus_Lock();
 	return CopyOut(API()->GetMenuStyle(menu, static_cast<MenuStyle>(field)), buf, buflen);
 }
 
@@ -220,6 +227,7 @@ CS2M_API void CS2M_CALL cs2m_set_item_text(cs2m_handle menu, int item, const cha
 
 CS2M_API int CS2M_CALL cs2m_get_item_text(cs2m_handle menu, int item, char *buf, int buflen)
 {
+	auto lock = Cs2Menus_Lock();
 	return CopyOut(API()->GetItemText(menu, item), buf, buflen);
 }
 
@@ -230,6 +238,7 @@ CS2M_API void CS2M_CALL cs2m_set_item_info(cs2m_handle menu, int item, const cha
 
 CS2M_API int CS2M_CALL cs2m_get_item_info(cs2m_handle menu, int item, char *buf, int buflen)
 {
+	auto lock = Cs2Menus_Lock();
 	return CopyOut(API()->GetItemInfo(menu, item), buf, buflen);
 }
 
@@ -260,6 +269,7 @@ CS2M_API void CS2M_CALL cs2m_set_item_icon(cs2m_handle menu, int item, const cha
 
 CS2M_API int CS2M_CALL cs2m_get_item_icon(cs2m_handle menu, int item, char *buf, int buflen)
 {
+	auto lock = Cs2Menus_Lock();
 	return CopyOut(API()->GetItemIcon(menu, item), buf, buflen);
 }
 
@@ -398,6 +408,7 @@ CS2M_API void CS2M_CALL cs2m_set_item_image(cs2m_handle menu, int item, const ch
 
 CS2M_API int CS2M_CALL cs2m_get_item_image(cs2m_handle menu, int item, char *buf, int buflen)
 {
+	auto lock = Cs2Menus_Lock();
 	return CopyOut(API()->GetItemImage(menu, item), buf, buflen);
 }
 
@@ -408,6 +419,7 @@ CS2M_API void CS2M_CALL cs2m_set_item_subtext(cs2m_handle menu, int item, const 
 
 CS2M_API int CS2M_CALL cs2m_get_item_subtext(cs2m_handle menu, int item, char *buf, int buflen)
 {
+	auto lock = Cs2Menus_Lock();
 	return CopyOut(API()->GetItemSubtext(menu, item), buf, buflen);
 }
 
@@ -430,6 +442,7 @@ CS2M_API void CS2M_CALL cs2m_set_menu_image(cs2m_handle menu, const char *image)
 
 CS2M_API int CS2M_CALL cs2m_get_menu_image(cs2m_handle menu, char *buf, int buflen)
 {
+	auto lock = Cs2Menus_Lock();
 	return CopyOut(API()->GetMenuImage(menu), buf, buflen);
 }
 
@@ -518,6 +531,7 @@ CS2M_API void CS2M_CALL cs2m_set_item_rarity(cs2m_handle menu, int item, const c
 
 CS2M_API int CS2M_CALL cs2m_get_item_rarity(cs2m_handle menu, int item, char *buf, int buflen)
 {
+	auto lock = Cs2Menus_Lock();
 	return CopyOut(API()->GetItemRarity(menu, item), buf, buflen);
 }
 
@@ -528,6 +542,7 @@ CS2M_API void CS2M_CALL cs2m_set_item_tag(cs2m_handle menu, int item, const char
 
 CS2M_API int CS2M_CALL cs2m_get_item_tag(cs2m_handle menu, int item, char *buf, int buflen)
 {
+	auto lock = Cs2Menus_Lock();
 	return CopyOut(API()->GetItemTag(menu, item), buf, buflen);
 }
 
@@ -692,7 +707,7 @@ CS2M_API int CS2M_CALL cs2m_begin_input(int slot, const char *prompt, const char
 	{
 		fn = [on_cancel, user](MenuHandle m, int s) { on_cancel(m, s, user); };
 	}
-	return API()->BeginMenuInput(slot, prompt ? prompt : "", hint ? hint : "", std::move(fn)) ? 1 : 0;
+	return API()->BeginMenuInputUnowned(slot, prompt ? prompt : "", hint ? hint : "", std::move(fn)) ? 1 : 0;
 }
 
 CS2M_API void CS2M_CALL cs2m_end_input(int slot)
@@ -725,8 +740,8 @@ CS2M_API int CS2M_CALL cs2m_show_confirm(int slot, const char *title, const char
 	{
 		fn = [on_done, user](int s, bool confirmed) { on_done(s, confirmed ? 1 : 0, user); };
 	}
-	return API()->ShowMenuConfirm(slot, title ? title : "", body ? body : "", cancel ? cancel : "", confirm ? confirm : "", danger != 0,
-								  std::move(fn))
+	return API()->ShowMenuConfirmUnowned(slot, title ? title : "", body ? body : "", cancel ? cancel : "", confirm ? confirm : "", danger != 0,
+										 std::move(fn))
 			   ? 1
 			   : 0;
 }
@@ -786,7 +801,8 @@ CS2M_API int CS2M_CALL cs2m_show_notice(int slot, const char *title, const char 
 
 CS2M_API void CS2M_CALL cs2m_hide_notice(int slot)
 {
-	API()->HideNotice(slot);
+	// 0: only the C ABI's own notices.
+	API()->HideNoticeFor(0, slot);
 }
 
 // --- Table ---

@@ -9,6 +9,10 @@
 	{
 		"en"	"Exit"
 	}
+	"Back"
+	{
+		"en"	"Back"
+	}
 	"Next Page"
 	{
 		"en"	"Next Page"
@@ -137,6 +141,10 @@
 	{
 		"en"	"{red}Menu preferences are not available on this server."
 	}
+	"Your menu preferences are still loading. Try again in a moment."
+	{
+		"en"	"{red}Your menu preferences are still loading. Try again in a moment."
+	}
 
 	// Chat replies: command arguments
 	"Unknown key %s=."
@@ -172,6 +180,10 @@
 	"Unknown key \"%s\"."
 	{
 		"en"	"{red}Unknown key \"{default}%s{red}\"."
+	}
+	"That key is already used for %s."
+	{
+		"en"	"{red}That key is already used for {default}%s{red}."
 	}
 	"%s key set to %s."
 	{
@@ -232,6 +244,10 @@
 	"Player not found with that slot/userid."
 	{
 		"en"	"{red}Player not found with that slot/userid."
+	}
+	"That number is a slot and also a player's name. Use #slot or &name."
+	{
+		"en"	"{red}That number is a slot and also a player's name. Use #slot or &name."
 	}
 	"Invalid SteamID64."
 	{

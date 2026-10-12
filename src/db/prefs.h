@@ -74,6 +74,7 @@ private:
 	std::string Table() const;
 
 	mmu::sql::Connection m_conn;
+	std::string m_table;
 	bool m_isSqlite = true;
 };
 
