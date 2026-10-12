@@ -836,6 +836,10 @@ void MenuManager::RemoveAllItems(MenuHandle menu)
 	}
 	def->items.clear();
 	def->sections.clear();
+	// Left as they are, these would point into whatever is added next.
+	def->pinned = -1;
+	def->secondary = -1;
+	def->startItem = 0;
 	// Reset display state for anyone viewing it, then re-render.
 	for (int slot = 0; slot <= MAXPLAYERS; slot++)
 	{
@@ -844,6 +848,10 @@ void MenuManager::RemoveAllItems(MenuHandle menu)
 		{
 			pm.cursor = 0;
 			pm.page = 0;
+			if (pm.editItem >= 0 || pm.editItem <= kEditDetails)
+			{
+				pm.editItem = -1;
+			}
 		}
 	}
 	RefreshMenu(menu);
@@ -2005,7 +2013,9 @@ uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, int slot, MenuNavActi
 	{
 		return override_;
 	}
-	// 2. This player's preference (displaces only the server default binding).
+	// 2. Server config.
+	uint64_t mask = ServerNavMask(action);
+	// 3. This player's preference (displaces only the server default binding).
 	if (ValidSlot(slot))
 	{
 		uint64_t pref = m_prefs[slot].nav[static_cast<int>(action)].mask;
@@ -2015,11 +2025,18 @@ uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, int slot, MenuNavActi
 		}
 		if (pref != 0)
 		{
-			return pref;
+			mask = pref;
 		}
 	}
-	// 3. Server config.
-	return ServerNavMask(action);
+	// A key this menu gives another action is that action's here: of two on one key only the first would fire.
+	for (const NavOverride &other : def.navOverride)
+	{
+		if (other.mask != kNavDisabledSentinel)
+		{
+			mask &= ~other.mask;
+		}
+	}
+	return mask;
 }
 
 uint64_t MenuManager::ServerNavMask(MenuNavAction action) const
@@ -2916,7 +2933,7 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 				center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs); // clear the panel immediately
 			}
 			// Ends the history's menus too. This one is already erased, so its own callback is fired below.
-			EndDisplay(slot, MenuEndReason::Destroyed);
+			EndDisplay(slot, MenuEndReason::Cancelled);
 			DepthGuard guard(m_callbackDepth);
 			if (onEnd && guard.enter())
 			{
@@ -2940,7 +2957,7 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 					// A display opened since has already ended them.
 					if (!m_players[slot].active)
 					{
-						EndMenus(slot, TakeHistory(slot), kInvalidMenuHandle, MenuEndReason::Destroyed);
+						EndMenus(slot, TakeHistory(slot), kInvalidMenuHandle, MenuEndReason::Cancelled);
 					}
 				});
 		}
@@ -3936,7 +3953,7 @@ int MenuManager::DropOwnedBy(int owner)
 			center_html::Send(slot, kHtmlClearContent, kHtmlClearDurationSecs);
 		}
 		// Other plugins' menus in the display's history end as usual, so their owners can free them.
-		EndDisplay(slot, MenuEndReason::Destroyed);
+		EndDisplay(slot, MenuEndReason::Cancelled);
 	}
 
 	for (int slot = 0; slot < MAXPLAYERS; slot++)
@@ -4282,7 +4299,7 @@ void MenuManager::RenderEditPage(int slot, const MenuDef &def, const MenuItem &i
 			row.disabled = count < 0 ? item.value <= item.min : item.value >= item.max;
 			rows.push_back(std::move(row));
 		}
-		PrintChatPage(slot, def, title, std::string(), rows, 0, 1, ResolveLabel(slot, def, MenuLabel::Exit));
+		PrintChatPage(slot, def, title, std::string(), rows, 0, 1, ResolveLabel(slot, def, MenuLabel::Done));
 		return;
 	}
 
@@ -4298,7 +4315,7 @@ void MenuManager::RenderEditPage(int slot, const MenuDef &def, const MenuItem &i
 		row.current = i == item.value;
 		rows.push_back(std::move(row));
 	}
-	PrintChatPage(slot, def, title, std::string(), rows, pm.editPage, pageCount, ResolveLabel(slot, def, MenuLabel::Exit));
+	PrintChatPage(slot, def, title, std::string(), rows, pm.editPage, pageCount, ResolveLabel(slot, def, MenuLabel::Done));
 }
 
 void MenuManager::ApplyEditNumber(int slot, const MenuItem &item, int num)

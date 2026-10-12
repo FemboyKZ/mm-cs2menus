@@ -1424,6 +1424,7 @@ namespace
 		std::string keys[kNavActionCount]; // by MenuNavAction, "" / "default" / "none" / "w" / ...
 		// Row not loaded yet: a save now would overwrite it with defaults.
 		bool loading = false;
+		double loadSent = 0.0;
 	};
 
 	void PrefsFromRow(SlotPrefs &p, const MenuPrefsRow &row)
@@ -1641,6 +1642,9 @@ namespace
 		SaveSlotPrefs(slot);
 	}
 
+	void LoadSlot(int slot, uint64_t xuid);
+	constexpr double kPrefsReloadSeconds = 5.0;
+
 	// True when the preference DB is connected.
 	// Otherwise tells the player it's unavailable and returns false,
 	// so callers can `if (!RequirePrefsDB(slot)) return;`.
@@ -1653,6 +1657,11 @@ namespace
 		}
 		if (s_prefs[slot].loading)
 		{
+			// A failed query is only heard of once a later one answers, which on a quiet server may be this one.
+			if (Plat_FloatTime() - s_prefs[slot].loadSent > kPrefsReloadSeconds)
+			{
+				LoadSlot(slot, s_prefs[slot].xuid);
+			}
 			MENU_PrintToChat(slot, "%s", Tr(slot, "Your menu preferences are still loading. Try again in a moment.").c_str());
 			return false;
 		}
@@ -1760,6 +1769,7 @@ namespace
 			return;
 		}
 		s_prefs[slot].loading = true;
+		s_prefs[slot].loadSent = Plat_FloatTime();
 		g_MenuPrefsDB.LoadPrefs(xuid,
 								[slot, xuid](bool found, const MenuPrefsRow &row)
 								{
