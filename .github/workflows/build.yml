@@ -240,11 +240,6 @@ jobs:
           git clone https://github.com/alliedmodders/ambuild.git
           pip install ./ambuild
 
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
       - name: Configure metamod example (Linux)
         if: matrix.os == 'linux'
         env:
@@ -267,11 +262,6 @@ jobs:
         working-directory: build
         run: ambuild
 
-      - name: Build .NET examples
-        run: |
-          dotnet build examples/swiftly/Cs2MenusSwiftlyExample.csproj -c Release -o build-example-swiftly
-          dotnet build examples/counterstrikesharp/Cs2MenusCssExample.csproj -c Release -o build-example-css
-
       - name: Stage examples (Linux)
         if: matrix.os == 'linux'
         run: |
@@ -281,11 +271,6 @@ jobs:
           src=$(find build -name 'cs2menus_consumer.*.so' -type f | head -n1)
           cp "$src" "$bindir/cs2menus_consumer.so"
           printf '"Metamod Plugin"\n{\n\t"alias"\t"cs2menus_consumer"\n\t"file"\t"addons/cs2menus_consumer/bin/linuxsteamrt64/cs2menus_consumer"\n}\n' > staging/addons/metamod/cs2menus_consumer.vdf
-          # .NET example plugins, each in its host's plugin folder.
-          mkdir -p staging/addons/swiftlys2/plugins/Cs2MenusSwiftlyExample
-          mkdir -p staging/addons/counterstrikesharp/plugins/Cs2MenusCssExample
-          cp -r build-example-swiftly/* staging/addons/swiftlys2/plugins/Cs2MenusSwiftlyExample/
-          cp -r build-example-css/* staging/addons/counterstrikesharp/plugins/Cs2MenusCssExample/
 
       - name: Stage examples (Windows)
         if: matrix.os == 'windows'
@@ -302,14 +287,43 @@ jobs:
             '}'
           ) -join "`n"
           Set-Content -Path staging/addons/metamod/cs2menus_consumer.vdf -Value $vdf
-          New-Item -ItemType Directory -Force -Path staging/addons/swiftlys2/plugins/Cs2MenusSwiftlyExample, staging/addons/counterstrikesharp/plugins/Cs2MenusCssExample | Out-Null
-          Copy-Item -Recurse build-example-swiftly/* staging/addons/swiftlys2/plugins/Cs2MenusSwiftlyExample/
-          Copy-Item -Recurse build-example-css/* staging/addons/counterstrikesharp/plugins/Cs2MenusCssExample/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: cs2menus-examples-${{ matrix.os }}
+          path: staging
+
+  build-examples-dotnet:
+    name: Examples (.NET)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build .NET examples
+        run: |
+          dotnet build examples/swiftly/Cs2MenusSwiftlyExample.csproj -c Release -o build-example-swiftly
+          dotnet build examples/counterstrikesharp/Cs2MenusCssExample.csproj -c Release -o build-example-css
+
+      # .NET example plugins, each in its host's plugin folder.
+      - name: Stage examples
+        run: |
+          mkdir -p staging/addons/swiftlys2/plugins/Cs2MenusSwiftlyExample
+          mkdir -p staging/addons/counterstrikesharp/plugins/Cs2MenusCssExample
+          cp -r build-example-swiftly/* staging/addons/swiftlys2/plugins/Cs2MenusSwiftlyExample/
+          cp -r build-example-css/* staging/addons/counterstrikesharp/plugins/Cs2MenusCssExample/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cs2menus-examples-dotnet
           path: staging
 
   release:
