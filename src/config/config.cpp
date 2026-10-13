@@ -17,7 +17,7 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 	std::string k = ToLower(key);
 	bool known = true;
 
-	// Chat and Html keys were in Menu before, with the section as a prefix.
+	// Parsed as Menu's old Chat* and Html* keys.
 	if (sec == "chat" || sec == "html")
 	{
 		if (k != "itemsperpage")
@@ -37,7 +37,7 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.defaultType = ToLower(value);
 		}
-		// Old place of DefaultLanguage and the log keys.
+		// Old place.
 		else if (k == "defaultlanguage")
 		{
 			cfg->general.defaultLanguage = value;
