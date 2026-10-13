@@ -38,8 +38,10 @@ jobs:
         shell: bash
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          rm -rf s2sdk
           git init -q s2sdk
-          git -C s2sdk fetch -q --depth 1 "$(git config -f .gitmodules submodule.s2sdk.url)" "$(git rev-parse HEAD:s2sdk)"
+          git -C s2sdk remote add origin "$(git config -f .gitmodules submodule.s2sdk.url)"
+          git -C s2sdk fetch -q --depth 1 origin "$(git rev-parse HEAD:s2sdk)"
           git -C s2sdk checkout -q FETCH_HEAD
           git submodule update --init --depth 1 --jobs 4
           git -C metamod-source submodule update --init --depth 1 hl2sdk-manifests third_party/khook
@@ -88,8 +90,10 @@ jobs:
         shell: bash
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          rm -rf s2sdk
           git init -q s2sdk
-          git -C s2sdk fetch -q --depth 1 "$(git config -f .gitmodules submodule.s2sdk.url)" "$(git rev-parse HEAD:s2sdk)"
+          git -C s2sdk remote add origin "$(git config -f .gitmodules submodule.s2sdk.url)"
+          git -C s2sdk fetch -q --depth 1 origin "$(git rev-parse HEAD:s2sdk)"
           git -C s2sdk checkout -q FETCH_HEAD
           git submodule update --init --depth 1 --jobs 4
           git -C metamod-source submodule update --init --depth 1 hl2sdk-manifests third_party/khook
