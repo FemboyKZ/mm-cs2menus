@@ -1214,7 +1214,7 @@ static void LoadAndApplyConfig()
 
 	g_Translations.SetResolveColorTags(false);
 	g_Translations.Load(g_SMAPI->GetBaseDir(), "cs2menus");
-	g_Translations.SetDefaultLanguage(g_MenusConfig.menu.defaultLanguage);
+	g_Translations.SetDefaultLanguage(g_MenusConfig.general.defaultLanguage);
 	g_MenuManager.SetLanguageResolver([](int slot) { return SlotLanguage(slot); });
 }
 

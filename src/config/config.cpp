@@ -18,13 +18,9 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 
 	if (sec == "general")
 	{
-		if (k == "commandprefix")
+		if (!mmu::config::ApplyGeneralKey(cfg->general, k, value))
 		{
-			cfg->general.commandPrefix = value;
-		}
-		else if (k == "silentcommandprefix")
-		{
-			cfg->general.silentCommandPrefix = value;
+			mmu::config::ApplyLogKey(cfg->log, k, value);
 		}
 	}
 	else if (sec == "menu")
@@ -33,9 +29,10 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.defaultType = ToLower(value);
 		}
+		// Old place of DefaultLanguage and the log keys.
 		else if (k == "defaultlanguage")
 		{
-			cfg->menu.defaultLanguage = ToLower(value);
+			cfg->general.defaultLanguage = value;
 		}
 		else if (mmu::config::ApplyLogKey(cfg->log, k, value))
 		{
@@ -291,14 +288,7 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 	}
 	else if (sec == "database")
 	{
-		if (k == "enabled")
-		{
-			cfg->databaseEnabled = (value != "0");
-		}
-		else
-		{
-			mmu::config::ApplyDatabaseKey(cfg->database, k, value);
-		}
+		mmu::config::ApplyOptionalDatabaseKey(cfg->database, cfg->databaseEnabled, k, value);
 	}
 }
 

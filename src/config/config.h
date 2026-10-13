@@ -5,23 +5,11 @@
 
 #include <string>
 
-struct MenuGeneralCfg
-{
-	// Leading characters a player may type before a menu selection number, e.g.
-	// "!1" or "/1" as well as bare "1".
-	std::string commandPrefix = "!";       // normal (message would stay visible)
-	std::string silentCommandPrefix = "/"; // silent (message suppressed)
-};
-
 struct MenuDefaultsCfg
 {
 	// Default render style applied when a consumer creates a menu with
 	// MenuType::Default: "chat", "html" or "panorama".
 	std::string defaultType = "chat";
-
-	// Fallback language key for built-in label translations, used when a client's
-	// cl_language is unknown or a phrase file lacks it. See translations/.
-	std::string defaultLanguage = "en";
 
 	// Default state of the "0. Exit" entry for newly created menus.
 	bool exitButton = true;
@@ -137,7 +125,8 @@ struct MenuPanoramaCfg
 // Off by default. When disabled, cs2menus uses only the server config (no per-player overrides).
 struct MenusConfig
 {
-	MenuGeneralCfg general;
+	// Prefixes a player may type before a menu selection number, "!1" or "/1" as well as bare "1".
+	mmu::config::GeneralBlock general;
 	MenuDefaultsCfg menu;
 	MenuPanoramaCfg panorama;
 
