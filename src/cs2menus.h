@@ -1,5 +1,5 @@
-#ifndef _INCLUDE_METAMOD_SOURCE_PLUGIN_H_
-#define _INCLUDE_METAMOD_SOURCE_PLUGIN_H_
+#ifndef _INCLUDE_MENU_PLUGIN_H_
+#define _INCLUDE_MENU_PLUGIN_H_
 
 #include "version_gen.h"
 #include <ISmmPlugin.h>
@@ -94,4 +94,4 @@ extern CS2MenusPlugin g_ThisPlugin;
 
 PLUGIN_GLOBALVARS();
 
-#endif //_INCLUDE_METAMOD_SOURCE_PLUGIN_H_
+#endif //_INCLUDE_MENU_PLUGIN_H_

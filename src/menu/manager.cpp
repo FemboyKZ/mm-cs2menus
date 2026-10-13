@@ -2146,14 +2146,14 @@ std::string MenuManager::Lang(int slot) const
 
 std::string MenuManager::ResolveLabel(int slot, const MenuDef &def, MenuLabel label) const
 {
-	return g_Translations.Translate(Lang(slot), def.labels[static_cast<int>(label)]);
+	return g_MenuTranslations.Translate(Lang(slot), def.labels[static_cast<int>(label)]);
 }
 
 std::string MenuManager::LeaveLabel(int slot, const MenuDef &def, bool toIndex) const
 {
 	if (toIndex || HasBack(slot))
 	{
-		return g_Translations.Translate(Lang(slot), "Back");
+		return g_MenuTranslations.Translate(Lang(slot), "Back");
 	}
 	return def.exitButton ? ResolveLabel(slot, def, MenuLabel::Exit) : std::string();
 }
@@ -2791,10 +2791,10 @@ bool MenuManager::GuardLeave(int slot, bool wholeDisplay, std::function<void()> 
 	}
 	const std::string lang = Lang(slot);
 	const std::string title = panorama_hud::StripColors(shown ? shown->title : std::string());
-	const std::string body = FillTemplate(g_Translations.Translate(lang, "{title} has changes that aren't applied."), {{"title", title}});
+	const std::string body = FillTemplate(g_MenuTranslations.Translate(lang, "{title} has changes that aren't applied."), {{"title", title}});
 	const MenuHandle handle = pm.handle;
-	return ShowMenuConfirm(slot, g_Translations.Translate(lang, "Discard your edits?").c_str(), body.c_str(),
-						   g_Translations.Translate(lang, "Keep editing").c_str(), g_Translations.Translate(lang, "Discard").c_str(), true,
+	return ShowMenuConfirm(slot, g_MenuTranslations.Translate(lang, "Discard your edits?").c_str(), body.c_str(),
+						   g_MenuTranslations.Translate(lang, "Keep editing").c_str(), g_MenuTranslations.Translate(lang, "Discard").c_str(), true,
 						   [this, handle, leave](int s, bool confirmed)
 						   {
 							   if (confirmed && m_players[s].active && m_players[s].handle == handle)
@@ -4731,7 +4731,7 @@ void MenuManager::SendHtml(int slot, const std::string &html)
 	bool keepAliveDue = (m_curtime - pm.lastHtmlSend) >= m_settings.htmlKeepAlive;
 	if (changed || keepAliveDue)
 	{
-		center_html::Send(slot, html.c_str(), m_settings.htmlDurationSecs);
+		center_html::Send(slot, html.c_str(), m_settings.htmlDuration);
 		pm.lastHtml = html;
 		pm.lastHtmlSend = m_curtime;
 	}
@@ -4971,7 +4971,7 @@ std::vector<MenuManager::TabEntry> MenuManager::Tabs(int slot, const MenuDef &de
 		}
 		else
 		{
-			const std::string format = g_Translations.Translate(Lang(slot), "Page {n}");
+			const std::string format = g_MenuTranslations.Translate(Lang(slot), "Page {n}");
 			label = FillTemplate(format, {{"n", std::to_string(tabs.size() + 1)}});
 		}
 		tabs.push_back({std::move(label), section == current, false, false, p});
@@ -5128,7 +5128,7 @@ void MenuManager::RenderPanorama(int slot)
 	}
 	if (def->edited)
 	{
-		view.edited = g_Translations.Translate(Lang(slot), "Edited");
+		view.edited = g_MenuTranslations.Translate(Lang(slot), "Edited");
 	}
 	view.scope = panorama_hud::StripColors(def->scope);
 	view.scopeTeams = def->scopeTeams;
@@ -5289,11 +5289,11 @@ void MenuManager::RenderPanorama(int slot)
 		};
 		if (view.turning)
 		{
-			part(view.hint, "LMB", g_Translations.Translate(lang, "Stop turning"));
+			part(view.hint, "LMB", g_MenuTranslations.Translate(lang, "Stop turning"));
 		}
 		else if (pm.hint.empty() && !pm.hintHidden)
 		{
-			part(view.hint, "LMB", g_Translations.Translate(lang, "Turn the view"));
+			part(view.hint, "LMB", g_MenuTranslations.Translate(lang, "Turn the view"));
 		}
 		else
 		{
@@ -5307,7 +5307,7 @@ void MenuManager::RenderPanorama(int slot)
 			part(view.help, keys, text);
 		}
 		view.helpOpen = pm.helpOpen;
-		view.helpTitle = g_Translations.Translate(lang, "Keys");
+		view.helpTitle = g_MenuTranslations.Translate(lang, "Keys");
 		view.mirrored = pm.mirrored;
 	}
 	const bool columns = view.layout == panorama_hud::Layout::Columns;
@@ -5550,7 +5550,7 @@ void MenuManager::RenderPanorama(int slot)
 		pm.panoramaNav.push_back(page);
 	};
 	const std::string lang = Lang(slot);
-	const std::string pageFormat = g_Translations.Translate(lang, "Page {n}");
+	const std::string pageFormat = g_MenuTranslations.Translate(lang, "Page {n}");
 	auto sectionLabel = [&](int section, int n)
 	{ return section >= 0 ? panorama_hud::StripColors(def->sections[section]) : FillTemplate(pageFormat, {{"n", std::to_string(n)}}); };
 

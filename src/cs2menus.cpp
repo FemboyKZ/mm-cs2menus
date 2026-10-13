@@ -56,20 +56,20 @@ static mmu::InterfaceBridge<IMultiAddonManager> s_multiAddonManager(MULTIADDONMA
 static std::string SlotLanguage(int slot)
 {
 	const char *raw = mmu::cvarquery::GetClientLanguage(slot);
-	return g_Translations.MapClientLanguage(raw);
+	return g_MenuTranslations.MapClientLanguage(raw);
 }
 
 // A phrase in the caller's language, the default language for the console.
 // Its {color} tags become chat colors here, the tables are loaded with them left literal for the menu labels.
-static std::string Tr(int slot, const char *phrase)
+static std::string MENU_Translate(int slot, const char *phrase)
 {
-	return mmu::ResolveColorTags(g_Translations.Translate(ValidSlot(slot) ? SlotLanguage(slot) : std::string(), phrase));
+	return mmu::ResolveColorTags(g_MenuTranslations.Translate(ValidSlot(slot) ? SlotLanguage(slot) : std::string(), phrase));
 }
 
-// Tr with the phrase's format specifiers filled in.
+// MENU_Translate with the phrase's format specifiers filled in.
 static std::string TrFormat(int slot, const char *phrase, ...)
 {
-	std::string tmpl = Tr(slot, phrase);
+	std::string tmpl = MENU_Translate(slot, phrase);
 	char buffer[512];
 	va_list args;
 	va_start(args, phrase);
@@ -108,7 +108,7 @@ static bool s_gameRestartFaked = false;
 
 static void ApplyHudFlashingFix(float curtime, bool unloading = false)
 {
-	const bool enabled = g_MenusConfig.menu.htmlFixFlashing && !unloading;
+	const bool enabled = g_MenuConfig.menu.htmlFixFlashing && !unloading;
 	if (!enabled && !s_gameRestartFaked)
 	{
 		return;
@@ -1053,7 +1053,7 @@ static bool IsPanoramaFont(const std::string &name)
 static void MountPanoramaAddon()
 {
 	static std::string s_mounted;
-	const MenuPanoramaCfg &p = g_MenusConfig.panorama;
+	const MenuPanoramaCfg &p = g_MenuConfig.panorama;
 	if (!s_multiAddonManager || !p.mountAddon || p.workshopId.empty() || s_mounted == p.workshopId)
 	{
 		return;
@@ -1084,19 +1084,19 @@ static void LoadAndApplyConfig()
 	snprintf(cfgPath, sizeof(cfgPath), "%s/cfg/cs2menus/core.cfg", g_SMAPI->GetBaseDir());
 
 	// Fresh, so a key removed from the file goes back to its default.
-	MenusConfig loaded;
+	MenuConfig loaded;
 	if (!MENU_LoadConfig(cfgPath, loaded))
 	{
 		MMU_LOG_INFO("No core.cfg at %s - using defaults.\n", cfgPath);
 	}
-	g_MenusConfig = std::move(loaded);
+	g_MenuConfig = std::move(loaded);
 
 	MenuManagerSettings settings;
-	const MenuDefaultsCfg &m = g_MenusConfig.menu;
-	settings.acceptedPrefixes = g_MenusConfig.general.commandPrefix + g_MenusConfig.general.silentCommandPrefix;
-	settings.itemsPerPage = g_MenusConfig.menu.itemsPerPage;
-	settings.defaultType = ParseMenuType(g_MenusConfig.menu.defaultType);
-	settings.defaultExitButton = g_MenusConfig.menu.exitButton;
+	const MenuDefaultsCfg &m = g_MenuConfig.menu;
+	settings.acceptedPrefixes = g_MenuConfig.general.commandPrefix + g_MenuConfig.general.silentCommandPrefix;
+	settings.itemsPerPage = g_MenuConfig.menu.itemsPerPage;
+	settings.defaultType = ParseMenuType(g_MenuConfig.menu.defaultType);
+	settings.defaultExitButton = g_MenuConfig.menu.exitButton;
 
 	// Chat styling: resolve color names to control bytes, copy decoration as-is.
 	settings.chatTitleColor = ChatColorByte(m.chatTitleColor, CHAT_COLOR_GREEN);
@@ -1116,62 +1116,62 @@ static void LoadAndApplyConfig()
 	settings.chatValueFormat = m.chatValueFormat;
 	settings.chatSectionColor = ChatColorByte(m.chatSectionColor, CHAT_COLOR_ORCHID);
 	settings.chatSectionFormat = m.chatSectionFormat;
-	settings.htmlVisibleItems = g_MenusConfig.menu.htmlVisibleItems;
-	settings.defaultExitItem = g_MenusConfig.menu.htmlExitItem;
-	ApplyHexColor("HtmlNavColor", g_MenusConfig.menu.htmlNavColor, settings.navColor);
-	ApplyHexColor("HtmlFooterColor", g_MenusConfig.menu.htmlFooterColor, settings.footerColor);
-	ApplyHexColor("HtmlDisabledColor", g_MenusConfig.menu.htmlDisabledColor, settings.disabledColor);
-	ApplyHexColor("HtmlTitleColor", g_MenusConfig.menu.htmlTitleColor, settings.titleColor);
-	ApplyHexColor("HtmlItemColor", g_MenusConfig.menu.htmlItemColor, settings.itemColor);
+	settings.htmlVisibleItems = g_MenuConfig.menu.htmlVisibleItems;
+	settings.defaultExitItem = g_MenuConfig.menu.htmlExitItem;
+	ApplyHexColor("HtmlNavColor", g_MenuConfig.menu.htmlNavColor, settings.navColor);
+	ApplyHexColor("HtmlFooterColor", g_MenuConfig.menu.htmlFooterColor, settings.footerColor);
+	ApplyHexColor("HtmlDisabledColor", g_MenuConfig.menu.htmlDisabledColor, settings.disabledColor);
+	ApplyHexColor("HtmlTitleColor", g_MenuConfig.menu.htmlTitleColor, settings.titleColor);
+	ApplyHexColor("HtmlItemColor", g_MenuConfig.menu.htmlItemColor, settings.itemColor);
 	// Font face is an arbitrary Panorama class, accepted as-is (empty keeps the game default).
-	settings.fontFace = g_MenusConfig.menu.htmlFontFace;
-	settings.marker = g_MenusConfig.menu.htmlMarker;
-	ApplyHexColor("HtmlCounterColor", g_MenusConfig.menu.htmlCounterColor, settings.counterColor);
-	if (html_style::IsSizeToken(g_MenusConfig.menu.htmlFooterSize))
+	settings.fontFace = g_MenuConfig.menu.htmlFontFace;
+	settings.marker = g_MenuConfig.menu.htmlMarker;
+	ApplyHexColor("HtmlCounterColor", g_MenuConfig.menu.htmlCounterColor, settings.counterColor);
+	if (html_style::IsSizeToken(g_MenuConfig.menu.htmlFooterSize))
 	{
-		settings.footerSize = g_MenusConfig.menu.htmlFooterSize;
+		settings.footerSize = g_MenuConfig.menu.htmlFooterSize;
 	}
-	if (html_style::IsSizeToken(g_MenusConfig.menu.htmlCounterSize))
+	if (html_style::IsSizeToken(g_MenuConfig.menu.htmlCounterSize))
 	{
-		settings.counterSize = g_MenusConfig.menu.htmlCounterSize;
+		settings.counterSize = g_MenuConfig.menu.htmlCounterSize;
 	}
-	settings.showCounter = g_MenusConfig.menu.htmlShowCounter;
-	settings.showFooter = g_MenusConfig.menu.htmlShowFooter;
-	settings.submenuSuffix = g_MenusConfig.menu.htmlSubmenuSuffix;
-	settings.footerSeparator = g_MenusConfig.menu.htmlFooterSeparator;
-	settings.counterFormat = g_MenusConfig.menu.htmlCounterFormat;
-	settings.footerHintFormat = g_MenusConfig.menu.htmlFooterHintFormat;
-	settings.footerRangeFormat = g_MenusConfig.menu.htmlFooterRangeFormat;
-	settings.valueFormat = g_MenusConfig.menu.htmlValueFormat;
-	settings.editFormat = g_MenusConfig.menu.htmlEditFormat;
-	settings.sectionFormat = g_MenusConfig.menu.htmlSectionFormat;
-	ApplyHexColor("HtmlSectionColor", g_MenusConfig.menu.htmlSectionColor, settings.sectionColor);
-	settings.highlightText = g_MenusConfig.menu.htmlHighlightText;
+	settings.showCounter = g_MenuConfig.menu.htmlShowCounter;
+	settings.showFooter = g_MenuConfig.menu.htmlShowFooter;
+	settings.submenuSuffix = g_MenuConfig.menu.htmlSubmenuSuffix;
+	settings.footerSeparator = g_MenuConfig.menu.htmlFooterSeparator;
+	settings.counterFormat = g_MenuConfig.menu.htmlCounterFormat;
+	settings.footerHintFormat = g_MenuConfig.menu.htmlFooterHintFormat;
+	settings.footerRangeFormat = g_MenuConfig.menu.htmlFooterRangeFormat;
+	settings.valueFormat = g_MenuConfig.menu.htmlValueFormat;
+	settings.editFormat = g_MenuConfig.menu.htmlEditFormat;
+	settings.sectionFormat = g_MenuConfig.menu.htmlSectionFormat;
+	ApplyHexColor("HtmlSectionColor", g_MenuConfig.menu.htmlSectionColor, settings.sectionColor);
+	settings.highlightText = g_MenuConfig.menu.htmlHighlightText;
 	// Resend cadence: keep sane and keepAlive strictly below the decay duration, else the panel blinks.
-	if (g_MenusConfig.menu.htmlDurationSecs >= 1)
+	if (g_MenuConfig.menu.htmlDuration >= 1)
 	{
-		settings.htmlDurationSecs = g_MenusConfig.menu.htmlDurationSecs;
+		settings.htmlDuration = g_MenuConfig.menu.htmlDuration;
 	}
 	// Must stay below the decay duration, else the panel blinks between resends.
-	if (g_MenusConfig.menu.htmlRefreshInterval > 0.0f && g_MenusConfig.menu.htmlRefreshInterval < settings.htmlDurationSecs)
+	if (g_MenuConfig.menu.htmlRefreshInterval > 0.0f && g_MenuConfig.menu.htmlRefreshInterval < settings.htmlDuration)
 	{
-		settings.htmlRefreshInterval = g_MenusConfig.menu.htmlRefreshInterval;
+		settings.htmlRefreshInterval = g_MenuConfig.menu.htmlRefreshInterval;
 	}
-	if (g_MenusConfig.menu.htmlKeepAlive > 0.0f && g_MenusConfig.menu.htmlKeepAlive < settings.htmlDurationSecs)
+	if (g_MenuConfig.menu.htmlKeepAlive > 0.0f && g_MenuConfig.menu.htmlKeepAlive < settings.htmlDuration)
 	{
-		settings.htmlKeepAlive = g_MenusConfig.menu.htmlKeepAlive;
+		settings.htmlKeepAlive = g_MenuConfig.menu.htmlKeepAlive;
 	}
-	if (html_style::IsSizeToken(g_MenusConfig.menu.htmlTitleSize))
+	if (html_style::IsSizeToken(g_MenuConfig.menu.htmlTitleSize))
 	{
-		settings.titleSize = g_MenusConfig.menu.htmlTitleSize;
+		settings.titleSize = g_MenuConfig.menu.htmlTitleSize;
 	}
-	if (html_style::IsSizeToken(g_MenusConfig.menu.htmlItemSize))
+	if (html_style::IsSizeToken(g_MenuConfig.menu.htmlItemSize))
 	{
-		settings.itemSize = g_MenusConfig.menu.htmlItemSize;
+		settings.itemSize = g_MenuConfig.menu.htmlItemSize;
 	}
-	if (g_MenusConfig.menu.htmlAlign == "left" || g_MenusConfig.menu.htmlAlign == "center" || g_MenusConfig.menu.htmlAlign == "right")
+	if (g_MenuConfig.menu.htmlAlign == "left" || g_MenuConfig.menu.htmlAlign == "center" || g_MenuConfig.menu.htmlAlign == "right")
 	{
-		settings.align = g_MenusConfig.menu.htmlAlign;
+		settings.align = g_MenuConfig.menu.htmlAlign;
 	}
 
 	// HTML nav keys. "none"/"off"/blank disables the action (mask 0),
@@ -1191,12 +1191,12 @@ static void LoadAndApplyConfig()
 			label = NavKeyLabel(name);
 		}
 	};
-	applyNav(g_MenusConfig.menu.navUp, settings.keyUp, settings.keyUpLabel);
-	applyNav(g_MenusConfig.menu.navDown, settings.keyDown, settings.keyDownLabel);
-	applyNav(g_MenusConfig.menu.navSelect, settings.keySelect, settings.keySelectLabel);
-	applyNav(g_MenusConfig.menu.navBack, settings.keyBack, settings.keyBackLabel);
+	applyNav(g_MenuConfig.menu.navUp, settings.keyUp, settings.keyUpLabel);
+	applyNav(g_MenuConfig.menu.navDown, settings.keyDown, settings.keyDownLabel);
+	applyNav(g_MenuConfig.menu.navSelect, settings.keySelect, settings.keySelectLabel);
+	applyNav(g_MenuConfig.menu.navBack, settings.keyBack, settings.keyBackLabel);
 
-	const MenuPanoramaCfg &p = g_MenusConfig.panorama;
+	const MenuPanoramaCfg &p = g_MenuConfig.panorama;
 	if (IsPanoramaFont(p.font))
 	{
 		settings.panoramaFontClass = "font-" + p.font;
@@ -1212,9 +1212,9 @@ static void LoadAndApplyConfig()
 
 	g_MenuManager.Configure(settings);
 
-	g_Translations.SetResolveColorTags(false);
-	g_Translations.Load(g_SMAPI->GetBaseDir(), "cs2menus");
-	g_Translations.SetDefaultLanguage(g_MenusConfig.general.defaultLanguage);
+	g_MenuTranslations.SetResolveColorTags(false);
+	g_MenuTranslations.Load(g_SMAPI->GetBaseDir(), "cs2menus");
+	g_MenuTranslations.SetDefaultLanguage(g_MenuConfig.general.defaultLanguage);
 	g_MenuManager.SetLanguageResolver([](int slot) { return SlotLanguage(slot); });
 }
 
@@ -1225,7 +1225,7 @@ static bool RequireAccess(int slot, const char *commandName, uint32_t defaultFla
 	{
 		return true;
 	}
-	MENU_PrintToChat(slot, "%s", Tr(slot, "You don't have permission to use this command.").c_str());
+	MENU_PrintToChat(slot, "%s", MENU_Translate(slot, "You don't have permission to use this command.").c_str());
 	return false;
 }
 
@@ -1260,7 +1260,7 @@ CON_COMMAND_F(mm_menus_panorama_diag, "Print panorama menu status: signatures, a
 	{
 		return;
 	}
-	const MenuPanoramaCfg &p = g_MenusConfig.panorama;
+	const MenuPanoramaCfg &p = g_MenuConfig.panorama;
 	char header[256];
 	snprintf(header, sizeof(header), "MultiAddonManager: %s, WorkshopId \"%s\", MountAddon %d\n", s_multiAddonManager ? "loaded" : "not loaded",
 			 p.workshopId.c_str(), p.mountAddon ? 1 : 0);
@@ -1462,11 +1462,11 @@ namespace
 	{
 		if (name.empty() || name == "default")
 		{
-			return Tr(slot, "Default");
+			return MENU_Translate(slot, "Default");
 		}
 		if (name == "none" || name == "off")
 		{
-			return Tr(slot, "Disabled");
+			return MENU_Translate(slot, "Disabled");
 		}
 		return NavKeyLabel(name); // uppercased key name, e.g. "SHIFT"
 	}
@@ -1475,7 +1475,7 @@ namespace
 	{
 		if (type == "chat")
 		{
-			return Tr(slot, "Chat");
+			return MENU_Translate(slot, "Chat");
 		}
 		if (type == "html")
 		{
@@ -1485,7 +1485,7 @@ namespace
 		{
 			return "Panorama";
 		}
-		return Tr(slot, "Server default");
+		return MENU_Translate(slot, "Server default");
 	}
 
 	// Push one action's stored name into the manager as a per-player nav preference.
@@ -1652,7 +1652,7 @@ namespace
 	{
 		if (!g_MenuPrefsDB.IsConnected())
 		{
-			MENU_PrintToChat(slot, "%s", Tr(slot, "Menu preferences are not available on this server.").c_str());
+			MENU_PrintToChat(slot, "%s", MENU_Translate(slot, "Menu preferences are not available on this server.").c_str());
 			return false;
 		}
 		if (s_prefs[slot].loading)
@@ -1662,7 +1662,7 @@ namespace
 			{
 				LoadSlot(slot, s_prefs[slot].xuid);
 			}
-			MENU_PrintToChat(slot, "%s", Tr(slot, "Your menu preferences are still loading. Try again in a moment.").c_str());
+			MENU_PrintToChat(slot, "%s", MENU_Translate(slot, "Your menu preferences are still loading. Try again in a moment.").c_str());
 			return false;
 		}
 		return true;
@@ -1685,7 +1685,7 @@ namespace
 			return;
 		}
 
-		MenuHandle menu = g_MenuManager.CreateMenu(MenuType::Default, Tr(slot, "Menu Preferences").c_str(), nullptr);
+		MenuHandle menu = g_MenuManager.CreateMenu(MenuType::Default, MENU_Translate(slot, "Menu Preferences").c_str(), nullptr);
 		if (menu == kInvalidMenuHandle)
 		{
 			return;
@@ -1725,7 +1725,7 @@ namespace
 			{
 				options.push_back(label.c_str());
 			}
-			g_MenuManager.AddChoice(menu, Tr(slot, phrase).c_str(), options.data(), static_cast<int>(options.size()), 0, "");
+			g_MenuManager.AddChoice(menu, MENU_Translate(slot, phrase).c_str(), options.data(), static_cast<int>(options.size()), 0, "");
 		};
 		addChoice("Menu style", typeLabels);
 		addChoice("Up key", keyLabels);
@@ -1835,7 +1835,7 @@ CON_COMMAND_F(mm_menu_pref_type, "Set your preferred menu style: chat | html | p
 	}
 	else
 	{
-		MENU_PrintToChat(slot, "%s", Tr(slot, "Usage: mm_menu_pref_type chat | html | panorama | default").c_str());
+		MENU_PrintToChat(slot, "%s", MENU_Translate(slot, "Usage: mm_menu_pref_type chat | html | panorama | default").c_str());
 		return;
 	}
 	ApplyPrefsToManager(slot);
@@ -1863,7 +1863,7 @@ CON_COMMAND_F(mm_menu_pref_key, "Set a menu navigation key: mm_menu_pref_key <up
 	}
 	if (!parsed.Has("action") || !parsed.Has("key"))
 	{
-		MENU_PrintToChat(slot, "%s", Tr(slot, "Usage: mm_menu_pref_key <up|down|select|back> key=<key|default|none>").c_str());
+		MENU_PrintToChat(slot, "%s", MENU_Translate(slot, "Usage: mm_menu_pref_key <up|down|select|back> key=<key|default|none>").c_str());
 		return;
 	}
 	if (!RequirePrefsDB(slot))
@@ -1875,7 +1875,7 @@ CON_COMMAND_F(mm_menu_pref_key, "Set a menu navigation key: mm_menu_pref_key <up
 	MenuNavAction action;
 	if (!ParseNavActionName(actionName, action))
 	{
-		MENU_PrintToChat(slot, "%s", Tr(slot, "Unknown action. Use up, down, select or back.").c_str());
+		MENU_PrintToChat(slot, "%s", MENU_Translate(slot, "Unknown action. Use up, down, select or back.").c_str());
 		return;
 	}
 	// Validate the key: a name ParseNavKey accepts, or the special "default"/"none".
@@ -1946,7 +1946,7 @@ static bool ParseCommandArgs(int slot, const CCommand &args, const mmu::ArgSpec 
 	}
 	std::string msg = error == mmu::ArgError::UnknownKey  ? TrFormat(slot, "Unknown key %s=.", what.c_str())
 					  : error == mmu::ArgError::StrayText ? TrFormat(slot, "Put %s after a key, like key=value.", what.c_str())
-														  : Tr(slot, "A quote is left open.");
+														  : MENU_Translate(slot, "A quote is left open.");
 	ReplyToCaller(slot, msg.c_str());
 	return false;
 }
@@ -1970,19 +1970,19 @@ CON_COMMAND_F(mm_menu_pref_reset, "Reset menu style and keys to server defaults:
 	}
 	if (!MENU_AdminBridge_CanUseCommand(slot, self ? "menu_pref_reset" : "menu_pref_reset_other", self ? 0 : CS2ADMIN_FLAG_GENERIC))
 	{
-		ReplyToCaller(slot, Tr(slot, "You don't have permission to use this command.").c_str());
+		ReplyToCaller(slot, MENU_Translate(slot, "You don't have permission to use this command.").c_str());
 		return;
 	}
 	if (!g_MenuPrefsDB.IsConnected())
 	{
-		ReplyToCaller(slot, Tr(slot, "Menu preferences are not available on this server.").c_str());
+		ReplyToCaller(slot, MENU_Translate(slot, "Menu preferences are not available on this server.").c_str());
 		return;
 	}
 
 	if (self)
 	{
 		ResetSlotPrefs(slot);
-		MENU_PrintToChat(slot, "%s", Tr(slot, "Your menu preferences were reset to server defaults.").c_str());
+		MENU_PrintToChat(slot, "%s", MENU_Translate(slot, "Your menu preferences were reset to server defaults.").c_str());
 		return;
 	}
 
@@ -2002,13 +2002,13 @@ CON_COMMAND_F(mm_menu_pref_reset, "Reset menu style and keys to server defaults:
 	{
 		if (!MENU_AdminBridge_CanTarget(slot, target))
 		{
-			ReplyToCaller(slot, Tr(slot, "Cannot target this player (higher immunity).").c_str());
+			ReplyToCaller(slot, MENU_Translate(slot, "Cannot target this player (higher immunity).").c_str());
 			return;
 		}
 		ResetSlotPrefs(target);
 		if (target != slot)
 		{
-			MENU_PrintToChat(target, "%s", Tr(target, "An admin reset your menu preferences to server defaults.").c_str());
+			MENU_PrintToChat(target, "%s", MENU_Translate(target, "An admin reset your menu preferences to server defaults.").c_str());
 		}
 		CCSPlayerController *controller = CCSPlayerController::FromSlot(target);
 		msg = TrFormat(slot, "Reset menu preferences for %s.", controller ? controller->GetPlayerName() : "player");
@@ -2018,7 +2018,7 @@ CON_COMMAND_F(mm_menu_pref_reset, "Reset menu style and keys to server defaults:
 		// ICS2Admin only exposes immunity for online slots.
 		if (!MENU_AdminBridge_CanUseCommand(slot, "menu_pref_reset_offline", CS2ADMIN_FLAG_ROOT))
 		{
-			ReplyToCaller(slot, Tr(slot, "That player is offline. Resetting offline players needs root.").c_str());
+			ReplyToCaller(slot, MENU_Translate(slot, "That player is offline. Resetting offline players needs root.").c_str());
 			return;
 		}
 		g_MenuPrefsDB.SavePrefs(xuid, MenuPrefsRow {});
@@ -2026,7 +2026,7 @@ CON_COMMAND_F(mm_menu_pref_reset, "Reset menu style and keys to server defaults:
 	}
 	else
 	{
-		ReplyToCaller(slot, Tr(slot, found.error.c_str()).c_str());
+		ReplyToCaller(slot, MENU_Translate(slot, found.error.c_str()).c_str());
 		return;
 	}
 	ReplyToCaller(slot, msg.c_str());
@@ -2143,7 +2143,7 @@ void CS2MenusPlugin::AllPluginsLoaded()
 	s_multiAddonManager.Refresh();
 
 	// Per-player preferences are opt-in and need sql_mm, which must be fully loaded by now.
-	if (!g_MenusConfig.databaseEnabled)
+	if (!g_MenuConfig.databaseEnabled)
 	{
 		return;
 	}
@@ -2355,8 +2355,8 @@ static bool StripCommandPrefix(const char *rawMsg, std::string &body, bool &sile
 	}
 	msg = msg.substr(a, b - a + 1);
 
-	const std::string &p1 = g_MenusConfig.general.commandPrefix;
-	const std::string &p2 = g_MenusConfig.general.silentCommandPrefix;
+	const std::string &p1 = g_MenuConfig.general.commandPrefix;
+	const std::string &p2 = g_MenuConfig.general.silentCommandPrefix;
 	if (!p1.empty() && msg.rfind(p1, 0) == 0)
 	{
 		body = msg.substr(p1.size());

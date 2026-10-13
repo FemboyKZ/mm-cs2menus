@@ -6,13 +6,13 @@
 #include <cstdlib>
 #include <string>
 
-MenusConfig g_MenusConfig;
+MenuConfig g_MenuConfig;
 
 using str::ToLower;
 
 static void ConfigHandler(const std::string &section, const std::string &key, const std::string &value, void *userdata)
 {
-	MenusConfig *cfg = static_cast<MenusConfig *>(userdata);
+	MenuConfig *cfg = static_cast<MenuConfig *>(userdata);
 	std::string sec = ToLower(section);
 	std::string k = ToLower(key);
 	bool known = true;
@@ -220,7 +220,7 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		}
 		else if (k == "htmlduration" || k == "htmldurationsecs")
 		{
-			cfg->menu.htmlDurationSecs = std::atoi(value.c_str());
+			cfg->menu.htmlDuration = std::atoi(value.c_str());
 		}
 		else if (k == "htmlrefreshinterval")
 		{
@@ -316,7 +316,7 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 	}
 }
 
-bool MENU_LoadConfig(const char *path, MenusConfig &config)
+bool MENU_LoadConfig(const char *path, MenuConfig &config)
 {
 	if (!kv::LoadFile(path ? path : "", ConfigHandler, &config))
 	{

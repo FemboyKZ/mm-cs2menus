@@ -16,7 +16,7 @@ std::string MenuPrefsDB::Table() const
 	// Prefix comes from server config and is interpolated into SQL unescaped,
 	// so restrict it to a safe identifier charset.
 	std::string prefix;
-	for (char c : g_MenusConfig.database.prefix)
+	for (char c : g_MenuConfig.database.prefix)
 	{
 		if (isalnum(static_cast<unsigned char>(c)) || c == '_')
 		{
@@ -32,7 +32,7 @@ std::string MenuPrefsDB::Table() const
 
 bool MenuPrefsDB::Init()
 {
-	m_isSqlite = !g_MenusConfig.database.IsMySQL();
+	m_isSqlite = !g_MenuConfig.database.IsMySQL();
 	// Pinned: the config reloads each map, the schema is only made on connect.
 	m_table = Table();
 	if (!m_conn.Init(m_isSqlite ? mmu::sql::DbType::SQLite : mmu::sql::DbType::MySQL))
@@ -46,7 +46,7 @@ bool MenuPrefsDB::Init()
 void MenuPrefsDB::Connect(std::function<void(bool)> cb)
 {
 	mmu::sql::ConnectParams p;
-	p = g_MenusConfig.database.ToConnectParams(g_SMAPI->GetBaseDir());
+	p = g_MenuConfig.database.ToConnectParams(g_SMAPI->GetBaseDir());
 	m_conn.Connect(p, std::move(cb));
 }
 

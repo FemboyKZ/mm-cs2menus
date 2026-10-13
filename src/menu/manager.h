@@ -104,7 +104,7 @@ struct MenuManagerSettings
 	bool highlightText = true;
 	// HTML: center-panel resend cadence (the message decays, so it's re-sent while open).
 	// keepAlive must stay below durationSecs or the panel can blink.
-	int htmlDurationSecs = 3;
+	int htmlDuration = 3;
 	float htmlRefreshInterval = 1.0f;
 	float htmlKeepAlive = 2.0f;
 

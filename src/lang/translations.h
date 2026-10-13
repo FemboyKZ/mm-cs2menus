@@ -8,6 +8,6 @@
 // Of a consumer's menu only the labels are translated.
 // Item text and titles are passed through verbatim, the consumer localizes those itself.
 // Color tags stay literal, menu text is rendered as HTML rather than chat lines. The command replies resolve theirs when sent.
-extern mmu::Translations g_Translations;
+extern mmu::Translations g_MenuTranslations;
 
 #endif // _INCLUDE_MENU_TRANSLATIONS_H_

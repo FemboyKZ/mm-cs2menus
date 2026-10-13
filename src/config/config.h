@@ -90,7 +90,7 @@ struct MenuDefaultsCfg
 	bool htmlHighlightText = true;
 	// Center-panel resend cadence (the message decays, re-sent while open).
 	// KeepAlive must stay below DurationSecs or the panel can blink.
-	int htmlDurationSecs = 3;
+	int htmlDuration = 3;
 	float htmlRefreshInterval = 1.0f;
 	float htmlKeepAlive = 2.0f;
 
@@ -123,7 +123,7 @@ struct MenuPanoramaCfg
 
 // Optional sql_mm-backed store for per-player menu preferences (type + HTML nav keys).
 // Off by default. When disabled, cs2menus uses only the server config (no per-player overrides).
-struct MenusConfig
+struct MenuConfig
 {
 	// Prefixes a player may type before a menu selection number, "!1" or "/1" as well as bare "1".
 	mmu::config::GeneralBlock general;
@@ -140,8 +140,8 @@ struct MenusConfig
 
 // Parse cfg/cs2menus/core.cfg into `config`. Returns true on success,
 // on failure `config` is left untouched (defaults remain in effect).
-bool MENU_LoadConfig(const char *path, MenusConfig &config);
+bool MENU_LoadConfig(const char *path, MenuConfig &config);
 
-extern MenusConfig g_MenusConfig;
+extern MenuConfig g_MenuConfig;
 
 #endif // _INCLUDE_MENU_CONFIG_H_
