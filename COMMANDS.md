@@ -25,10 +25,10 @@ cs2menus is a menu-rendering library.
 
 | Console                  | Chat alias                      | Default flag | Description                                                |
 | ------------------------ | ------------------------------- | ------------ | ---------------------------------------------------------- |
-| `cs2menus_reload`        | -                               | `z` root     | Reload core.cfg and re-probe HTML availability             |
-| `cs2menus_version`       | -                               | `z` root     | Print plugin and interface versions                        |
-| `cs2menus_panorama_diag` | -                               | `z` root     | Print panorama signatures, addon mount, clicks and windows |
-| `cs2menus_demo [type]`   | -                               | `z` root     | Open a demo menu with every item type (chat/html/panorama) |
+| `mm_menus_reload`        | -                               | `z` root     | Reload core.cfg and re-probe HTML availability             |
+| `mm_menus_version`       | -                               | `z` root     | Print plugin and interface versions                        |
+| `mm_menus_panorama_diag` | -                               | `z` root     | Print panorama signatures, addon mount, clicks and windows |
+| `mm_menus_demo [type]`   | -                               | `z` root     | Open a demo menu with every item type (chat/html/panorama) |
 | `mm_menu_prefs`          | `!menu`, `!prefs`, `!menuprefs` | open         | Open your personal menu-preferences menu                   |
 | `mm_pref_type`           | -                               | open         | Set menu style: chat/html/panorama/default                 |
 | `mm_pref_key`            | -                               | open         | Set a navigation key: `<action> key=<key>`                 |
@@ -54,7 +54,7 @@ Navigation commands (`menu_up/down/select/close`) deny **silently** so gating th
 ```json
 "Overrides"
 {
-    "cs2menus_reload"  "i"  // let config-flag admins reload instead of root only
+    "menus_reload"     "i"  // let config-flag admins reload instead of root only
     "menu_prefs"       "b"  // gate the preferences menu to generic admins
     "pref_reset_other" "d"  // only ban admins can reset other players' prefs
 }

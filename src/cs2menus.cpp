@@ -1230,10 +1230,10 @@ static bool RequireAccess(int slot, const char *commandName, uint32_t defaultFla
 }
 
 // Server console / rcon command to reapply core.cfg without waiting for a map change.
-CON_COMMAND_F(cs2menus_reload, "Reload cs2menus core.cfg and re-probe HTML availability.", FCVAR_RELEASE | FCVAR_GAMEDLL)
+CON_COMMAND_F(mm_menus_reload, "Reload cs2menus core.cfg and re-probe HTML availability.", FCVAR_RELEASE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!RequireAccess(slot, "cs2menus_reload", CS2ADMIN_FLAG_ROOT))
+	if (!RequireAccess(slot, "menus_reload", CS2ADMIN_FLAG_ROOT))
 	{
 		return;
 	}
@@ -1242,21 +1242,21 @@ CON_COMMAND_F(cs2menus_reload, "Reload cs2menus core.cfg and re-probe HTML avail
 	MMU_LOG_INFO("Config reloaded.\n");
 }
 
-CON_COMMAND_F(cs2menus_version, "Print the cs2menus plugin and menu-API interface versions.", FCVAR_RELEASE | FCVAR_GAMEDLL)
+CON_COMMAND_F(mm_menus_version, "Print the cs2menus plugin and menu-API interface versions.", FCVAR_RELEASE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!RequireAccess(slot, "cs2menus_version", CS2ADMIN_FLAG_ROOT))
+	if (!RequireAccess(slot, "menus_version", CS2ADMIN_FLAG_ROOT))
 	{
 		return;
 	}
 	MMU_LOG_INFO("Plugin version %s, interface %s.\n", PLUGIN_FULL_VERSION, CS2MENUS_INTERFACE);
 }
 
-CON_COMMAND_F(cs2menus_panorama_diag, "Print panorama menu status: signatures, addon, clicks and every player's window.",
+CON_COMMAND_F(mm_menus_panorama_diag, "Print panorama menu status: signatures, addon, clicks and every player's window.",
 			  FCVAR_RELEASE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!RequireAccess(slot, "cs2menus_panorama_diag", CS2ADMIN_FLAG_ROOT))
+	if (!RequireAccess(slot, "menus_panorama_diag", CS2ADMIN_FLAG_ROOT))
 	{
 		return;
 	}
@@ -1287,14 +1287,14 @@ CON_COMMAND_F(cs2menus_panorama_diag, "Print panorama menu status: signatures, a
 static bool ParseCommandArgs(int slot, const CCommand &args, const mmu::ArgSpec &keys, mmu::Args &out);
 
 // Every item type, to try each renderer in game.
-CON_COMMAND_F(cs2menus_demo, "Open a demo menu with every item type: cs2menus_demo [chat|html|panorama].", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+CON_COMMAND_F(mm_menus_demo, "Open a demo menu with every item type: mm_menus_demo [chat|html|panorama].", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
 	if (!ValidSlot(slot))
 	{
 		return;
 	}
-	if (!RequireAccess(slot, "cs2menus_demo", CS2ADMIN_FLAG_ROOT))
+	if (!RequireAccess(slot, "menus_demo", CS2ADMIN_FLAG_ROOT))
 	{
 		return;
 	}
