@@ -46,7 +46,7 @@ bool MenuPrefsDB::Init()
 void MenuPrefsDB::Connect(std::function<void(bool)> cb)
 {
 	mmu::sql::ConnectParams p;
-	p = g_MenusConfig.database.ToConnectParams();
+	p = g_MenusConfig.database.ToConnectParams(g_SMAPI->GetBaseDir());
 	m_conn.Connect(p, std::move(cb));
 }
 

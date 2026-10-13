@@ -134,7 +134,8 @@ struct MenusConfig
 
 	// Prefs table is "<prefix>_prefs".
 	bool databaseEnabled = false;
-	mmu::config::DatabaseBlock database = mmu::config::DatabaseBlock::Defaults("cs2menus", "addons/cs2menus/cs2menus.db", "cs2menus");
+	mmu::config::DatabaseBlock database =
+		mmu::config::DatabaseBlock::Defaults("cs2menus", "addons/cs2menus/data/cs2menus.db", "cs2menus", "addons/cs2menus/cs2menus.db");
 };
 
 // Parse cfg/cs2menus/core.cfg into `config`. Returns true on success,
