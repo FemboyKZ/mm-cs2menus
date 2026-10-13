@@ -15,6 +15,7 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 	MenusConfig *cfg = static_cast<MenusConfig *>(userdata);
 	std::string sec = ToLower(section);
 	std::string k = ToLower(key);
+	bool known = true;
 
 	// Chat and Html keys were in Menu before, with the section as a prefix.
 	if (sec == "chat" || sec == "html")
@@ -28,10 +29,7 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 
 	if (sec == "general")
 	{
-		if (!mmu::config::ApplyGeneralKey(cfg->general, k, value))
-		{
-			mmu::config::ApplyLogKey(cfg->log, k, value);
-		}
+		known = mmu::config::ApplyGeneralKey(cfg->general, k, value) || mmu::config::ApplyLogKey(cfg->log, k, value);
 	}
 	else if (sec == "menu")
 	{
@@ -264,6 +262,10 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.navBack = ToLower(value);
 		}
+		else
+		{
+			known = false;
+		}
 	}
 	else if (sec == "panorama")
 	{
@@ -295,10 +297,22 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->panorama.sounds = (value != "0");
 		}
+		else
+		{
+			known = false;
+		}
 	}
 	else if (sec == "database")
 	{
-		mmu::config::ApplyOptionalDatabaseKey(cfg->database, cfg->databaseEnabled, k, value);
+		known = mmu::config::ApplyOptionalDatabaseKey(cfg->database, cfg->databaseEnabled, k, value);
+	}
+	else
+	{
+		known = false;
+	}
+	if (!known)
+	{
+		mmu::config::WarnUnknownKey(section, key);
 	}
 }
 
