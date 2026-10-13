@@ -16,7 +16,7 @@ on:
 jobs:
   build-linux:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
@@ -200,7 +200,7 @@ jobs:
       matrix:
         include:
           - os: linux
-            runner: ubuntu-latest
+            runner: self-hosted
           - os: windows
             runner: windows-latest
     runs-on: ${{ matrix.runner }}
@@ -330,7 +330,7 @@ jobs:
     name: Release
     if: startsWith(github.ref, 'refs/tags/')
     needs: [build-linux, build-windows, build-bridges]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: write
 
