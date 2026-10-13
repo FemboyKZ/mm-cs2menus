@@ -16,6 +16,16 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 	std::string sec = ToLower(section);
 	std::string k = ToLower(key);
 
+	// Chat and Html keys were in Menu before, with the section as a prefix.
+	if (sec == "chat" || sec == "html")
+	{
+		if (k != "itemsperpage")
+		{
+			k = sec + k;
+		}
+		sec = "menu";
+	}
+
 	if (sec == "general")
 	{
 		if (!mmu::config::ApplyGeneralKey(cfg->general, k, value))
@@ -210,7 +220,7 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 		{
 			cfg->menu.htmlHighlightText = (value != "0");
 		}
-		else if (k == "htmldurationsecs")
+		else if (k == "htmlduration" || k == "htmldurationsecs")
 		{
 			cfg->menu.htmlDurationSecs = std::atoi(value.c_str());
 		}
