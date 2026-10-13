@@ -1804,14 +1804,14 @@ CON_COMMAND_F(mm_menu_prefs, "Open your personal menu-preferences menu.", FCVAR_
 	OpenPrefsMenu(slot);
 }
 
-CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | panorama | default.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+CON_COMMAND_F(mm_menu_pref_type, "Set your preferred menu style: chat | html | panorama | default.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
 	if (!ValidSlot(slot))
 	{
 		return;
 	}
-	if (!RequireAccess(slot, "pref_type", 0))
+	if (!RequireAccess(slot, "menu_pref_type", 0))
 	{
 		return;
 	}
@@ -1835,7 +1835,7 @@ CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | panora
 	}
 	else
 	{
-		MENU_PrintToChat(slot, "%s", Tr(slot, "Usage: mm_pref_type chat | html | panorama | default").c_str());
+		MENU_PrintToChat(slot, "%s", Tr(slot, "Usage: mm_menu_pref_type chat | html | panorama | default").c_str());
 		return;
 	}
 	ApplyPrefsToManager(slot);
@@ -1844,7 +1844,7 @@ CON_COMMAND_F(mm_pref_type, "Set your preferred menu style: chat | html | panora
 	MENU_PrintToChat(slot, "%s", TrFormat(slot, "Menu style set to %s.", TypeDisplay(slot, s_prefs[slot].type).c_str()).c_str());
 }
 
-CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|select|back> key=<key|default|none>.",
+CON_COMMAND_F(mm_menu_pref_key, "Set a menu navigation key: mm_menu_pref_key <up|down|select|back> key=<key|default|none>.",
 			  FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
@@ -1852,7 +1852,7 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 	{
 		return;
 	}
-	if (!RequireAccess(slot, "pref_key", 0))
+	if (!RequireAccess(slot, "menu_pref_key", 0))
 	{
 		return;
 	}
@@ -1863,7 +1863,7 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 	}
 	if (!parsed.Has("action") || !parsed.Has("key"))
 	{
-		MENU_PrintToChat(slot, "%s", Tr(slot, "Usage: mm_pref_key <up|down|select|back> key=<key|default|none>").c_str());
+		MENU_PrintToChat(slot, "%s", Tr(slot, "Usage: mm_menu_pref_key <up|down|select|back> key=<key|default|none>").c_str());
 		return;
 	}
 	if (!RequirePrefsDB(slot))
@@ -1896,14 +1896,14 @@ CON_COMMAND_F(mm_pref_key, "Set a menu navigation key: mm_pref_key <up|down|sele
 	MENU_PrintToChat(slot, "%s", TrFormat(slot, "%s key set to %s.", actionName.c_str(), KeyDisplay(slot, keyName).c_str()).c_str());
 }
 
-CON_COMMAND_F(mm_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
+CON_COMMAND_F(mm_menu_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
 	if (!ValidSlot(slot))
 	{
 		return;
 	}
-	if (!RequireAccess(slot, "pref_show", 0))
+	if (!RequireAccess(slot, "menu_pref_show", 0))
 	{
 		return;
 	}
@@ -1952,7 +1952,7 @@ static bool ParseCommandArgs(int slot, const CCommand &args, const mmu::ArgSpec 
 }
 
 // Self and target resets use separate override keys so each can be gated.
-CON_COMMAND_F(mm_pref_reset, "Reset menu style and keys to server defaults: mm_pref_reset [#slot|steamid|name].",
+CON_COMMAND_F(mm_menu_pref_reset, "Reset menu style and keys to server defaults: mm_menu_pref_reset [#slot|steamid|name].",
 			  FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
@@ -1965,10 +1965,10 @@ CON_COMMAND_F(mm_pref_reset, "Reset menu style and keys to server defaults: mm_p
 	bool self = !player;
 	if (self && !ValidSlot(slot))
 	{
-		MMU_LOG_INFO("Usage: mm_pref_reset <#slot|steamid|name>\n");
+		MMU_LOG_INFO("Usage: mm_menu_pref_reset <#slot|steamid|name>\n");
 		return;
 	}
-	if (!MENU_AdminBridge_CanUseCommand(slot, self ? "pref_reset" : "pref_reset_other", self ? 0 : CS2ADMIN_FLAG_GENERIC))
+	if (!MENU_AdminBridge_CanUseCommand(slot, self ? "menu_pref_reset" : "menu_pref_reset_other", self ? 0 : CS2ADMIN_FLAG_GENERIC))
 	{
 		ReplyToCaller(slot, Tr(slot, "You don't have permission to use this command.").c_str());
 		return;
@@ -2016,7 +2016,7 @@ CON_COMMAND_F(mm_pref_reset, "Reset menu style and keys to server defaults: mm_p
 	else if (xuid != 0)
 	{
 		// ICS2Admin only exposes immunity for online slots.
-		if (!MENU_AdminBridge_CanUseCommand(slot, "pref_reset_offline", CS2ADMIN_FLAG_ROOT))
+		if (!MENU_AdminBridge_CanUseCommand(slot, "menu_pref_reset_offline", CS2ADMIN_FLAG_ROOT))
 		{
 			ReplyToCaller(slot, Tr(slot, "That player is offline. Resetting offline players needs root.").c_str());
 			return;

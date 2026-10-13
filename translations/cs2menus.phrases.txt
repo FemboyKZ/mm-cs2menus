@@ -160,18 +160,18 @@
 		"en"	"{red}A quote is left open."
 	}
 
-	// Chat replies: mm_pref_type, mm_pref_key and mm_pref_show
-	"Usage: mm_pref_type chat | html | panorama | default"
+	// Chat replies: mm_menu_pref_type, mm_menu_pref_key and mm_menu_pref_show
+	"Usage: mm_menu_pref_type chat | html | panorama | default"
 	{
-		"en"	"Usage: mm_pref_type chat | html | panorama | default"
+		"en"	"Usage: mm_menu_pref_type chat | html | panorama | default"
 	}
 	"Menu style set to %s."
 	{
 		"en"	"Menu style set to {green}%s{default}."
 	}
-	"Usage: mm_pref_key <up|down|select|back> key=<key|default|none>"
+	"Usage: mm_menu_pref_key <up|down|select|back> key=<key|default|none>"
 	{
-		"en"	"Usage: mm_pref_key <up|down|select|back> key=<key|default|none>"
+		"en"	"Usage: mm_menu_pref_key <up|down|select|back> key=<key|default|none>"
 	}
 	"Unknown action. Use up, down, select or back."
 	{
@@ -194,7 +194,7 @@
 		"en"	"Style: {green}%s{default} | Up: {green}%s{default} | Down: {green}%s{default} | Select: {green}%s{default} | Back: {green}%s"
 	}
 
-	// Chat replies: mm_pref_reset
+	// Chat replies: mm_menu_pref_reset
 	"Your menu preferences were reset to server defaults."
 	{
 		"en"	"Your menu preferences were reset to server defaults."
