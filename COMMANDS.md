@@ -23,22 +23,22 @@ cs2menus is a menu-rendering library.
 
 ## Commands
 
-| Console                       | Chat alias                      | Default flag | Description                                                |
-| ----------------------------- | ------------------------------- | ------------ | ---------------------------------------------------------- |
-| `mm_menus_reload`             | -                               | `z` root     | Reload core.cfg and re-probe HTML availability             |
-| `mm_menus_version`            | -                               | `z` root     | Print plugin and interface versions                        |
-| `mm_menus_panorama_diag`      | -                               | `z` root     | Print panorama signatures, addon mount, clicks and windows |
-| `mm_menus_demo [type]`        | -                               | `z` root     | Open a demo menu with every item type (chat/html/panorama) |
-| `mm_menu_prefs`               | `!menu`, `!prefs`, `!menuprefs` | open         | Open your personal menu-preferences menu                   |
-| `mm_menu_pref_type`           | -                               | open         | Set menu style: chat/html/panorama/default                 |
-| `mm_menu_pref_key`            | -                               | open         | Set a navigation key: `<action> key=<key>`                 |
-| `mm_menu_pref_show`           | -                               | open         | Show your current preferences                              |
-| `mm_menu_pref_reset`          | -                               | open         | Reset your menu style and keys to server defaults          |
-| `mm_menu_pref_reset <target>` | -                               | `b` generic  | Reset another player's prefs (`#slot`, SteamID, name)      |
-| `mm_menu_up`                  | `!menu_up`                      | open         | Move the open menu's cursor up                             |
-| `mm_menu_down`                | `!menu_down`                    | open         | Move the open menu's cursor down                           |
-| `mm_menu_select`              | `!menu_select`, bare number     | open         | Select the highlighted / numbered item                     |
-| `mm_menu_close`               | `!menu_close`                   | open         | Close the open menu                                        |
+| Chat                            | Console                       | Default flag | Description                                                |
+| ------------------------------- | ----------------------------- | ------------ | ---------------------------------------------------------- |
+| -                               | `mm_menus_reload`             | `z` root     | Reload core.cfg and re-probe HTML availability             |
+| -                               | `mm_menus_version`            | `z` root     | Print plugin and interface versions                        |
+| -                               | `mm_menus_panorama_diag`      | `z` root     | Print panorama signatures, addon mount, clicks and windows |
+| -                               | `mm_menus_demo [type]`        | `z` root     | Open a demo menu with every item type (chat/html/panorama) |
+| `!menu`, `!prefs`, `!menuprefs` | `mm_menu_prefs`               | open         | Open your personal menu-preferences menu                   |
+| -                               | `mm_menu_pref_type`           | open         | Set menu style: chat/html/panorama/default                 |
+| -                               | `mm_menu_pref_key`            | open         | Set a navigation key: `<action> key=<key>`                 |
+| -                               | `mm_menu_pref_show`           | open         | Show your current preferences                              |
+| -                               | `mm_menu_pref_reset`          | open         | Reset your menu style and keys to server defaults          |
+| -                               | `mm_menu_pref_reset <target>` | `b` generic  | Reset another player's prefs (`#slot`, SteamID, name)      |
+| `!menu_up`                      | `mm_menu_up`                  | open         | Move the open menu's cursor up                             |
+| `!menu_down`                    | `mm_menu_down`                | open         | Move the open menu's cursor down                           |
+| `!menu_select`, bare number     | `mm_menu_select`              | open         | Select the highlighted / numbered item                     |
+| `!menu_close`                   | `mm_menu_close`               | open         | Close the open menu                                        |
 
 `mm_menu_pref_reset <target>` needs strictly higher immunity than the target. Root and console bypass it.
 Offline immunity can't be checked, so offline targets also need `menu_pref_reset_offline` (default `z` root).

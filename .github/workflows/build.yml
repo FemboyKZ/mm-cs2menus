@@ -59,10 +59,8 @@ jobs:
 
       - name: Stage package
         run: |
-          mkdir -p staging/addons
-          cp -r build/package/addons/* staging/addons/
-          mkdir -p staging/cfg/cs2menus
-          cp configs/core.cfg staging/cfg/cs2menus/
+          mkdir -p staging
+          cp -r build/package/* staging/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
@@ -127,10 +125,8 @@ jobs:
 
       - name: Stage package
         run: |
-          New-Item -ItemType Directory -Force -Path staging/addons | Out-Null
-          Copy-Item -Recurse build/package/addons/* staging/addons/
-          New-Item -ItemType Directory -Force -Path staging/cfg/cs2menus | Out-Null
-          Copy-Item configs/core.cfg staging/cfg/cs2menus/
+          New-Item -ItemType Directory -Force -Path staging | Out-Null
+          Copy-Item -Recurse build/package/* staging/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7

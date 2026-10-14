@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <utility>
 
 MenuConfig g_MenuConfig;
 
@@ -318,11 +319,14 @@ static void ConfigHandler(const std::string &section, const std::string &key, co
 
 bool MENU_LoadConfig(const char *path, MenuConfig &config)
 {
-	if (!kv::LoadFile(path ? path : "", ConfigHandler, &config))
+	// Fresh, so a removed key reverts to its default.
+	MenuConfig fresh;
+	if (!kv::LoadFile(path ? path : "", ConfigHandler, &fresh))
 	{
 		return false;
 	}
 
+	config = std::move(fresh);
 	mmu::config::ApplyLogBlock(config.log);
 	return true;
 }

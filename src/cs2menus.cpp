@@ -1083,13 +1083,10 @@ static void LoadAndApplyConfig()
 	char cfgPath[512];
 	snprintf(cfgPath, sizeof(cfgPath), "%s/cfg/cs2menus/core.cfg", g_SMAPI->GetBaseDir());
 
-	// Fresh, so a key removed from the file goes back to its default.
-	MenuConfig loaded;
-	if (!MENU_LoadConfig(cfgPath, loaded))
+	if (!MENU_LoadConfig(cfgPath, g_MenuConfig))
 	{
-		MMU_LOG_INFO("No core.cfg at %s - using defaults.\n", cfgPath);
+		MMU_LOG_INFO("No core.cfg at %s, keeping the settings in use.\n", cfgPath);
 	}
-	g_MenuConfig = std::move(loaded);
 
 	MenuManagerSettings settings;
 	const MenuDefaultsCfg &m = g_MenuConfig.menu;
@@ -1230,7 +1227,7 @@ static bool RequireAccess(int slot, const char *commandName, uint32_t defaultFla
 }
 
 // Server console / rcon command to reapply core.cfg without waiting for a map change.
-CON_COMMAND_F(mm_menus_reload, "Reload cs2menus core.cfg and re-probe HTML availability.", FCVAR_RELEASE | FCVAR_GAMEDLL)
+CON_COMMAND_F(mm_menus_reload, "Reload cs2menus core.cfg and re-probe HTML availability.", FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
 	if (!RequireAccess(slot, "menus_reload", CS2ADMIN_FLAG_ROOT))
@@ -1242,7 +1239,8 @@ CON_COMMAND_F(mm_menus_reload, "Reload cs2menus core.cfg and re-probe HTML avail
 	MMU_LOG_INFO("Config reloaded.\n");
 }
 
-CON_COMMAND_F(mm_menus_version, "Print the cs2menus plugin and menu-API interface versions.", FCVAR_RELEASE | FCVAR_GAMEDLL)
+CON_COMMAND_F(mm_menus_version, "Print the cs2menus plugin and menu-API interface versions.",
+			  FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
 	if (!RequireAccess(slot, "menus_version", CS2ADMIN_FLAG_ROOT))
@@ -1253,7 +1251,7 @@ CON_COMMAND_F(mm_menus_version, "Print the cs2menus plugin and menu-API interfac
 }
 
 CON_COMMAND_F(mm_menus_panorama_diag, "Print panorama menu status: signatures, addon, clicks and every player's window.",
-			  FCVAR_RELEASE | FCVAR_GAMEDLL)
+			  FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
 	if (!RequireAccess(slot, "menus_panorama_diag", CS2ADMIN_FLAG_ROOT))
@@ -2044,6 +2042,8 @@ CS2MenusPlugin::CS2MenusPlugin()
 {
 }
 
+static bool s_skipLevelInitReload = false;
+
 bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
 	PLUGIN_SAVEVARS();
@@ -2076,7 +2076,7 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	m_StartupServer.Add(g_pNetworkServerService);
 
 	g_pCVar = g_pICvar;
-	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL);
+	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_GAMEDLL);
 
 	// Resolve the game event manager for HTML menus. Chat menus work if this fails.
 	center_html::Init();
@@ -2102,6 +2102,7 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 
 	EvaluateHtmlAvailability();
 	LoadAndApplyConfig();
+	s_skipLevelInitReload = !late;
 
 	s_loaded = true;
 	MMU_LOG_INFO("Plugin loaded.\n");
@@ -2123,8 +2124,15 @@ void CS2MenusPlugin::OnLevelInit(char const * /*pMapName*/, char const * /*pMapE
 	// Re-check in case the load-time probe was early.
 	EvaluateHtmlAvailability();
 
-	// Pick up config edits on each map change.
-	LoadAndApplyConfig();
+	// Pick up config edits on each map change. Load has just read it for the first one.
+	if (s_skipLevelInitReload)
+	{
+		s_skipLevelInitReload = false;
+	}
+	else
+	{
+		LoadAndApplyConfig();
+	}
 }
 
 void CS2MenusPlugin::OnLevelShutdown()
@@ -2192,6 +2200,7 @@ void CS2MenusPlugin::OnPluginUnload(PluginId id)
 bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 {
 	s_loaded = false;
+	ConVar_Unregister();
 	ApplyHudFlashingFix(0.0f, true);
 	MENU_AdminBridge_Shutdown();
 

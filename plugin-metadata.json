@@ -4,8 +4,8 @@
     "display_name": "CS2 Menu API",
     "description": "CS2 Menu API plugin for MM:S",
     "author": "jvnipers",
-    "url": "http://github.com/FemboyKZ/mm-cs2menus",
+    "url": "https://github.com/FemboyKZ/mm-cs2menus",
     "log_tag": "MENU",
-    "license": "GPLv3",
+    "license": "GPL-3.0",
     "version": "2.1.0"
 }

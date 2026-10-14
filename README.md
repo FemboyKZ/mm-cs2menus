@@ -24,7 +24,7 @@ For commands see: [COMMANDS.md](./COMMANDS.md).
 - [CS2Admin](https://github.com/FemboyKZ/mm-cs2admin)
 - [CS2KZ-Metamod](https://github.com/KZGlobalTeam/cs2kz-metamod)
 
-## For server owners
+## Usage
 
 ### Dependencies
 
@@ -57,7 +57,7 @@ For commands see: [COMMANDS.md](./COMMANDS.md).
 Panorama menus need the [workshop addon](./workshop/README.md) on the clients, so the server has to mount it:
 with MultiAddonManager loaded and `MountAddon` on, cs2menus does that itself. Without the addon they fall back to HTML menus.
 
-## For plugin developers
+## API
 
 Acquire the interface via Metamod's factory:
 
@@ -98,7 +98,7 @@ g_pMenus->SetMenuKey(m, MenuNavAction::Back,   MenuButton::Speed); // Shift back
 g_pMenus->DisplayMenu(m, slot, 20.0f); // show to one player, 20s timeout (0 = none)
 ```
 
-The full surface is documented in [`ics2menus.h`](https://github.com/FemboyKZ/mm-utils/blob/main/interfaces/cs2menus/ics2menus.h),
+The full surface is documented in [`ics2menus.h`](https://github.com/FemboyKZ/mm-utils/blob/master/interfaces/cs2menus/ics2menus.h),
 which lives in [mm-utils](https://github.com/FemboyKZ/mm-utils) with a `menus_client.h` helper that does the acquiring above.
 
 Past plain lists it has value items (toggles, steppers, choices), sections, per-menu styling, a history with a back arrow,
@@ -138,3 +138,7 @@ docker compose run --rm build
 - [cs2kz-metamod](https://github.com/KZGlobalTeam/cs2kz-metamod) - gamedata signatures, button-state schema, the menu layout the workshop addon is based on
 - [CS2Fixes](https://github.com/Source2ZE/CS2Fixes) - center-HTML (`show_survival_respawn_status`) technique, gamedata
 - [SwiftlyS2](https://github.com/swiftly-solution/swiftlys2) - HTML menu design reference
+
+## Contributing
+
+Feel free to create PRs or issues regarding anything, but keep in mind that this is very much just for fkz and I won't spend time adding features I won't use.
