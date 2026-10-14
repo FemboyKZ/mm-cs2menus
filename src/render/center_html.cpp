@@ -5,9 +5,8 @@
 #include "sdk/sigscan.h"
 
 #include <igameevents.h>
-#include <engine/igameeventsystem.h>
+#include <engine2/igameeventsystem.h>
 #include <networksystem/inetworkmessages.h>
-#include <networksystem/netmessage.h>
 #include <recipientfilter.h>
 #include <gameevents.pb.h>
 

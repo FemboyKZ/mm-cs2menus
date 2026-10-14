@@ -6,7 +6,8 @@
 
 #include <ISmmPlugin.h>
 #include <igameevents.h>
-#include <iserver.h>
+#include <engine2/inetworkserverservice.h>
+#include <engine2/networkgameserverbase.h>
 
 #include <cstdint>
 #include <cstdio>

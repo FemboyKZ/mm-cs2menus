@@ -23,9 +23,11 @@
 
 #include <ISmmPlugin.h>
 
-#include <eiface.h>
+#include <engine2/isource2server.h>
+#include <engine2/ivengineserver2.h>
 #include <icvar.h>
-#include <iserver.h>
+#include <engine2/inetworkserverservice.h>
+#include <engine2/networkgameserverbase.h>
 
 #include <cstdio>
 #include <cstring>

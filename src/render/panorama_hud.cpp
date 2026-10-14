@@ -8,10 +8,10 @@
 
 #include <algorithm>
 #include <cctype>
-#include <checktransmitinfo.h>
+#include <engine2/isource2server.h>
 #include <entity2/entitykeyvalues.h>
-#include <entity2/entitysystem.h>
-#include <filesystem.h>
+#include <gameentitysystem.h>
+#include <filesystem/ifilesystem.h>
 
 #include <climits>
 #include <cstdio>

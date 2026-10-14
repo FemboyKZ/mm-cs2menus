@@ -10,7 +10,7 @@ for sdk_target in MMSPlugin.sdk_targets:
 
     binary = MMSPlugin.HL2Library(builder, cxx, f'cs2menus_consumer.{sdk["name"]}', sdk)
 
-    # Generate the protobuf headers the SDK pulls in (eiface.h -> network_connection.pb.h).
+    # Generate the protobuf headers the SDK pulls in (isource2server.h -> network_connection.pb.h).
     # Same set the main plugin builds.
     binary.custom = [
         builder.tools.Protoc(

@@ -32,10 +32,11 @@
 #include <cstring>
 #include <string>
 
-#include <engine/igameeventsystem.h>
-#include <filesystem.h>
+#include <engine2/igameeventsystem.h>
+#include <filesystem/ifilesystem.h>
 #include <interfaces/interfaces.h>
-#include <iserver.h>
+#include <engine2/inetworkserverservice.h>
+#include <engine2/networkgameserverbase.h>
 #include <networksystem/inetworkmessages.h>
 #include <schemasystem/schemasystem.h>
 

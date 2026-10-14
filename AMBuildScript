@@ -134,11 +134,6 @@ SdkHelpers = builder.Eval(
     os.path.join(hl2sdk_manifests_root, "SdkHelpers.ambuild"), {"Project": "metamod"}
 )
 
-# Keep linking the prebuilt libs from the manifest.
-SdkHelpers.findSdks.__globals__["SdkTarget"].findLibrary = staticmethod(
-    lambda context, sdk, cxx, name: None
-)
-
 
 class MMSPluginConfig(object):
     def __init__(self):
@@ -368,7 +363,7 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
                 "-fPIC",
             ]
 
-            cxx.cxxflags += ["-std=c++17"]
+            cxx.cxxflags += ["-std=c++20"]
             if (cxx.version >= "gcc-4.0") or cxx.family == "clang":
                 cxx.cflags += ["-fvisibility=hidden"]
                 cxx.cxxflags += ["-fvisibility-inlines-hidden"]
@@ -416,7 +411,7 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
             cxx.cflags += [
                 "/W3",
                 # "/Zi",
-                "/std:c++17",
+                "/std:c++20",
                 "/wd4146",
                 "/wd4244",
                 "/wd4267",
@@ -501,7 +496,7 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
             cxx.defines += ["META_IS_SOURCE2"]
             binary.sources += [
                 os.path.join(sdk["path"], "public", "tier0", "memoverride.cpp"),
-                os.path.join(sdk["path"], "tier1", "convar.cpp"),
+                os.path.join(sdk["path"], "tier0_perproject", "convar.cpp"),
             ]
 
         SdkHelpers.configureCxx(context, binary, sdk)
