@@ -37,7 +37,7 @@ jobs:
       - name: Init submodules
         shell: bash
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "*"
           rm -rf s2sdk
           git init -q s2sdk
           git -C s2sdk remote add origin "$(git config -f .gitmodules submodule.s2sdk.url)"
@@ -87,7 +87,7 @@ jobs:
       - name: Init submodules
         shell: bash
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "*"
           rm -rf s2sdk
           git init -q s2sdk
           git -C s2sdk remote add origin "$(git config -f .gitmodules submodule.s2sdk.url)"
@@ -215,7 +215,7 @@ jobs:
       - name: Init submodules
         shell: bash
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "*"
           rm -rf s2sdk
           git init -q s2sdk
           git -C s2sdk remote add origin "$(git config -f .gitmodules submodule.s2sdk.url)"
