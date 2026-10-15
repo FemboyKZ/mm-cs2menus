@@ -32,6 +32,7 @@
 #include <cstring>
 #include <string>
 
+#include <engine2/gamesessionconfiguration.h>
 #include <engine2/igameeventsystem.h>
 #include <filesystem/ifilesystem.h>
 #include <interfaces/interfaces.h>
@@ -39,11 +40,6 @@
 #include <engine2/networkgameserverbase.h>
 #include <networksystem/inetworkmessages.h>
 #include <schemasystem/schemasystem.h>
-
-// KHook needs a complete type for the StartupServer hook, the SDK only forward declares it.
-class GameSessionConfiguration_t
-{
-};
 
 IServerGameDLL *g_pServerGameDLL = nullptr;
 IServerGameClients *g_pGameClients = nullptr;
