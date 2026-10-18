@@ -192,6 +192,7 @@ namespace panorama_hud
 			bool selected = false; // the current option
 			bool marked = false;   // a dot before it
 			int tone = 0;          // as MenuTone
+			std::string image;     // an icon before the text, not in the list layout or the table
 		};
 
 		struct ListPopup

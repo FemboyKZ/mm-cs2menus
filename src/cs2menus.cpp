@@ -866,6 +866,11 @@ class CS2MenusAPI : public ICS2Menus
 	{
 		g_MenuManager.HideNotice(slot, owner);
 	}
+
+	void SetMenuChipOptionImage(MenuHandle menu, int chip, int option, const char *image) override
+	{
+		g_MenuManager.SetMenuChipOptionImage(menu, chip, option, image);
+	}
 };
 
 static CS2MenusAPI g_CS2MenusAPI;
@@ -894,8 +899,8 @@ void *CS2MenusPlugin::OnMetamodQuery(const char *iface, int *ret)
 {
 	// An older client calls a shorter prefix of the same table, by position.
 	// Except one built on cs2menus 1.9.0/1.9.1, whose ICS2Menus004 had slots 59-64 in another order.
-	if (!strcmp(iface, CS2MENUS_INTERFACE) || !strcmp(iface, "ICS2Menus006") || !strcmp(iface, "ICS2Menus005") || !strcmp(iface, "ICS2Menus004")
-		|| !strcmp(iface, "ICS2Menus003"))
+	if (!strcmp(iface, CS2MENUS_INTERFACE) || !strcmp(iface, "ICS2Menus007") || !strcmp(iface, "ICS2Menus006") || !strcmp(iface, "ICS2Menus005")
+		|| !strcmp(iface, "ICS2Menus004") || !strcmp(iface, "ICS2Menus003"))
 	{
 		if (ret)
 		{

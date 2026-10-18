@@ -14,6 +14,7 @@ Class names are the image file name without its "_png.vtex_c"/".vsvg_c" suffix, 
 - charms: the image_inventory file name, like kc_db_8ball
 - music kits: "music__" and the image_inventory file name, like music__valve_cs2_01
 - pins, coins, medals and trophies: "coin__" and the image_inventory file name, like coin__5yearcoin
+- collections: the item_sets name, like set_community_3
 - a few UI icons: the team logos t_logo and ct_logo, refresh, votescrambleteams, random, stattrak, music_kit and collectible
 - agent patches: "patch__" and the patch_material with "/" as "__", like patch__case01__patch_banana
 - stickers, in econ_stickers.css only: "sticker__" and the sticker_material with "/" as "__", like sticker__dreamhack__dh_gologo1
@@ -42,11 +43,13 @@ STICKER_FOLDER = "panorama/images/econ/stickers/"
 STICKER_VARIANT = re.compile(r"(_\d+_\d+|_large)$")
 PATCH_FOLDER = "panorama/images/econ/patches/"
 CHARM_FOLDER = "panorama/images/econ/keychains/"
-# (folder, class prefix): music kits, and the collectibles a scoreboard shows, pins, coins, medals and trophies.
+# (folder, class prefix): music kits, the collectibles a scoreboard shows, pins, coins, medals and trophies,
+# and the collections, whose names start with "set_" already.
 PREFIXED_FOLDERS = [
     ("panorama/images/econ/music_kits/", "music__"),
     ("panorama/images/econ/status_icons/", "coin__"),
     ("panorama/images/econ/premier_seasons/", "coin__"),
+    ("panorama/images/econ/set_icons/", ""),
 ]
 SVG_FOLDER = "panorama/images/custom_game/cs2menus/"
 SVG_DIR = os.path.join(ROOT, "images", "custom_game", "cs2menus")

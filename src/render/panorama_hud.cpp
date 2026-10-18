@@ -1078,6 +1078,8 @@ namespace
 		if (view.list.open)
 		{
 			w.Var(w.Id("list_title"), view.list.title);
+			// One row with an icon keeps the icon's place on them all, so their text lines up.
+			const bool icons = std::any_of(view.list.rows.begin(), view.list.rows.end(), [](const auto &row) { return !row.image.empty(); });
 			for (int i = 0; i < panorama_hud::kListSlots; i++)
 			{
 				const bool used = i < static_cast<int>(view.list.rows.size());
@@ -1089,11 +1091,16 @@ namespace
 					w.Class(panel, "selected", row.selected);
 					w.Flag(panel, "marked", row.marked);
 					w.Swap(panel, ToneClass(row.tone), "tone");
-					// The list layout's rows have no second line.
+					// The list layout's rows have no second line and no icon, the table's no icon.
 					if (view.layout != Layout::List)
 					{
 						w.Text(w.Id("li_sub%d", i), row.sub);
 						w.Flag(panel, "two", !row.sub.empty());
+					}
+					if (view.layout != Layout::List && view.layout != Layout::Table)
+					{
+						w.Swap(w.Id("li_img%d", i), row.image.empty() ? std::string() : "img-" + row.image);
+						w.Flag(panel, "pic", icons);
 					}
 				}
 				w.Class(panel, "hidden", !used);

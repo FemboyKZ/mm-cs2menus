@@ -565,6 +565,27 @@ VerticalScrollBar:hover .ScrollThumb {
 	visibility: visible;
 }
 
+/* On a row the plugin gives an image, like a collection's, and on the others of its list.
+   The margins keep it out of the row's height, so a page is as tall with or without one. */
+.li-img {
+	visibility: collapse;
+	width: 28px;
+	height: 28px;
+	margin: -6px 8px -6px 0;
+	vertical-align: center;
+	background-size: contain;
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+}
+
+.li.pic .li-img {
+	visibility: visible;
+}
+
+.li.pic .li-text {
+	vertical-align: center;
+}
+
 .li-text {
 	width: fill-parent-flow(1);
 	flow-children: down;

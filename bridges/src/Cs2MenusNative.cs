@@ -178,6 +178,9 @@ internal static unsafe class Cs2MenusNative
 	private static delegate* unmanaged[Cdecl]<uint, int, nint*, int, void> _setItemCells;
 	private static delegate* unmanaged[Cdecl]<uint, int, nint*, int, void> _setItemDetails;
 
+	// Chip icons
+	private static delegate* unmanaged[Cdecl]<uint, int, int, byte*, void> _setChipOptionImage;
+
 	public static bool Loaded { get; private set; }
 
 	/// <summary>True when the loaded cs2menus exports the ICS2Menus004 additions (value items, sections, grids).</summary>
@@ -191,6 +194,8 @@ internal static unsafe class Cs2MenusNative
 	public static bool SupportsNotices { get; private set; }
 	/// <summary>Newer than cs2menus 2.0.1.</summary>
 	public static bool SupportsTables { get; private set; }
+	/// <summary>Has ICS2Menus008's chip option icons.</summary>
+	public static bool SupportsChipIcons { get; private set; }
 
 	/// <summary>True when it exports the ICS2Menus005 additions too: badges, the info card, tabs, chips, dialogs and the studio.</summary>
 	public static bool Supports005 { get; private set; }
@@ -373,6 +378,12 @@ internal static unsafe class Cs2MenusNative
 			_setItemDetails = (delegate* unmanaged[Cdecl]<uint, int, nint*, int, void>)setItemDetails;
 		}
 
+		if (TryGet(lib, "cs2m_set_chip_option_image", out nint setChipOptionImage))
+		{
+			SupportsChipIcons = true;
+			_setChipOptionImage = (delegate* unmanaged[Cdecl]<uint, int, int, byte*, void>)setChipOptionImage;
+		}
+
 		// And the ICS2Menus005 exports, all of them or none.
 		try
 		{
@@ -461,6 +472,14 @@ internal static unsafe class Cs2MenusNative
 		if (!SupportsTables)
 		{
 			throw new NotSupportedException("The loaded cs2menus predates the table layout. Update cs2menus.");
+		}
+	}
+
+	private static void RequireChipIcons()
+	{
+		if (!SupportsChipIcons)
+		{
+			throw new NotSupportedException("The loaded cs2menus predates chip option icons (ICS2Menus008). Update cs2menus.");
 		}
 	}
 
@@ -985,6 +1004,12 @@ internal static unsafe class Cs2MenusNative
 	{
 		Require005();
 		_setChipOptionTone(menu, chip, option, tone);
+	}
+
+	public static void SetChipOptionImage(uint menu, int chip, int option, ReadOnlySpan<char> image)
+	{
+		RequireChipIcons();
+		fixed (byte* i = Utf8(image)) _setChipOptionImage(menu, chip, option, i);
 	}
 
 	public static void SetChipCallback(uint menu, nint onChip, void* user)

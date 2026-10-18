@@ -678,6 +678,11 @@ CS2M_API void CS2M_CALL cs2m_set_chip_option_tone(cs2m_handle menu, int chip, in
 	API()->SetMenuChipOptionTone(menu, chip, option, static_cast<MenuTone>(tone));
 }
 
+CS2M_API void CS2M_CALL cs2m_set_chip_option_image(cs2m_handle menu, int chip, int option, const char *image)
+{
+	API()->SetMenuChipOptionImage(menu, chip, option, image ? image : "");
+}
+
 CS2M_API void CS2M_CALL cs2m_set_chip_callback(cs2m_handle menu, cs2m_chip_cb on_chip, void *user)
 {
 	MenuChipFn fn;

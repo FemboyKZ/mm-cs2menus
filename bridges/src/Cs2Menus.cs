@@ -170,6 +170,9 @@ public sealed partial class Cs2MenusBridge : IDisposable
 	/// <summary>True if it has the table layout. Otherwise its setters throw <see cref="NotSupportedException"/>.</summary>
 	public bool SupportsTables => Cs2MenusNative.SupportsTables;
 
+	/// <summary>True if chip options can have icons. Otherwise <see cref="Cs2Menu.SetChipOptionImage"/> throws <see cref="NotSupportedException"/>.</summary>
+	public bool SupportsChipIcons => Cs2MenusNative.SupportsChipIcons;
+
 	/// <summary>
 	/// Resolve the cs2menus binary at an absolute path. Safe to call repeatedly, loads once.
 	/// Prefer the host-specific <c>LoadDefault</c> overload.
@@ -842,6 +845,8 @@ public sealed class Cs2Menu : IDisposable
 	public int AddNote(string label, string value) => Cs2MenusNative.AddMenuNote(Handle, label, value);
 	/// <summary>A row of a chip's list in a tone's color, like Bad for one that deletes.</summary>
 	public void SetChipOptionTone(int chip, int option, MenuTone tone) => Cs2MenusNative.SetChipOptionTone(Handle, chip, option, (int)tone);
+	/// <summary>An icon before a row of a chip's list, an addon image class like <see cref="SetItemImage"/>'s. "" removes it. Not in the table.</summary>
+	public void SetChipOptionImage(int chip, int option, string image) => Cs2MenusNative.SetChipOptionImage(Handle, chip, option, image);
 
 	// --- Table ---
 

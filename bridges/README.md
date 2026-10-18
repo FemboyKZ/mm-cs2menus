@@ -1,6 +1,6 @@
 # CS2Menus bridges
 
-CS2Menus exposes a C++ interface (`ICS2Menus007`) that only sibling Metamod plugins built with the same toolchain can consume.
+CS2Menus exposes a C++ interface (`ICS2Menus008`) that only sibling Metamod plugins built with the same toolchain can consume.
 
 Managed frameworks (SwiftlyS2, CounterStrikeSharp) run a .NET runtime inside the game process and can only call a flat C ABI.
 
@@ -94,7 +94,7 @@ Threading is not a concern: cs2menus is fully thread-safe and callbacks always a
 ## Panorama layouts, history and pausing
 
 These need a cs2menus with the matching exports.
-Check `SupportsValueItemsAndGrids`, `SupportsShowcaseAndHistory`, `SupportsBadgesTabsAndDialogs` and `SupportsTables` first,
+Check `SupportsValueItemsAndGrids`, `SupportsShowcaseAndHistory`, `SupportsBadgesTabsAndDialogs`, `SupportsTables` and `SupportsChipIcons` first,
 the setters throw `NotSupportedException` on an older one.
 
 ```csharp
@@ -126,6 +126,7 @@ picker.AddTab("All", selected: true);
 picker.AddTab("Favourites");
 picker.TabClicked += (menu, slot, tab) => { /* rebuild for the tab, then menu.Replace(slot) */ };
 picker.AddChip("Rarity", new[] { "Covert", "Classified" });   // a filter, its pick arrives in ChipClicked
+picker.SetChipOptionImage(0, 0, "set_community_3");          // an icon before the option in the list, SupportsChipIcons
 picker.AddAction("Reset");                                    // a button in the same row
 picker.ChipClicked += (menu, slot, chip, selected) => { /* ... */ };
 picker.SetEmpty("Nothing here", "No skin matches the filter.");

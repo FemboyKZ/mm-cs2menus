@@ -510,6 +510,7 @@
         <Panel class="list-rows">
           <Button id="cg_li0" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img0" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl0" class="li-label" text="{s:cg_li_lbl0}" />
               <Label id="cg_li_sub0" class="li-sub" text="{s:cg_li_sub0}" />
@@ -517,6 +518,7 @@
           </Button>
           <Button id="cg_li1" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img1" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl1" class="li-label" text="{s:cg_li_lbl1}" />
               <Label id="cg_li_sub1" class="li-sub" text="{s:cg_li_sub1}" />
@@ -524,6 +526,7 @@
           </Button>
           <Button id="cg_li2" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img2" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl2" class="li-label" text="{s:cg_li_lbl2}" />
               <Label id="cg_li_sub2" class="li-sub" text="{s:cg_li_sub2}" />
@@ -531,6 +534,7 @@
           </Button>
           <Button id="cg_li3" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img3" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl3" class="li-label" text="{s:cg_li_lbl3}" />
               <Label id="cg_li_sub3" class="li-sub" text="{s:cg_li_sub3}" />
@@ -538,6 +542,7 @@
           </Button>
           <Button id="cg_li4" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img4" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl4" class="li-label" text="{s:cg_li_lbl4}" />
               <Label id="cg_li_sub4" class="li-sub" text="{s:cg_li_sub4}" />
@@ -545,6 +550,7 @@
           </Button>
           <Button id="cg_li5" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img5" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl5" class="li-label" text="{s:cg_li_lbl5}" />
               <Label id="cg_li_sub5" class="li-sub" text="{s:cg_li_sub5}" />
@@ -552,6 +558,7 @@
           </Button>
           <Button id="cg_li6" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img6" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl6" class="li-label" text="{s:cg_li_lbl6}" />
               <Label id="cg_li_sub6" class="li-sub" text="{s:cg_li_sub6}" />
@@ -559,6 +566,7 @@
           </Button>
           <Button id="cg_li7" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img7" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl7" class="li-label" text="{s:cg_li_lbl7}" />
               <Label id="cg_li_sub7" class="li-sub" text="{s:cg_li_sub7}" />
@@ -566,6 +574,7 @@
           </Button>
           <Button id="cg_li8" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img8" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl8" class="li-label" text="{s:cg_li_lbl8}" />
               <Label id="cg_li_sub8" class="li-sub" text="{s:cg_li_sub8}" />
@@ -573,6 +582,7 @@
           </Button>
           <Button id="cg_li9" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img9" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl9" class="li-label" text="{s:cg_li_lbl9}" />
               <Label id="cg_li_sub9" class="li-sub" text="{s:cg_li_sub9}" />
@@ -580,6 +590,7 @@
           </Button>
           <Button id="cg_li10" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img10" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl10" class="li-label" text="{s:cg_li_lbl10}" />
               <Label id="cg_li_sub10" class="li-sub" text="{s:cg_li_sub10}" />
@@ -587,6 +598,7 @@
           </Button>
           <Button id="cg_li11" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img11" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl11" class="li-label" text="{s:cg_li_lbl11}" />
               <Label id="cg_li_sub11" class="li-sub" text="{s:cg_li_sub11}" />
@@ -594,6 +606,7 @@
           </Button>
           <Button id="cg_li12" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img12" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl12" class="li-label" text="{s:cg_li_lbl12}" />
               <Label id="cg_li_sub12" class="li-sub" text="{s:cg_li_sub12}" />
@@ -601,6 +614,7 @@
           </Button>
           <Button id="cg_li13" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img13" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl13" class="li-label" text="{s:cg_li_lbl13}" />
               <Label id="cg_li_sub13" class="li-sub" text="{s:cg_li_sub13}" />
@@ -608,6 +622,7 @@
           </Button>
           <Button id="cg_li14" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img14" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl14" class="li-label" text="{s:cg_li_lbl14}" />
               <Label id="cg_li_sub14" class="li-sub" text="{s:cg_li_sub14}" />
@@ -615,6 +630,7 @@
           </Button>
           <Button id="cg_li15" class="li hidden">
             <Panel class="li-dot" />
+            <Panel id="cg_li_img15" class="li-img" />
             <Panel class="li-text">
               <Label id="cg_li_lbl15" class="li-label" text="{s:cg_li_lbl15}" />
               <Label id="cg_li_sub15" class="li-sub" text="{s:cg_li_sub15}" />

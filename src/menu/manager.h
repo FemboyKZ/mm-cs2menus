@@ -217,6 +217,7 @@ public:
 	int AddMenuChip(MenuHandle menu, const char *label, const char *const *options, int optionCount, int selected, bool action);
 	int AddMenuNote(MenuHandle menu, const char *label, const char *value);
 	void SetMenuChipOptionTone(MenuHandle menu, int chip, int option, MenuTone tone);
+	void SetMenuChipOptionImage(MenuHandle menu, int chip, int option, const char *image);
 	void SetMenuChipCallback(MenuHandle menu, MenuChipFn onChip);
 	int AddMenuColumn(MenuHandle menu, const char *label, int cells, int sort);
 	void SetItemCells(MenuHandle menu, int item, const char *const *cells, int count);
@@ -494,6 +495,8 @@ private:
 			std::vector<std::string> options;
 			// By option, Info where the vector ends.
 			std::vector<MenuTone> tones;
+			// By option, none where the vector ends.
+			std::vector<std::string> images;
 			int selected = -1;
 			bool action = false;
 			bool note = false;

@@ -161,8 +161,9 @@ def step_popup(p):
     )
 
 
-# A row's dot shows on a marked one, its second line when it has one.
-def list_popup(p):
+# A row's dot shows on a marked one, its second line when it has one, its icon when it has one.
+# The table loads no econ.css, so it has no icons.
+def list_popup(p, icons=True):
     out = [
         f'<Panel id="{p}list" class="popup list-popup hidden">',
         '  <Panel class="window-header">',
@@ -175,6 +176,10 @@ def list_popup(p):
         out += [
             f'    <Button id="{p}li{i}" class="li hidden">',
             '      <Panel class="li-dot" />',
+        ]
+        if icons:
+            out.append(f'      <Panel id="{p}li_img{i}" class="li-img" />')
+        out += [
             '      <Panel class="li-text">',
             "        " + label(p, f"li_lbl{i}", "li-label"),
             "        " + label(p, f"li_sub{i}", "li-sub"),
@@ -623,7 +628,7 @@ def table():
     )
     root = (
         [f'<Panel id="{p}root" class="menu hidden">']
-        + ind(box + step_popup(p) + list_popup(p) + message(p) + dialog(p))
+        + ind(box + step_popup(p) + list_popup(p, False) + message(p) + dialog(p))
         + ["</Panel>"]
     )
     return document(("fonts", "menu", "grid", "table"), root)

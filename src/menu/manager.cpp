@@ -1554,6 +1554,23 @@ void MenuManager::SetMenuChipOptionTone(MenuHandle menu, int chip, int option, M
 	RefreshMenu(menu);
 }
 
+void MenuManager::SetMenuChipOptionImage(MenuHandle menu, int chip, int option, const char *image)
+{
+	ScopedLock lock(m_mutex);
+	MenuDef *def = Find(menu);
+	if (!def || chip < 0 || chip >= static_cast<int>(def->chips.size()) || option < 0 || option >= static_cast<int>(def->chips[chip].options.size()))
+	{
+		return;
+	}
+	std::vector<std::string> &images = def->chips[chip].images;
+	if (static_cast<int>(images.size()) <= option)
+	{
+		images.resize(option + 1);
+	}
+	images[option] = image ? image : "";
+	RefreshMenu(menu);
+}
+
 void MenuManager::SetMenuChipCallback(MenuHandle menu, MenuChipFn onChip)
 {
 	ScopedLock lock(m_mutex);
@@ -5484,6 +5501,7 @@ void MenuManager::RenderPanorama(int slot)
 					 row.sub = panorama_hud::StripColors(OptionSub(edited.options[i]));
 					 row.selected = !edited.action && i == edited.selected;
 					 row.tone = i < static_cast<int>(edited.tones.size()) ? static_cast<int>(edited.tones[i]) : 0;
+					 row.image = i < static_cast<int>(edited.images.size()) ? edited.images[i] : std::string();
 					 return row;
 				 });
 	}
