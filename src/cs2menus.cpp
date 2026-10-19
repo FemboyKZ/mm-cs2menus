@@ -24,6 +24,8 @@
 #include "utils/chat_colors.h"
 #include "utils/chat_command.h"
 #include "utils/command_args.h"
+#include "game/players.h"
+#include "game/say.h"
 #include "game/target.h"
 
 #include <cctype>
@@ -88,7 +90,7 @@ static void MENU_RefreshAdmin()
 }
 
 // Set at ClientPutInServer. A client before that can't legitimately chat, so its say input doesn't drive menus.
-static bool s_inGame[MAXPLAYERS] = {};
+static mmu::Players<> s_players;
 
 // Fake CCSGameRules::m_bGameRestart to stop the center-HTML panel flashing while a
 // menu is shown. Throttled ~0.5s.
@@ -2079,12 +2081,11 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	// On a late load the map is already running, so grab the entity system now.
 	if (late)
 	{
-		// Anyone with a SteamID is past ClientPutInServer already, which fired before we were here to see it.
+		s_players.OnLateLoad();
 		for (int slot = 0; slot < MAXPLAYERS; slot++)
 		{
-			s_inGame[slot] = g_pEngine->GetClientXUID(CPlayerSlot(slot)) != 0;
 			// Their connect, where the language is asked for, was before us too.
-			if (s_inGame[slot])
+			if (s_players.Get(slot))
 			{
 				mmu::cvarquery::OnClientConnected(slot, false);
 			}
@@ -2261,14 +2262,14 @@ KHook::Return<void> CS2MenusPlugin::Hook_GameFrame(IServerGameDLL *, bool /*simu
 	return {KHook::Action::Ignore};
 }
 
-KHook::Return<void> CS2MenusPlugin::Hook_OnClientConnected(IServerGameClients *, CPlayerSlot slot, const char * /*pszName*/, uint64 xuid,
-														   const char * /*pszNetworkID*/, const char * /*pszAddress*/, bool bFakePlayer)
+KHook::Return<void> CS2MenusPlugin::Hook_OnClientConnected(IServerGameClients *, CPlayerSlot slot, const char *pszName, uint64 xuid,
+														   const char * /*pszNetworkID*/, const char *pszAddress, bool bFakePlayer)
 {
 	int s = slot.Get();
 	mmu::cvarquery::OnClientConnected(s, bFakePlayer);
+	s_players.OnClientConnected(s, pszName, xuid, pszAddress, bFakePlayer);
 	if (mmu::ValidSlot(s))
 	{
-		s_inGame[s] = false;
 		// A display queued for this slot after its last player left would otherwise take this player's input.
 		g_MenuManager.OnPlayerDisconnect(s);
 	}
@@ -2281,10 +2282,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_OnClientConnected(IServerGameClients *,
 
 KHook::Return<void> CS2MenusPlugin::Hook_ClientPutInServer(IServerGameClients *, CPlayerSlot slot, char const *, int, uint64)
 {
-	if (mmu::ValidSlot(slot.Get()))
-	{
-		s_inGame[slot.Get()] = true;
-	}
+	s_players.OnClientPutInServer(slot.Get());
 	return {KHook::Action::Ignore};
 }
 
@@ -2295,9 +2293,9 @@ KHook::Return<void> CS2MenusPlugin::Hook_ClientDisconnect(IServerGameClients *, 
 	mmu::cvarquery::OnClientDisconnect(s);
 	g_MenuManager.OnPlayerDisconnect(s);
 	panorama_hud::OnClientDisconnect(s);
+	s_players.OnClientDisconnect(s);
 	if (mmu::ValidSlot(s))
 	{
-		s_inGame[s] = false;
 		g_MenuManager.ClearPlayerPrefs(s);
 		s_prefs[s] = SlotPrefs {};
 		s_prefsMenu[s] = kInvalidMenuHandle;
@@ -2427,21 +2425,9 @@ CON_COMMAND_F(mm_menu_close, "Close / exit the open menu.", FCVAR_CLIENT_CAN_EXE
 
 KHook::Return<void> CS2MenusPlugin::Hook_DispatchConCommand(ICvar *, ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args)
 {
-	// The registered name, since the typed Arg(0) can be "SAY", which still dispatches to say.
-	const char *cmdName = cmd.IsValidRef() ? cmd.GetName() : nullptr;
-	if (!cmdName)
-	{
-		return {KHook::Action::Ignore};
-	}
-
-	bool isSay = (V_stricmp(cmdName, "say") == 0 || V_stricmp(cmdName, "say_team") == 0);
-	if (!isSay)
-	{
-		return {KHook::Action::Ignore};
-	}
-
-	int slot = ctx.GetPlayerSlot().Get();
-	if (!mmu::ValidSlot(slot) || !s_inGame[slot])
+	int slot = mmu::SaySlot(cmd, ctx);
+	const mmu::Player *player = s_players.Get(slot);
+	if (!player || !player->inGame)
 	{
 		return {KHook::Action::Ignore};
 	}
