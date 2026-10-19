@@ -14,14 +14,6 @@
 #include <cstring>
 #include <string>
 
-// A player slot in the valid 0..MAXPLAYERS-1 range.
-// The bound is exclusive: slots are 0 based, and MAXPLAYERS matches the engine's ABSOLUTE_PLAYER_LIMIT,
-// so slot MAXPLAYERS has no bit in a CPlayerBitVec.
-inline bool ValidSlot(int slot)
-{
-	return slot >= 0 && slot < MAXPLAYERS;
-}
-
 // Plugin-specific engine interfaces. Shared ones live in sdk/plugin_globals.h.
 extern INetworkServerService *g_pNetworkServerService;
 
@@ -43,11 +35,6 @@ extern IGameEventManager2 *g_pGameEventManager;
 // CGlobalVars accessor, only valid during an active game
 #include "game/print.h"
 
-inline CGlobalVars *GetGameGlobals()
-{
-	return mmu::GetGameGlobals();
-}
-
 // Clock for every menu time value, callable from any thread.
 // Not globals->curtime, which restarts each map, so a menu open across a map change would wait on the old map's times.
 // Counted from first use so the float keeps its precision over a long uptime.
@@ -56,8 +43,5 @@ inline float MenuNow()
 	static const double start = Plat_FloatTime();
 	return static_cast<float>(Plat_FloatTime() - start);
 }
-
-// The SDK's, in entity2/entitysystem.cpp.
-CGameEntitySystem *GameEntitySystem();
 
 #endif // _INCLUDE_MENU_COMMON_H_

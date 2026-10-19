@@ -1,12 +1,12 @@
 #include "cs2menus.h"
 #include "common.h"
 
-#include "admin/bridge.h"
+#include "interfaces/cs2admin/admin_access.h"
 
 #include "config/config.h"
 #include "db/prefs.h"
 #include "sdk/entity/ccsplayercontroller.h"
-#include "entity/cgamerules.h"
+#include "sdk/entity/cgamerules.h"
 #include "lang/translations.h"
 #include "menu/key_table.h"
 #include "menu/manager.h"
@@ -22,6 +22,7 @@
 #include "game/print.h"
 #include "utils/str.h"
 #include "utils/chat_colors.h"
+#include "utils/chat_command.h"
 #include "utils/command_args.h"
 #include "game/target.h"
 
@@ -48,19 +49,11 @@ ICvar *g_pICvar = nullptr;
 IGameEventSystem *g_pGameEventSystem = nullptr;
 static mmu::InterfaceBridge<IMultiAddonManager> s_multiAddonManager(MULTIADDONMANAGER_INTERFACE);
 
-// Language key for the player in `slot`, mapped from their cl_language.
-// Empty string when unavailable, which makes Translate use the default language.
-static std::string SlotLanguage(int slot)
-{
-	const char *raw = mmu::cvarquery::GetClientLanguage(slot);
-	return g_MenuTranslations.MapClientLanguage(raw);
-}
-
 // A phrase in the caller's language, the default language for the console.
 // Its {color} tags become chat colors here, the tables are loaded with them left literal for the menu labels.
 static std::string MENU_Translate(int slot, const char *phrase)
 {
-	return mmu::ResolveColorTags(g_MenuTranslations.Translate(ValidSlot(slot) ? SlotLanguage(slot) : std::string(), phrase));
+	return mmu::ResolveColorTags(mmu::cvarquery::Translate(g_MenuTranslations, slot, phrase));
 }
 
 // MENU_Translate with the phrase's format specifiers filled in.
@@ -77,26 +70,25 @@ static std::string TrFormat(int slot, const char *phrase, ...)
 
 CGameEntitySystem *g_pEntitySystem = nullptr;
 
-// Cached gamerules for the HUD-flashing workaround. Re-found each map.
-static CCSGameRules *s_pGameRules = nullptr;
+static mmu::AdminAccess s_admin("cs2menus");
+
+static void MENU_RefreshAdmin()
+{
+	switch (s_admin.Refresh())
+	{
+		case mmu::BridgeChange::Loaded:
+			MMU_LOG_INFO("mm-cs2admin loaded - command overrides active.\n");
+			break;
+		case mmu::BridgeChange::Unloaded:
+			MMU_LOG_INFO("mm-cs2admin unloaded - command overrides inactive.\n");
+			break;
+		case mmu::BridgeChange::Unchanged:
+			break;
+	}
+}
 
 // Set at ClientPutInServer. A client before that can't legitimately chat, so its say input doesn't drive menus.
 static bool s_inGame[MAXPLAYERS] = {};
-
-static CCSGameRules *FindGameRules()
-{
-	if (s_pGameRules || !g_pEntitySystem)
-	{
-		return s_pGameRules;
-	}
-
-	EntityInstanceByClassIter_t iter("cs_gamerules");
-	if (CEntityInstance *inst = iter.First())
-	{
-		s_pGameRules = static_cast<CCSGameRulesProxy *>(inst)->GetGameRules();
-	}
-	return s_pGameRules;
-}
 
 // Fake CCSGameRules::m_bGameRestart to stop the center-HTML panel flashing while a
 // menu is shown. Throttled ~0.5s.
@@ -117,7 +109,7 @@ static void ApplyHudFlashingFix(float curtime, bool unloading = false)
 	}
 	s_next = curtime + 0.5f;
 
-	CCSGameRules *rules = FindGameRules();
+	CCSGameRules *rules = mmu::FindGameRules();
 	if (!rules)
 	{
 		return;
@@ -420,14 +412,14 @@ class CS2MenusAPI : public ICS2Menus
 		g_MenuManager.RunOnMainThread(
 			[menu, duration]
 			{
-				CGlobalVars *globals = GetGameGlobals();
+				CGlobalVars *globals = mmu::GetGameGlobals();
 				if (!globals)
 				{
 					return;
 				}
 				int maxClients = globals->maxClients;
 				float curtime = MenuNow();
-				for (int slot = 0; slot < maxClients && slot <= MAXPLAYERS; slot++)
+				for (int slot = 0; slot < maxClients && slot < MAXPLAYERS; slot++)
 				{
 					// No SteamID: a bot or SourceTV.
 					if (!CCSPlayerController::FromSlot(slot) || g_pEngine->GetClientXUID(CPlayerSlot(slot)) == 0)
@@ -1214,13 +1206,13 @@ static void LoadAndApplyConfig()
 	g_MenuTranslations.SetResolveColorTags(false);
 	g_MenuTranslations.Load(g_SMAPI->GetBaseDir(), "cs2menus");
 	g_MenuTranslations.SetDefaultLanguage(g_MenuConfig.general.defaultLanguage);
-	g_MenuManager.SetLanguageResolver([](int slot) { return SlotLanguage(slot); });
+	g_MenuManager.SetLanguageResolver([](int slot) { return mmu::cvarquery::SlotLanguage(g_MenuTranslations, slot); });
 }
 
 // Tells the player when they lack access.
 static bool RequireAccess(int slot, const char *commandName, uint32_t defaultFlag)
 {
-	if (MENU_AdminBridge_CanUseCommand(slot, commandName, defaultFlag))
+	if (s_admin.CanUseCommand(slot, commandName, defaultFlag))
 	{
 		return true;
 	}
@@ -1272,7 +1264,7 @@ CON_COMMAND_F(mm_menus_panorama_diag, "Print panorama menu status: signatures, a
 		size_t end = text.find('\n', start);
 		end = end == std::string::npos ? text.size() : end + 1;
 		const std::string line = text.substr(start, end - start);
-		if (ValidSlot(slot))
+		if (mmu::ValidSlot(slot))
 		{
 			mmu::SendConsoleToSlot(slot, line.c_str());
 		}
@@ -1290,7 +1282,7 @@ static bool ParseCommandArgs(int slot, const CCommand &args, const mmu::ArgSpec 
 CON_COMMAND_F(mm_menus_demo, "Open a demo menu with every item type: mm_menus_demo [chat|html|panorama].", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -1737,7 +1729,7 @@ namespace
 										 [](MenuHandle endedMenu, int endSlot, MenuEndReason /*reason*/)
 										 {
 											 // Only forget the tracked handle if it's still this menu.
-											 if (ValidSlot(endSlot) && s_prefsMenu[endSlot] == endedMenu)
+											 if (mmu::ValidSlot(endSlot) && s_prefsMenu[endSlot] == endedMenu)
 											 {
 												 s_prefsMenu[endSlot] = kInvalidMenuHandle;
 												 ApplyPrefsToManager(endSlot);
@@ -1757,7 +1749,7 @@ namespace
 	// Reset a slot and load its stored preferences from the database (async).
 	void LoadSlot(int slot, uint64_t xuid)
 	{
-		if (!ValidSlot(slot))
+		if (!mmu::ValidSlot(slot))
 		{
 			return;
 		}
@@ -1793,7 +1785,7 @@ namespace
 CON_COMMAND_F(mm_menu_prefs, "Open your personal menu-preferences menu.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -1807,7 +1799,7 @@ CON_COMMAND_F(mm_menu_prefs, "Open your personal menu-preferences menu.", FCVAR_
 CON_COMMAND_F(mm_menu_pref_type, "Set your preferred menu style: chat | html | panorama | default.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -1848,7 +1840,7 @@ CON_COMMAND_F(mm_menu_pref_key, "Set a menu navigation key: mm_menu_pref_key <up
 			  FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -1899,7 +1891,7 @@ CON_COMMAND_F(mm_menu_pref_key, "Set a menu navigation key: mm_menu_pref_key <up
 CON_COMMAND_F(mm_menu_pref_show, "Show your current menu preferences.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -1922,7 +1914,7 @@ CON_COMMAND_F(mm_menu_pref_show, "Show your current menu preferences.", FCVAR_CL
 // Console has no chat, so it gets the server log.
 static void ReplyToCaller(int slot, const char *msg)
 {
-	if (ValidSlot(slot))
+	if (mmu::ValidSlot(slot))
 	{
 		MENU_PrintToChat(slot, "%s", msg);
 	}
@@ -1963,12 +1955,12 @@ CON_COMMAND_F(mm_menu_pref_reset, "Reset menu style and keys to server defaults:
 	}
 	const std::string *player = parsed.Get("player");
 	bool self = !player;
-	if (self && !ValidSlot(slot))
+	if (self && !mmu::ValidSlot(slot))
 	{
 		MMU_LOG_INFO("Usage: mm_menu_pref_reset <#slot|steamid|name>\n");
 		return;
 	}
-	if (!MENU_AdminBridge_CanUseCommand(slot, self ? "menu_pref_reset" : "menu_pref_reset_other", self ? 0 : CS2ADMIN_FLAG_GENERIC))
+	if (!s_admin.CanUseCommand(slot, self ? "menu_pref_reset" : "menu_pref_reset_other", self ? 0 : CS2ADMIN_FLAG_GENERIC))
 	{
 		ReplyToCaller(slot, MENU_Translate(slot, "You don't have permission to use this command.").c_str());
 		return;
@@ -2000,7 +1992,7 @@ CON_COMMAND_F(mm_menu_pref_reset, "Reset menu style and keys to server defaults:
 	std::string msg;
 	if (target != -1)
 	{
-		if (!MENU_AdminBridge_CanTarget(slot, target))
+		if (!s_admin.CanTarget(slot, target))
 		{
 			ReplyToCaller(slot, MENU_Translate(slot, "Cannot target this player (higher immunity).").c_str());
 			return;
@@ -2016,7 +2008,7 @@ CON_COMMAND_F(mm_menu_pref_reset, "Reset menu style and keys to server defaults:
 	else if (xuid != 0)
 	{
 		// ICS2Admin only exposes immunity for online slots.
-		if (!MENU_AdminBridge_CanUseCommand(slot, "menu_pref_reset_offline", CS2ADMIN_FLAG_ROOT))
+		if (!s_admin.CanUseCommand(slot, "menu_pref_reset_offline", CS2ADMIN_FLAG_ROOT))
 		{
 			ReplyToCaller(slot, MENU_Translate(slot, "That player is offline. Resetting offline players needs root.").c_str());
 			return;
@@ -2115,7 +2107,7 @@ void CS2MenusPlugin::OnLevelInit(char const * /*pMapName*/, char const * /*pMapE
 								 bool /*loadGame*/, bool /*background*/)
 {
 	g_pEntitySystem = GameEntitySystem();
-	s_pGameRules = nullptr; // gamerules proxy is recreated each map, re-find lazily
+	mmu::ResetGameRules();
 
 	// Retry the sig scans in case they missed at load
 	// (server module not yet mapped), then re-probe. Init is a no-op once resolved.
@@ -2142,14 +2134,14 @@ void CS2MenusPlugin::OnLevelShutdown()
 	// Entity system and gamerules are freed on level end. Drop our cached pointers
 	// so GameFrame can't touch freed memory before OnLevelInit re-acquires them.
 	g_pEntitySystem = nullptr;
-	s_pGameRules = nullptr;
+	mmu::ResetGameRules();
 	panorama_hud::OnLevelShutdown();
 }
 
 void CS2MenusPlugin::AllPluginsLoaded()
 {
 	// Resolve mm-cs2admin so admin_overrides.cfg can gate our commands.
-	MENU_AdminBridge_Init();
+	MENU_RefreshAdmin();
 	s_multiAddonManager.Refresh();
 
 	// Per-player preferences are opt-in and need sql_mm, which must be fully loaded by now.
@@ -2183,13 +2175,13 @@ void CS2MenusPlugin::AllPluginsLoaded()
 
 void CS2MenusPlugin::OnPluginLoad(PluginId /*id*/)
 {
-	MENU_AdminBridge_Refresh();
+	MENU_RefreshAdmin();
 	s_multiAddonManager.Refresh();
 }
 
 void CS2MenusPlugin::OnPluginUnload(PluginId id)
 {
-	MENU_AdminBridge_Refresh();
+	MENU_RefreshAdmin();
 	s_multiAddonManager.Refresh();
 
 	// Metamod tells listeners after the plugin's code is unmapped, so its callbacks can no longer be called.
@@ -2204,7 +2196,7 @@ bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 	s_loaded = false;
 	ConVar_Unregister();
 	ApplyHudFlashingFix(0.0f, true);
-	MENU_AdminBridge_Shutdown();
+	s_admin.Shutdown();
 
 	m_GameFrame.Remove(g_pServerGameDLL);
 	m_OnClientConnected.Remove(g_pGameClients);
@@ -2231,7 +2223,7 @@ bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 
 KHook::Return<void> CS2MenusPlugin::Hook_GameFrame(IServerGameDLL *, bool /*simulating*/, bool /*bFirstTick*/, bool /*bLastTick*/)
 {
-	CGlobalVars *globals = GetGameGlobals();
+	CGlobalVars *globals = mmu::GetGameGlobals();
 	if (!globals)
 	{
 		return {KHook::Action::Ignore};
@@ -2242,7 +2234,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_GameFrame(IServerGameDLL *, bool /*simu
 	if (g_pEntitySystem)
 	{
 		int maxClients = globals->maxClients;
-		for (int slot = 0; slot < maxClients && slot <= MAXPLAYERS; slot++)
+		for (int slot = 0; slot < maxClients && slot < MAXPLAYERS; slot++)
 		{
 			if (!g_MenuManager.WantsButtonInput(slot))
 			{
@@ -2274,13 +2266,13 @@ KHook::Return<void> CS2MenusPlugin::Hook_OnClientConnected(IServerGameClients *,
 {
 	int s = slot.Get();
 	mmu::cvarquery::OnClientConnected(s, bFakePlayer);
-	if (ValidSlot(s))
+	if (mmu::ValidSlot(s))
 	{
 		s_inGame[s] = false;
 		// A display queued for this slot after its last player left would otherwise take this player's input.
 		g_MenuManager.OnPlayerDisconnect(s);
 	}
-	if (!bFakePlayer && ValidSlot(s))
+	if (!bFakePlayer && mmu::ValidSlot(s))
 	{
 		LoadSlot(s, xuid);
 	}
@@ -2289,7 +2281,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_OnClientConnected(IServerGameClients *,
 
 KHook::Return<void> CS2MenusPlugin::Hook_ClientPutInServer(IServerGameClients *, CPlayerSlot slot, char const *, int, uint64)
 {
-	if (ValidSlot(slot.Get()))
+	if (mmu::ValidSlot(slot.Get()))
 	{
 		s_inGame[slot.Get()] = true;
 	}
@@ -2303,7 +2295,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_ClientDisconnect(IServerGameClients *, 
 	mmu::cvarquery::OnClientDisconnect(s);
 	g_MenuManager.OnPlayerDisconnect(s);
 	panorama_hud::OnClientDisconnect(s);
-	if (ValidSlot(s))
+	if (mmu::ValidSlot(s))
 	{
 		s_inGame[s] = false;
 		g_MenuManager.ClearPlayerPrefs(s);
@@ -2345,41 +2337,9 @@ KHook::Return<void> CS2MenusPlugin::Hook_CheckTransmit(ISource2GameEntities *, C
 	return {KHook::Action::Ignore};
 }
 
-// Strip CS2's outer quotes and surrounding whitespace from a say message,
-// then the configured chat or silent prefix.
-// On a prefix match, `body` is the text after the prefix
-// and `silent` is set when the silent prefix matched. Returns false otherwise.
-static bool StripCommandPrefix(const char *rawMsg, std::string &body, bool &silent)
+static bool ParseSayCommand(const char *rawMsg, mmu::ChatCommand &out)
 {
-	silent = false;
-	body.clear();
-	std::string msg = rawMsg ? rawMsg : "";
-	if (msg.size() >= 2 && msg.front() == '"' && msg.back() == '"')
-	{
-		msg = msg.substr(1, msg.size() - 2);
-	}
-	size_t a = msg.find_first_not_of(" \t");
-	size_t b = msg.find_last_not_of(" \t");
-	if (a == std::string::npos)
-	{
-		return false;
-	}
-	msg = msg.substr(a, b - a + 1);
-
-	const std::string &p1 = g_MenuConfig.general.commandPrefix;
-	const std::string &p2 = g_MenuConfig.general.silentCommandPrefix;
-	if (!p1.empty() && msg.rfind(p1, 0) == 0)
-	{
-		body = msg.substr(p1.size());
-		return true;
-	}
-	if (!p2.empty() && msg.rfind(p2, 0) == 0)
-	{
-		body = msg.substr(p2.size());
-		silent = true; // only the silent prefix hides the chat line
-		return true;
-	}
-	return false;
+	return mmu::ParseChatCommand(mmu::StripSayQuotes(rawMsg), g_MenuConfig.general.commandPrefix, g_MenuConfig.general.silentCommandPrefix, out);
 }
 
 // Parse a say message like "!menu_up", "/menu_close" or "!menu_select 3" into a nav action
@@ -2389,31 +2349,14 @@ static bool StripCommandPrefix(const char *rawMsg, std::string &body, bool &sile
 static bool ParseChatMenuNav(const char *rawMsg, MenuNavAction &action, int &number, bool &silent)
 {
 	number = -1;
-	std::string body;
-	if (!StripCommandPrefix(rawMsg, body, silent))
+	mmu::ChatCommand cmd;
+	if (!ParseSayCommand(rawMsg, cmd) || !MatchMenuNavBody(cmd.name.c_str(), action))
 	{
 		return false;
 	}
-
-	// Split "menu_select 3" into command + optional argument.
-	std::string cmd = body;
-	std::string arg;
-	size_t sp = body.find_first_of(" \t");
-	if (sp != std::string::npos)
-	{
-		cmd = body.substr(0, sp);
-		size_t argStart = body.find_first_not_of(" \t", sp);
-		if (argStart != std::string::npos)
-		{
-			arg = body.substr(argStart);
-		}
-	}
-	str::ToLowerInPlace(cmd);
-	if (!MatchMenuNavBody(cmd.c_str(), action))
-	{
-		return false;
-	}
+	silent = cmd.silent;
 	// atoi's 0 for a typo would close a chat menu.
+	std::string arg = cmd.argLine;
 	arg.erase(arg.find_last_not_of(" \t") + 1);
 	mmu::ParseInt(arg, number);
 	return true;
@@ -2425,11 +2368,11 @@ static bool ParseChatMenuNav(const char *rawMsg, MenuNavAction &action, int &num
 static void RunMenuNavCommand(const CCommandContext &context, const char *commandName, MenuNavAction action)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
-	if (!MENU_AdminBridge_CanUseCommand(slot, commandName, 0))
+	if (!s_admin.CanUseCommand(slot, commandName, 0))
 	{
 		return;
 	}
@@ -2451,11 +2394,11 @@ CON_COMMAND_F(mm_menu_down, "Move the open menu's cursor down.", FCVAR_CLIENT_CA
 CON_COMMAND_F(mm_menu_select, "Select a menu item: no arg = highlighted row, a number = that chat entry.", FCVAR_CLIENT_CAN_EXECUTE | FCVAR_GAMEDLL)
 {
 	int slot = context.GetPlayerSlot().Get();
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
-	if (!MENU_AdminBridge_CanUseCommand(slot, "menu_select", 0))
+	if (!s_admin.CanUseCommand(slot, "menu_select", 0))
 	{
 		return;
 	}
@@ -2482,23 +2425,6 @@ CON_COMMAND_F(mm_menu_close, "Close / exit the open menu.", FCVAR_CLIENT_CAN_EXE
 	RunMenuNavCommand(context, "menu_close", MenuNavAction::Back);
 }
 
-// Strip the outer quotes / surrounding whitespace / configured prefix from a say message
-// and return the lowercased first word. Returns false if no prefix matched.
-// `silent` is set when the silent prefix matched.
-static bool ParseChatPrefixWord(const char *rawMsg, std::string &word, bool &silent)
-{
-	word.clear();
-	std::string body;
-	if (!StripCommandPrefix(rawMsg, body, silent))
-	{
-		return false;
-	}
-	size_t sp = body.find_first_of(" \t");
-	word = (sp == std::string::npos) ? body : body.substr(0, sp);
-	str::ToLowerInPlace(word);
-	return true;
-}
-
 KHook::Return<void> CS2MenusPlugin::Hook_DispatchConCommand(ICvar *, ConCommandRef cmd, const CCommandContext &ctx, const CCommand &args)
 {
 	// The registered name, since the typed Arg(0) can be "SAY", which still dispatches to say.
@@ -2515,7 +2441,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_DispatchConCommand(ICvar *, ConCommandR
 	}
 
 	int slot = ctx.GetPlayerSlot().Get();
-	if (!ValidSlot(slot) || !s_inGame[slot])
+	if (!mmu::ValidSlot(slot) || !s_inGame[slot])
 	{
 		return {KHook::Action::Ignore};
 	}
@@ -2525,15 +2451,14 @@ KHook::Return<void> CS2MenusPlugin::Hook_DispatchConCommand(ICvar *, ConCommandR
 	// never touches these say words (a consumer plugin may use them for its own purpose).
 	if (g_MenuPrefsDB.IsConnected())
 	{
-		std::string word;
-		bool silent;
-		if (ParseChatPrefixWord(args.ArgS(), word, silent) && (word == "menu" || word == "prefs" || word == "menuprefs"))
+		mmu::ChatCommand chatCmd;
+		if (ParseSayCommand(args.ArgS(), chatCmd) && (chatCmd.name == "menu" || chatCmd.name == "prefs" || chatCmd.name == "menuprefs"))
 		{
-			if (MENU_AdminBridge_CanUseCommand(slot, "menu_prefs", 0))
+			if (s_admin.CanUseCommand(slot, "menu_prefs", 0))
 			{
 				OpenPrefsMenu(slot);
 			}
-			return {silent ? KHook::Action::Supersede : KHook::Action::Ignore};
+			return {chatCmd.silent ? KHook::Action::Supersede : KHook::Action::Ignore};
 		}
 	}
 
@@ -2559,7 +2484,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_DispatchConCommand(ICvar *, ConCommandR
 	if (ParseChatMenuNav(rawMsg, navAction, navNumber, navSilent))
 	{
 		// Match the override key to the equivalent console nav command.
-		if (!MENU_AdminBridge_CanUseCommand(slot, NavCommandName(navAction), 0))
+		if (!s_admin.CanUseCommand(slot, NavCommandName(navAction), 0))
 		{
 			return {navSilent ? KHook::Action::Supersede : KHook::Action::Ignore};
 		}
@@ -2575,7 +2500,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_DispatchConCommand(ICvar *, ConCommandR
 	}
 
 	// Typing a bare item number in chat selects that row, same as menu_select.
-	if (MENU_AdminBridge_CanUseCommand(slot, "menu_select", 0) && g_MenuManager.ProcessInput(slot, rawMsg, curtime))
+	if (s_admin.CanUseCommand(slot, "menu_select", 0) && g_MenuManager.ProcessInput(slot, rawMsg, curtime))
 	{
 		// Suppress the chat line so the number doesn't show.
 		return {KHook::Action::Supersede};

@@ -9,7 +9,7 @@
 
 void MENU_PrintToChat(int slot, const char *fmt, ...)
 {
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}

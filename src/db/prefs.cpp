@@ -6,23 +6,13 @@
 
 #include "interfaces/sql_mm/sql_mm.h"
 
-#include <cctype>
 #include <cstdio>
 
 MenuPrefsDB g_MenuPrefsDB;
 
 std::string MenuPrefsDB::Table() const
 {
-	// Prefix comes from server config and is interpolated into SQL unescaped,
-	// so restrict it to a safe identifier charset.
-	std::string prefix;
-	for (char c : g_MenuConfig.database.prefix)
-	{
-		if (isalnum(static_cast<unsigned char>(c)) || c == '_')
-		{
-			prefix += c;
-		}
-	}
+	std::string prefix = g_MenuConfig.database.prefix;
 	if (prefix.empty())
 	{
 		prefix = "cs2menus";

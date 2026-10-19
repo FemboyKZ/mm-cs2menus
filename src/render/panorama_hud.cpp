@@ -1285,7 +1285,7 @@ bool panorama_hud::Available(Layout layout)
 
 bool panorama_hud::Show(int slot, const View &view)
 {
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return false;
 	}
@@ -1518,7 +1518,7 @@ bool panorama_hud::Show(int slot, const View &view)
 
 void panorama_hud::Hide(int slot)
 {
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -1530,7 +1530,7 @@ void panorama_hud::Hide(int slot)
 
 bool panorama_hud::IsShown(int slot)
 {
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return false;
 	}
@@ -1546,7 +1546,7 @@ bool panorama_hud::IsShown(int slot)
 
 bool panorama_hud::ShowNotice(int slot, const Notice &notice)
 {
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return false;
 	}
@@ -1574,7 +1574,7 @@ bool panorama_hud::ShowNotice(int slot, const Notice &notice)
 
 void panorama_hud::HideNotice(int slot)
 {
-	if (ValidSlot(slot))
+	if (mmu::ValidSlot(slot))
 	{
 		HideWindow(slot, static_cast<int>(Layout::Notice));
 	}
@@ -1655,7 +1655,7 @@ bool panorama_hud::DecodeClick(const void *buf, uint32_t size, uint32_t &layoutH
 panorama_hud::Click panorama_hud::ParseClick(int slot, uint32_t layoutHandle, const char *buttonId, int &index)
 {
 	index = -1;
-	if (!ValidSlot(slot) || !buttonId)
+	if (!mmu::ValidSlot(slot) || !buttonId)
 	{
 		return Click::None;
 	}
@@ -1825,7 +1825,7 @@ std::string panorama_hud::Describe()
 
 void panorama_hud::OnClientDisconnect(int slot)
 {
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}

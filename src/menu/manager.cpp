@@ -807,7 +807,7 @@ void MenuManager::ShiftItemIndexes(MenuHandle menu, MenuDef &def, int pos, int d
 	{
 		def.startItem += delta;
 	}
-	for (int slot = 0; slot <= MAXPLAYERS; slot++)
+	for (int slot = 0; slot < MAXPLAYERS; slot++)
 	{
 		PlayerMenu &pm = m_players[slot];
 		if (!pm.active || pm.handle != menu)
@@ -841,7 +841,7 @@ void MenuManager::RemoveAllItems(MenuHandle menu)
 	def->secondary = -1;
 	def->startItem = 0;
 	// Reset display state for anyone viewing it, then re-render.
-	for (int slot = 0; slot <= MAXPLAYERS; slot++)
+	for (int slot = 0; slot < MAXPLAYERS; slot++)
 	{
 		PlayerMenu &pm = m_players[slot];
 		if (pm.active && pm.handle == menu)
@@ -1198,7 +1198,7 @@ int MenuManager::PageItem(const MenuDef &def, MenuType type, const Page &page, i
 void MenuManager::Repage(MenuHandle menu, MenuDef &def, const std::function<void()> &change)
 {
 	std::vector<std::pair<int, int>> viewers; // slot, first item shown
-	for (int slot = 0; slot <= MAXPLAYERS; slot++)
+	for (int slot = 0; slot < MAXPLAYERS; slot++)
 	{
 		const PlayerMenu &pm = m_players[slot];
 		if (pm.active && pm.handle == menu)
@@ -2033,7 +2033,7 @@ uint64_t MenuManager::EffectiveNavMask(const MenuDef &def, int slot, MenuNavActi
 	// 2. Server config.
 	uint64_t mask = ServerNavMask(action);
 	// 3. This player's preference (displaces only the server default binding).
-	if (ValidSlot(slot))
+	if (mmu::ValidSlot(slot))
 	{
 		uint64_t pref = m_prefs[slot].nav[static_cast<int>(action)].mask;
 		if (pref == kNavDisabledSentinel)
@@ -2078,7 +2078,7 @@ std::string MenuManager::EffectiveNavLabel(const MenuDef &def, int slot, MenuNav
 	{
 		return def.navOverride[static_cast<int>(action)].label;
 	}
-	if (ValidSlot(slot))
+	if (mmu::ValidSlot(slot))
 	{
 		const NavOverride &pref = m_prefs[slot].nav[static_cast<int>(action)];
 		if (pref.mask != 0)
@@ -2103,7 +2103,7 @@ MenuType MenuManager::ResolveType(const MenuDef &def, int slot) const
 {
 	MenuType base = (def.type == MenuType::Default) ? m_settings.defaultType : def.type;
 	MenuType result = base;
-	if (!def.forced && ValidSlot(slot) && m_prefs[slot].type != MenuType::Default)
+	if (!def.forced && mmu::ValidSlot(slot) && m_prefs[slot].type != MenuType::Default)
 	{
 		result = m_prefs[slot].type;
 	}
@@ -2178,7 +2178,7 @@ std::string MenuManager::LeaveLabel(int slot, const MenuDef &def, bool toIndex) 
 bool MenuManager::DisplayMenu(MenuHandle menu, int slot, float duration, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return false;
 	}
@@ -2283,7 +2283,7 @@ bool MenuManager::DisplayLocked(MenuHandle menu, int slot, float duration)
 bool MenuManager::PushMenu(MenuHandle menu, int slot, float duration, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !Find(menu))
+	if (!mmu::ValidSlot(slot) || !Find(menu))
 	{
 		return false;
 	}
@@ -2339,7 +2339,7 @@ bool MenuManager::PushLocked(MenuHandle menu, int slot, float duration)
 bool MenuManager::ReplaceMenu(MenuHandle menu, int slot, float duration, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !Find(menu))
+	if (!mmu::ValidSlot(slot) || !Find(menu))
 	{
 		return false;
 	}
@@ -2383,7 +2383,7 @@ bool MenuManager::ReplaceLocked(MenuHandle menu, int slot, float duration)
 void MenuManager::CancelMenu(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -2409,7 +2409,7 @@ void MenuManager::CancelMenu(int slot)
 bool MenuManager::BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel, int owner)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !OnMainThread())
+	if (!mmu::ValidSlot(slot) || !OnMainThread())
 	{
 		return false;
 	}
@@ -2432,7 +2432,7 @@ bool MenuManager::BeginMenuInput(int slot, const char *prompt, const char *hint,
 void MenuManager::EndMenuInput(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -2454,7 +2454,7 @@ void MenuManager::EndMenuInput(int slot)
 bool MenuManager::ShowMenuMessage(int slot, const char *text, MenuTone tone, float seconds)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !OnMainThread())
+	if (!mmu::ValidSlot(slot) || !OnMainThread())
 	{
 		return false;
 	}
@@ -2473,7 +2473,7 @@ bool MenuManager::ShowMenuMessage(int slot, const char *text, MenuTone tone, flo
 bool MenuManager::ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1, int owner)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !OnMainThread())
+	if (!mmu::ValidSlot(slot) || !OnMainThread())
 	{
 		return false;
 	}
@@ -2496,7 +2496,7 @@ bool MenuManager::ShowNotice(int slot, const char *title, const char *text, cons
 void MenuManager::HideNotice(int slot, int owner)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !m_notices[slot].shown || (owner != kAnyOwner && m_notices[slot].owner != owner))
+	if (!mmu::ValidSlot(slot) || !m_notices[slot].shown || (owner != kAnyOwner && m_notices[slot].owner != owner))
 	{
 		return;
 	}
@@ -2527,7 +2527,7 @@ bool MenuManager::ShowMenuConfirm(int slot, const char *title, const char *body,
 								  MenuConfirmFn onDone, int owner)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !OnMainThread())
+	if (!mmu::ValidSlot(slot) || !OnMainThread())
 	{
 		return false;
 	}
@@ -2659,7 +2659,7 @@ void MenuManager::SetMenuEmpty(MenuHandle menu, const char *title, const char *t
 bool MenuManager::AddMenuHint(int slot, const char *keys, const char *text)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !OnMainThread())
+	if (!mmu::ValidSlot(slot) || !OnMainThread())
 	{
 		return false;
 	}
@@ -2677,7 +2677,7 @@ bool MenuManager::AddMenuHint(int slot, const char *keys, const char *text)
 void MenuManager::ClearMenuHint(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || (m_players[slot].hint.empty() && !m_players[slot].hintHidden))
+	if (!mmu::ValidSlot(slot) || (m_players[slot].hint.empty() && !m_players[slot].hintHidden))
 	{
 		return;
 	}
@@ -2695,7 +2695,7 @@ void MenuManager::ClearMenuHint(int slot)
 void MenuManager::HideMenuHint(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || (m_players[slot].hintHidden && m_players[slot].hint.empty()))
+	if (!mmu::ValidSlot(slot) || (m_players[slot].hintHidden && m_players[slot].hint.empty()))
 	{
 		return;
 	}
@@ -2717,7 +2717,7 @@ void MenuManager::HideMenuHint(int slot)
 bool MenuManager::AddMenuHelp(int slot, const char *keys, const char *text)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !OnMainThread())
+	if (!mmu::ValidSlot(slot) || !OnMainThread())
 	{
 		return false;
 	}
@@ -2734,7 +2734,7 @@ bool MenuManager::AddMenuHelp(int slot, const char *keys, const char *text)
 void MenuManager::ClearMenuHelp(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || m_players[slot].help.empty())
+	if (!mmu::ValidSlot(slot) || m_players[slot].help.empty())
 	{
 		return;
 	}
@@ -2751,7 +2751,7 @@ void MenuManager::ClearMenuHelp(int slot)
 void MenuManager::SetMenuMirrored(int slot, bool mirrored)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || m_players[slot].mirrored == mirrored)
+	if (!mmu::ValidSlot(slot) || m_players[slot].mirrored == mirrored)
 	{
 		return;
 	}
@@ -2824,7 +2824,7 @@ bool MenuManager::GuardLeave(int slot, bool wholeDisplay, std::function<void()> 
 void MenuManager::SuspendMenu(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -2849,7 +2849,7 @@ void MenuManager::SuspendMenu(int slot)
 void MenuManager::ResumeMenu(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -2871,7 +2871,7 @@ void MenuManager::ResumeMenu(int slot)
 bool MenuManager::HasMenu(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return false;
 	}
@@ -2881,7 +2881,7 @@ bool MenuManager::HasMenu(int slot) const
 MenuHandle MenuManager::GetActiveMenu(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !m_players[slot].active)
+	if (!mmu::ValidSlot(slot) || !m_players[slot].active)
 	{
 		return kInvalidMenuHandle;
 	}
@@ -2891,7 +2891,7 @@ MenuHandle MenuManager::GetActiveMenu(int slot) const
 MenuType MenuManager::GetActiveMenuType(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !m_players[slot].active)
+	if (!mmu::ValidSlot(slot) || !m_players[slot].active)
 	{
 		return MenuType::Chat;
 	}
@@ -2902,7 +2902,7 @@ MenuType MenuManager::GetActiveMenuType(int slot) const
 int MenuManager::GetSelectedItem(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !m_players[slot].active)
+	if (!mmu::ValidSlot(slot) || !m_players[slot].active)
 	{
 		return -1;
 	}
@@ -2932,7 +2932,7 @@ void MenuManager::DestroyMenu(MenuHandle menu)
 
 	bool onMain = OnMainThread();
 
-	for (int slot = 0; slot <= MAXPLAYERS; slot++)
+	for (int slot = 0; slot < MAXPLAYERS; slot++)
 	{
 		PlayerMenu &pm = m_players[slot];
 		if (!(pm.active && pm.handle == menu))
@@ -3255,7 +3255,7 @@ bool MenuManager::InHistory(int slot, MenuHandle menu) const
 bool MenuManager::StepBack(int slot, int steps)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot) || !OnMainThread())
+	if (!mmu::ValidSlot(slot) || !OnMainThread())
 	{
 		return false;
 	}
@@ -3346,7 +3346,7 @@ void MenuManager::DropForward(int slot, MenuHandle opening)
 bool MenuManager::ProcessInput(int slot, const char *text, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return false;
 	}
@@ -3465,7 +3465,7 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 bool MenuManager::WantsButtonInput(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return false;
 	}
@@ -3484,7 +3484,7 @@ bool MenuManager::WantsButtonInput(int slot) const
 bool MenuManager::AnyHtmlMenuActive() const
 {
 	ScopedLock lock(m_mutex);
-	for (int i = 0; i <= MAXPLAYERS; i++)
+	for (int i = 0; i < MAXPLAYERS; i++)
 	{
 		if (m_players[i].active && m_players[i].type == MenuType::Html)
 		{
@@ -3497,7 +3497,7 @@ bool MenuManager::AnyHtmlMenuActive() const
 void MenuManager::PollButtons(int slot, uint64_t heldButtons, uint64_t pressedButtons, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -3655,7 +3655,7 @@ bool MenuManager::LeaveMenu(int slot)
 void MenuManager::CommandNav(int slot, MenuNavAction action, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -3703,7 +3703,7 @@ void MenuManager::CommandNav(int slot, MenuNavAction action, float curtime)
 void MenuManager::CommandSelectNumber(int slot, int number, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -3784,7 +3784,7 @@ void MenuManager::Tick(float curtime)
 		}
 	}
 
-	for (int i = 0; i <= MAXPLAYERS; i++)
+	for (int i = 0; i < MAXPLAYERS; i++)
 	{
 		PlayerMenu &pm = m_players[i];
 		if (!pm.active)
@@ -3850,7 +3850,7 @@ void MenuManager::Tick(float curtime)
 void MenuManager::OnPlayerDisconnect(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -3863,7 +3863,7 @@ void MenuManager::OnPlayerDisconnect(int slot)
 void MenuManager::SetExternalBusy(int slot, bool busy)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -3893,7 +3893,7 @@ void MenuManager::SetExternalBusy(int slot, bool busy)
 bool MenuManager::GetExternalBusy(int slot) const
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return false;
 	}
@@ -3904,7 +3904,7 @@ void MenuManager::Shutdown()
 {
 	ScopedLock lock(m_mutex);
 	m_pending.clear();
-	for (int i = 0; i <= MAXPLAYERS; i++)
+	for (int i = 0; i < MAXPLAYERS; i++)
 	{
 		m_players[i].active = false;
 		m_players[i].handle = kInvalidMenuHandle;
@@ -3939,7 +3939,7 @@ int MenuManager::DropOwnedBy(int owner)
 		}
 	}
 
-	for (int slot = 0; slot <= MAXPLAYERS; slot++)
+	for (int slot = 0; slot < MAXPLAYERS; slot++)
 	{
 		PlayerMenu &pm = m_players[slot];
 		const bool theirMenu = pm.active && std::find(owned.begin(), owned.end(), pm.handle) != owned.end();
@@ -4023,7 +4023,7 @@ bool MenuManager::HasHtml() const
 void MenuManager::SetPlayerTypePref(int slot, MenuType type)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -4035,7 +4035,7 @@ void MenuManager::SetPlayerTypePref(int slot, MenuType type)
 void MenuManager::SetPlayerNavPref(int slot, MenuNavAction action, uint64_t mask, const char *label)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -4051,7 +4051,7 @@ void MenuManager::SetPlayerNavPref(int slot, MenuNavAction action, uint64_t mask
 void MenuManager::SetPlayerNavDisabled(int slot, MenuNavAction action)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -4067,7 +4067,7 @@ void MenuManager::SetPlayerNavDisabled(int slot, MenuNavAction action)
 void MenuManager::ClearPlayerNavPref(int slot, MenuNavAction action)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -4083,7 +4083,7 @@ void MenuManager::ClearPlayerNavPref(int slot, MenuNavAction action)
 void MenuManager::ClearPlayerPrefs(int slot)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
@@ -4098,7 +4098,7 @@ void MenuManager::RefreshMenu(MenuHandle menu)
 		m_pending.push_back([this, menu] { RefreshMenu(menu); });
 		return;
 	}
-	for (int slot = 0; slot <= MAXPLAYERS; slot++)
+	for (int slot = 0; slot < MAXPLAYERS; slot++)
 	{
 		PlayerMenu &pm = m_players[slot];
 		if (pm.active && pm.handle == menu)
@@ -5766,7 +5766,7 @@ int MenuManager::ClickedItem(int slot, int index) const
 void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index, float curtime)
 {
 	ScopedLock lock(m_mutex);
-	if (!ValidSlot(slot))
+	if (!mmu::ValidSlot(slot))
 	{
 		return;
 	}
