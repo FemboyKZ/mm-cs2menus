@@ -13,6 +13,10 @@ on:
       - "configs/**"
       - "README.md"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-linux:
     name: ${{ matrix.name }}
@@ -163,9 +167,7 @@ jobs:
 
       - name: Install AMBuild (Windows)
         if: matrix.os == 'windows'
-        run: |
-          git clone https://github.com/alliedmodders/ambuild.git
-          pip install ./ambuild
+        run: pip install git+https://github.com/alliedmodders/ambuild.git@01212cb57c96561f664b6dfb2ee10e66de6f81e4
 
       - name: Configure metamod example (Linux)
         if: matrix.os == 'linux'
