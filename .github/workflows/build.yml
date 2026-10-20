@@ -33,6 +33,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           submodules: false
+          fetch-depth: 0
 
       - name: Init mm-utils
         shell: bash
@@ -56,6 +57,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           submodules: false
+          fetch-depth: 0
 
       - name: Init mm-utils
         shell: bash

@@ -608,7 +608,7 @@ namespace
 	// A whole percentage as its width class.
 	std::string Percent(int value)
 	{
-		return "w-" + std::to_string((std::max)(0, (std::min)(100, value)));
+		return "w-" + std::to_string(std::max(0, std::min(100, value)));
 	}
 
 	void WriteInfo(Writer &w, const panorama_hud::View &view)
@@ -799,7 +799,7 @@ namespace
 		{
 			const T &button = buttons[i];
 			const bool segment = button.segCount > 0;
-			const int width = button.heading || segment ? 3 : (std::max)(1, (std::min)(button.span, 3));
+			const int width = button.heading || segment ? 3 : std::max(1, std::min(button.span, 3));
 			// A Choice's further segments stay on the line its first began.
 			if (!(segment && button.segIndex > 0) && used > 0 && used + width > 3)
 			{
@@ -898,7 +898,7 @@ namespace
 	// the rest of its row is as tall, one without takes the tag at its name's end and the rarity down its edge.
 	void WriteButtons(Writer &w, const panorama_hud::View &view)
 	{
-		const int count = (std::min)(static_cast<int>(view.rows.size()), panorama_hud::kShowcaseSlots);
+		const int count = std::min(static_cast<int>(view.rows.size()), panorama_hud::kShowcaseSlots);
 		auto pictured = [&view](int i)
 		{
 			const panorama_hud::View::Row &row = view.rows[i];
@@ -990,7 +990,7 @@ namespace
 				if (i > 0 && cellCount < panorama_hud::kTableCells)
 				{
 					first[cellCount] = true;
-					cellCount = (std::min)(cellCount + head.cells, panorama_hud::kTableCells);
+					cellCount = std::min(cellCount + head.cells, panorama_hud::kTableCells);
 				}
 			}
 			w.Class(panel, "hidden", !used);
@@ -1424,7 +1424,7 @@ bool panorama_hud::Show(int slot, const View &view)
 			}
 			w.Flag(root, "mirror", view.mirrored);
 			// The key list: its button while there are rows, the card in the info card's place while it's open.
-			const int helpRows = (std::min)(static_cast<int>(view.help.size()), kHelpRows);
+			const int helpRows = std::min(static_cast<int>(view.help.size()), kHelpRows);
 			const bool helpOpen = view.helpOpen && helpRows > 0;
 			w.Flag(root, "help", helpOpen);
 			const std::string helpButton = w.Id("help");
@@ -1452,7 +1452,7 @@ bool panorama_hud::Show(int slot, const View &view)
 				}
 			}
 			w.Class(w.Id("controls"), "hidden", view.controls.empty());
-			const int controlCount = (std::min)(static_cast<int>(view.controls.size()), kStudioControls);
+			const int controlCount = std::min(static_cast<int>(view.controls.size()), kStudioControls);
 			const ButtonFlow controlFlow = FlowOf(view.controls, controlCount);
 			for (int i = 0; i < kStudioControls; i++)
 			{

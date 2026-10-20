@@ -634,7 +634,7 @@ const char *MenuManager::GetMenuStyle(MenuHandle menu, MenuStyle field) const
 			return Pick(s.fontFace, m_settings.fontFace);
 		case MenuStyle::VisibleItems:
 		{
-			int eff = (s.visibleItems > 0) ? (std::min)(s.visibleItems, MENU_MAX_HTML_VISIBLE) : m_htmlVisibleItems;
+			int eff = (s.visibleItems > 0) ? std::min(s.visibleItems, MENU_MAX_HTML_VISIBLE) : m_htmlVisibleItems;
 			static thread_local std::string buf;
 			buf = std::to_string(eff);
 			return buf.c_str();
@@ -895,7 +895,7 @@ int MenuManager::InsertItem(MenuHandle menu, int pos, const char *text, const ch
 		return -1;
 	}
 	int count = static_cast<int>(def->items.size());
-	pos = (std::max)(0, (std::min)(pos, count));
+	pos = std::max(0, std::min(pos, count));
 	MenuItem item;
 	item.text = text ? text : "";
 	item.info = info ? info : "";
@@ -977,9 +977,9 @@ int MenuManager::AddStepper(MenuHandle menu, const char *text, int value, int mi
 	item.info = info ? info : "";
 	item.type = MenuItemType::Stepper;
 	item.value = value;
-	item.min = (std::min)(min, max);
-	item.max = (std::max)(min, max);
-	item.step = (std::max)(1, step);
+	item.min = std::min(min, max);
+	item.max = std::max(min, max);
+	item.step = std::max(1, step);
 	return AddValueItem(menu, std::move(item));
 }
 
@@ -1204,7 +1204,7 @@ void MenuManager::Repage(MenuHandle menu, MenuDef &def, const std::function<void
 		if (pm.active && pm.handle == menu)
 		{
 			const std::vector<Page> pages = Pages(def, pm.type);
-			viewers.emplace_back(slot, pages[(std::max)(0, (std::min)(pm.page, static_cast<int>(pages.size()) - 1))].first);
+			viewers.emplace_back(slot, pages[std::max(0, std::min(pm.page, static_cast<int>(pages.size()) - 1))].first);
 		}
 	}
 	change();
@@ -1222,7 +1222,7 @@ panorama_hud::TileSize MenuManager::TileSize(const MenuDef &def)
 	for (int i = 0, run = 0; i < static_cast<int>(def.items.size()); i++)
 	{
 		run = i > 0 && def.items[i].section == def.items[i - 1].section ? run + 1 : 1;
-		longest = (std::max)(longest, run);
+		longest = std::max(longest, run);
 	}
 	const auto own = static_cast<panorama_hud::TileSize>(def.tileSize);
 	for (auto size = panorama_hud::TileSize::Cards; size > own; size = static_cast<panorama_hud::TileSize>(static_cast<int>(size) - 1))
@@ -1313,8 +1313,8 @@ void MenuManager::SetMenuInfoMeter(MenuHandle menu, float value, float rangeMin,
 	{
 		MenuInfo &info = def->info;
 		info.meter = value;
-		info.rangeMin = (std::min)(rangeMin, rangeMax);
-		info.rangeMax = (std::max)(rangeMin, rangeMax);
+		info.rangeMin = std::min(rangeMin, rangeMax);
+		info.rangeMax = std::max(rangeMin, rangeMax);
 		info.bands.clear();
 		if (bands && bandCount > 0)
 		{
@@ -1588,7 +1588,7 @@ int MenuManager::AddMenuColumn(MenuHandle menu, const char *label, int cells, in
 	{
 		return -1;
 	}
-	def->columns.push_back({label ? label : "", (std::max)(cells, 0), sort});
+	def->columns.push_back({label ? label : "", std::max(cells, 0), sort});
 	RefreshMenu(menu);
 	return static_cast<int>(def->columns.size()) - 1;
 }
@@ -1686,7 +1686,7 @@ std::vector<MenuManager::Page> MenuManager::Pages(const MenuDef &def, MenuType t
 	if (type == MenuType::Chat)
 	{
 		// Less the pinned rows.
-		size = (std::max)(1, size - (PinnedItem(def, type) >= 0 ? 1 : 0) - (SecondaryItem(def, type) >= 0 ? 1 : 0));
+		size = std::max(1, size - (PinnedItem(def, type) >= 0 ? 1 : 0) - (SecondaryItem(def, type) >= 0 ? 1 : 0));
 	}
 	if (type == MenuType::Panorama)
 	{
@@ -1718,7 +1718,7 @@ std::vector<MenuManager::Page> MenuManager::Pages(const MenuDef &def, MenuType t
 		{
 			size = StudioImages(def, section) ? panorama_hud::kStudioImageSlots : panorama_hud::kShowcasePage;
 		}
-		const int cost = buttons ? (std::max)(1, Segments(def.items[i])) : 1;
+		const int cost = buttons ? std::max(1, Segments(def.items[i])) : 1;
 		const bool full = rows >= size || (buttons && slots + cost > panorama_hud::kShowcaseSlots);
 		if (pages.empty() || (!columns && (full || pages.back().section != section)))
 		{
@@ -1807,9 +1807,9 @@ int MenuManager::ClampValue(const MenuItem &item, int value)
 		case MenuItemType::Toggle:
 			return value != 0 ? 1 : 0;
 		case MenuItemType::Stepper:
-			return (std::max)(item.min, (std::min)(value, item.max));
+			return std::max(item.min, std::min(value, item.max));
 		case MenuItemType::Choice:
-			return item.options.empty() ? 0 : (std::max)(0, (std::min)(value, static_cast<int>(item.options.size()) - 1));
+			return item.options.empty() ? 0 : std::max(0, std::min(value, static_cast<int>(item.options.size()) - 1));
 		default:
 			return value;
 	}
@@ -1873,7 +1873,7 @@ void MenuManager::StepValue(int slot, int itemIndex, int steps)
 		{
 			// Widened so a big step near INT_MAX clamps instead of wrapping.
 			const long long moved = static_cast<long long>(value) + static_cast<long long>(steps) * item->step;
-			value = static_cast<int>((std::max)(static_cast<long long>(item->min), (std::min)(moved, static_cast<long long>(item->max))));
+			value = static_cast<int>(std::max(static_cast<long long>(item->min), std::min(moved, static_cast<long long>(item->max))));
 			break;
 		}
 		case MenuItemType::Choice:
@@ -2465,7 +2465,7 @@ bool MenuManager::ShowMenuMessage(int slot, const char *text, MenuTone tone, flo
 	}
 	pm.message = panorama_hud::StripColors(text ? text : "");
 	pm.messageTone = tone;
-	pm.messageUntil = m_curtime + (std::max)(seconds, 0.5f);
+	pm.messageUntil = m_curtime + std::max(seconds, 0.5f);
 	RenderPanorama(slot);
 	return true;
 }
@@ -3417,7 +3417,7 @@ bool MenuManager::ApplyChatNumber(int slot, int num)
 
 	const std::vector<Page> pages = Pages(*def, pm.type);
 	int pageCount = static_cast<int>(pages.size());
-	pm.page = (std::min)(pm.page, pageCount - 1);
+	pm.page = std::min(pm.page, pageCount - 1);
 	bool hasMore = (pm.page + 1 < pageCount);
 	bool hasPrev = (pm.page > 0);
 
@@ -3989,8 +3989,8 @@ void MenuManager::Configure(const MenuManagerSettings &settings)
 	ScopedLock lock(m_mutex);
 	m_settings = settings;
 
-	m_itemsPerPage = (std::max)(1, (std::min)(settings.itemsPerPage, MENU_MAX_ITEMS_PER_PAGE));
-	m_htmlVisibleItems = (std::max)(1, (std::min)(settings.htmlVisibleItems, MENU_MAX_HTML_VISIBLE));
+	m_itemsPerPage = std::max(1, std::min(settings.itemsPerPage, MENU_MAX_ITEMS_PER_PAGE));
+	m_htmlVisibleItems = std::max(1, std::min(settings.htmlVisibleItems, MENU_MAX_HTML_VISIBLE));
 
 	// MenuType::Default would be circular, treat it (and unknown) as Chat.
 	if (m_settings.defaultType == MenuType::Default)
@@ -4321,10 +4321,10 @@ void MenuManager::RenderEditPage(int slot, const MenuDef &def, const MenuItem &i
 	}
 
 	const int optionCount = static_cast<int>(item.options.size());
-	const int pageCount = (std::max)(1, (optionCount + m_itemsPerPage - 1) / m_itemsPerPage);
-	pm.editPage = (std::max)(0, (std::min)(pm.editPage, pageCount - 1));
+	const int pageCount = std::max(1, (optionCount + m_itemsPerPage - 1) / m_itemsPerPage);
+	pm.editPage = std::max(0, std::min(pm.editPage, pageCount - 1));
 	const int first = pm.editPage * m_itemsPerPage;
-	const int last = (std::min)(first + m_itemsPerPage, optionCount);
+	const int last = std::min(first + m_itemsPerPage, optionCount);
 	for (int i = first; i < last; i++)
 	{
 		ChatRow row;
@@ -4360,7 +4360,7 @@ void MenuManager::ApplyEditNumber(int slot, const MenuItem &item, int num)
 	}
 
 	const int optionCount = static_cast<int>(item.options.size());
-	const int pageCount = (std::max)(1, (optionCount + m_itemsPerPage - 1) / m_itemsPerPage);
+	const int pageCount = std::max(1, (optionCount + m_itemsPerPage - 1) / m_itemsPerPage);
 	if (num == m_itemsPerPage + 1 && pm.editPage + 1 < pageCount)
 	{
 		pm.editPage++;
@@ -4506,8 +4506,8 @@ void MenuManager::RenderHtml(int slot)
 	html += "<br>";
 
 	// Scrolling window centered on the cursor. Per-menu override clamps to the same ceiling.
-	int effVisible = (st.visibleItems > 0) ? (std::min)(st.visibleItems, MENU_MAX_HTML_VISIBLE) : m_htmlVisibleItems;
-	int vis = (std::min)(effVisible, count);
+	int effVisible = (st.visibleItems > 0) ? std::min(st.visibleItems, MENU_MAX_HTML_VISIBLE) : m_htmlVisibleItems;
+	int vis = std::min(effVisible, count);
 	int start = pm.cursor - vis / 2;
 	if (start < 0)
 	{
@@ -4515,7 +4515,7 @@ void MenuManager::RenderHtml(int slot)
 	}
 	if (start + vis > count)
 	{
-		start = (std::max)(0, count - vis);
+		start = std::max(0, count - vis);
 	}
 	// Section headers are lines too: rows give way, from the end further off the cursor.
 	auto headed = [&](int i) { return i < itemCount && items[i].section >= 0 && (i == start || items[i - 1].section != items[i].section); };
@@ -4816,7 +4816,7 @@ std::vector<MenuManager::IndexRange> MenuManager::Groups(const MenuDef &def, int
 		last.push_back(group.label);
 	}
 	auto end = [&](size_t group) { return group + 1 < groups.size() ? groups[group + 1].first : count; };
-	while (static_cast<int>(groups.size()) > (std::max)(most, 1))
+	while (static_cast<int>(groups.size()) > std::max(most, 1))
 	{
 		size_t smallest = 1;
 		for (size_t group = 2; group < groups.size(); group++)
@@ -4855,7 +4855,7 @@ std::vector<MenuManager::Page> MenuManager::GroupPages(const MenuDef &def, int s
 		}
 		for (int first = groups[group].first; first < end; first += size)
 		{
-			pages.push_back({first, (std::min)(first + size, end), def.items[first].section});
+			pages.push_back({first, std::min(first + size, end), def.items[first].section});
 		}
 	}
 	return pages;
@@ -4863,7 +4863,7 @@ std::vector<MenuManager::Page> MenuManager::GroupPages(const MenuDef &def, int s
 
 std::vector<MenuManager::IndexRange> MenuManager::IndexRanges(const MenuDef &def, MenuType type) const
 {
-	const int htmlVisible = def.style.visibleItems > 0 ? (std::min)(def.style.visibleItems, MENU_MAX_HTML_VISIBLE) : m_htmlVisibleItems;
+	const int htmlVisible = def.style.visibleItems > 0 ? std::min(def.style.visibleItems, MENU_MAX_HTML_VISIBLE) : m_htmlVisibleItems;
 	const int size = type == MenuType::Chat ? m_itemsPerPage : type == MenuType::Html ? htmlVisible : 0;
 	const int count = static_cast<int>(def.items.size());
 	if (!(def.textFeatures & kMenuTextIndex) || !def.sections.empty() || size < 2 || count < kIndexMinPages * size)
@@ -5077,7 +5077,7 @@ void MenuManager::PickTab(int slot, int tab)
 		return;
 	}
 	const std::vector<Page> pages = Pages(*def, pm.type);
-	const std::vector<TabEntry> tabs = Tabs(slot, *def, pages, (std::max)(0, (std::min)(pm.page, static_cast<int>(pages.size()) - 1)));
+	const std::vector<TabEntry> tabs = Tabs(slot, *def, pages, std::max(0, std::min(pm.page, static_cast<int>(pages.size()) - 1)));
 	if (tab < 0 || tab >= static_cast<int>(tabs.size()))
 	{
 		return;
@@ -5124,7 +5124,7 @@ void MenuManager::RenderPanorama(int slot)
 	const std::vector<Page> pages = Pages(*def, pm.type);
 	const int pageCount = static_cast<int>(pages.size());
 	// A live item removal can leave the page past the end.
-	pm.page = (std::max)(0, (std::min)(pm.page, pageCount - 1));
+	pm.page = std::max(0, std::min(pm.page, pageCount - 1));
 	const Page &current = pages[pm.page];
 
 	// Per-menu color overrides still apply, the rest of MenuStyle is HTML layout.
@@ -5186,7 +5186,7 @@ void MenuManager::RenderPanorama(int slot)
 	if ((view.layout == panorama_hud::Layout::Showcase || view.layout == panorama_hud::Layout::Studio) && !def->info.title.empty())
 	{
 		const MenuInfo &info = def->info;
-		auto percent = [](float value) { return static_cast<int>(std::lround((std::max)(0.0f, (std::min)(1.0f, value)) * 100.0f)); };
+		auto percent = [](float value) { return static_cast<int>(std::lround(std::max(0.0f, std::min(1.0f, value)) * 100.0f)); };
 		view.info.shown = true;
 		view.info.title = panorama_hud::StripColors(info.title);
 		view.info.subtitle = panorama_hud::StripColors(info.subtitle);
@@ -5200,8 +5200,8 @@ void MenuManager::RenderPanorama(int slot)
 		for (size_t band = 0; band < info.bands.size() && band < static_cast<size_t>(panorama_hud::kInfoBands); band++)
 		{
 			const int to = percent(info.bands[band]);
-			view.info.bands.push_back((std::max)(0, to - from));
-			from = (std::max)(from, to);
+			view.info.bands.push_back(std::max(0, to - from));
+			from = std::max(from, to);
 		}
 		view.info.meterLabel = panorama_hud::StripColors(info.meterLabel);
 		view.info.meterValue = panorama_hud::StripColors(info.meterValue);
@@ -5252,7 +5252,7 @@ void MenuManager::RenderPanorama(int slot)
 			const MenuItem &item = def->items[i];
 			// A Choice drawn in place takes a slot per option.
 			const int segments = Segments(item);
-			for (int option = 0; option < (std::max)(segments, 1) && static_cast<int>(view.controls.size()) < panorama_hud::kStudioControls; option++)
+			for (int option = 0; option < std::max(segments, 1) && static_cast<int>(view.controls.size()) < panorama_hud::kStudioControls; option++)
 			{
 				panorama_hud::View::ControlButton control;
 				if (segments > 0)
@@ -5404,7 +5404,7 @@ void MenuManager::RenderPanorama(int slot)
 		if (columns)
 		{
 			// Its section is its column, in the order added.
-			const int column = (std::max)(item.section, 0);
+			const int column = std::max(item.section, 0);
 			row.heading = item.role == MenuItemRole::Heading;
 			row.half = item.span < 2 && !row.heading;
 			if (row.heading)
@@ -5457,10 +5457,10 @@ void MenuManager::RenderPanorama(int slot)
 	{
 		view.list.open = true;
 		view.list.title = title;
-		const int listPages = (std::max)(1, (count + panorama_hud::kListSlots - 1) / panorama_hud::kListSlots);
-		pm.editPage = (std::max)(0, (std::min)(pm.editPage, listPages - 1));
+		const int listPages = std::max(1, (count + panorama_hud::kListSlots - 1) / panorama_hud::kListSlots);
+		pm.editPage = std::max(0, std::min(pm.editPage, listPages - 1));
 		const int first = pm.editPage * panorama_hud::kListSlots;
-		for (int i = first; i < (std::min)(first + panorama_hud::kListSlots, count); i++)
+		for (int i = first; i < std::min(first + panorama_hud::kListSlots, count); i++)
 		{
 			view.list.rows.push_back(rowOf(i));
 		}
@@ -5602,7 +5602,7 @@ void MenuManager::RenderPanorama(int slot)
 				const int page = pageOf(groups[group].first);
 				addNav(page, groups[group].label, page <= pm.page && pm.page <= pageOf(last));
 			}
-			for (int page = 0; groups.empty() && page < (std::min)(pageCount, panorama_hud::kTableKeys); page++)
+			for (int page = 0; groups.empty() && page < std::min(pageCount, panorama_hud::kTableKeys); page++)
 			{
 				addNav(page, std::to_string(page + 1), page == pm.page);
 			}
@@ -5710,10 +5710,10 @@ void MenuManager::RenderPanorama(int slot)
 
 		// The arrows jump a whole window.
 		const int window = pageCount <= panorama_hud::kNavSlots ? pageCount : panorama_hud::kNavSlots - 2;
-		const int start = (std::max)(0, (std::min)(pm.page - window / 2, pageCount - window));
+		const int start = std::max(0, std::min(pm.page - window / 2, pageCount - window));
 		if (start > 0)
 		{
-			addNav((std::max)(0, pm.page - window), ResolveLabel(slot, *def, MenuLabel::PrevPage), false);
+			addNav(std::max(0, pm.page - window), ResolveLabel(slot, *def, MenuLabel::PrevPage), false);
 		}
 		for (int page = start; page < start + window; page++)
 		{
@@ -5721,7 +5721,7 @@ void MenuManager::RenderPanorama(int slot)
 		}
 		if (start + window < pageCount)
 		{
-			addNav((std::min)(pageCount - 1, pm.page + window), ResolveLabel(slot, *def, MenuLabel::NextPage), false);
+			addNav(std::min(pageCount - 1, pm.page + window), ResolveLabel(slot, *def, MenuLabel::NextPage), false);
 		}
 	}
 
@@ -6004,7 +6004,7 @@ void MenuManager::OnPanoramaClick(int slot, panorama_hud::Click click, int index
 			if (EditedItem(slot) || pm.editItem <= -2)
 			{
 				// RenderPanorama clamps the page.
-				pm.editPage = (std::max)(0, pm.editPage + (click == panorama_hud::Click::ListNext ? 1 : -1));
+				pm.editPage = std::max(0, pm.editPage + (click == panorama_hud::Click::ListNext ? 1 : -1));
 				RenderPanorama(slot);
 			}
 			break;
