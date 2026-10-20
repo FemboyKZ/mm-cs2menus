@@ -5,4 +5,4 @@ services:
     volumes:
       - .:/app
       - ./output:/app/build
-    command: /bin/bash ./docker-entrypoint.sh
+    command: /bin/bash ./mm-utils/build/docker-entrypoint.sh

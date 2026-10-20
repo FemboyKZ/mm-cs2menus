@@ -34,45 +34,18 @@ jobs:
         with:
           submodules: false
 
-      - name: Init submodules
+      - name: Init mm-utils
         shell: bash
         run: |
           git config --global --add safe.directory "*"
-          rm -rf s2sdk
-          git init -q s2sdk
-          git -C s2sdk remote add origin "$(git config -f .gitmodules submodule.s2sdk.url)"
-          git -C s2sdk fetch -q --depth 1 origin "$(git rev-parse HEAD:s2sdk)"
-          git -C s2sdk checkout -q FETCH_HEAD
-          git submodule update --init --depth 1 --jobs 4
-          git -C metamod-source submodule update --init --depth 1 hl2sdk-manifests third_party/khook
+          git submodule update --init --depth 1 mm-utils
 
-      - name: Configure
-        run: |
-          mkdir -p build && cd build
-          python3 ../configure.py \
-            --enable-optimize \
-            --symbol-files
+      - uses: ./mm-utils/build/ci/init
 
-      - name: Build
-        working-directory: build
-        run: ambuild
-
-      - name: Stage package
-        run: |
-          mkdir -p staging
-          cp -r build/package/* staging/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
+      - uses: ./mm-utils/build/ci/linux
         with:
-          name: cs2menus-${{ matrix.runtime }}
-          path: staging
-
-      - name: Upload symbols
-        uses: actions/upload-artifact@v7
-        with:
-          name: cs2menus-${{ matrix.runtime }}-symbols
-          path: build/cs2menus.cs2/linux-x86_64/*.dbg
+          artifact: cs2menus
+          runtime: ${{ matrix.runtime }}
 
   build-windows:
     name: Windows
@@ -84,63 +57,17 @@ jobs:
         with:
           submodules: false
 
-      - name: Init submodules
+      - name: Init mm-utils
         shell: bash
         run: |
           git config --global --add safe.directory "*"
-          rm -rf s2sdk
-          git init -q s2sdk
-          git -C s2sdk remote add origin "$(git config -f .gitmodules submodule.s2sdk.url)"
-          git -C s2sdk fetch -q --depth 1 origin "$(git rev-parse HEAD:s2sdk)"
-          git -C s2sdk checkout -q FETCH_HEAD
-          git submodule update --init --depth 1 --jobs 4
-          git -C metamod-source submodule update --init --depth 1 hl2sdk-manifests third_party/khook
+          git submodule update --init --depth 1 mm-utils
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - uses: ./mm-utils/build/ci/init
+
+      - uses: ./mm-utils/build/ci/windows
         with:
-          python-version: "3.14"
-
-      - name: Set up MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: amd64
-
-      - name: Install AMBuild
-        run: |
-          git clone https://github.com/alliedmodders/ambuild.git
-          pip install ./ambuild
-
-      - name: Configure
-        run: |
-          mkdir -Force build | Out-Null; cd build
-          python ../configure.py `
-            --enable-optimize
-
-      - name: Build
-        working-directory: build
-        env:
-          LINK: /MAP
-        run: ambuild
-
-      - name: Stage package
-        run: |
-          New-Item -ItemType Directory -Force -Path staging | Out-Null
-          Copy-Item -Recurse build/package/* staging/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: cs2menus-windows
-          path: staging
-
-      - name: Upload symbols
-        uses: actions/upload-artifact@v7
-        with:
-          name: cs2menus-windows-symbols
-          path: |
-            build/cs2menus.cs2/windows-x86_64/*.pdb
-            build/cs2menus.cs2/windows-x86_64/*.map
+          artifact: cs2menus
 
   build-bridges:
     name: Bridges (.NET)
@@ -212,17 +139,13 @@ jobs:
         with:
           submodules: false
 
-      - name: Init submodules
+      - name: Init mm-utils
         shell: bash
         run: |
           git config --global --add safe.directory "*"
-          rm -rf s2sdk
-          git init -q s2sdk
-          git -C s2sdk remote add origin "$(git config -f .gitmodules submodule.s2sdk.url)"
-          git -C s2sdk fetch -q --depth 1 origin "$(git rev-parse HEAD:s2sdk)"
-          git -C s2sdk checkout -q FETCH_HEAD
-          git submodule update --init --depth 1 --jobs 4
-          git -C metamod-source submodule update --init --depth 1 hl2sdk-manifests third_party/khook
+          git submodule update --init --depth 1 mm-utils
+
+      - uses: ./mm-utils/build/ci/init
 
       - name: Set up Python (Windows)
         if: matrix.os == 'windows'
@@ -337,59 +260,18 @@ jobs:
       contents: write
 
     steps:
-      - name: Download SteamRT3 artifact
-        uses: actions/download-artifact@v8
+      - name: Checkout
+        uses: actions/checkout@v7
         with:
-          name: cs2menus-steamrt3
-          path: cs2menus-steamrt3
+          submodules: false
 
-      - name: Download SteamRT4 artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: cs2menus-steamrt4
-          path: cs2menus-steamrt4
-
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: cs2menus-windows
-          path: cs2menus-windows
-
-      - name: Download SwiftlyS2 bridge artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: cs2menus-swiftly-bridge
-          path: cs2menus-swiftly-bridge
-
-      - name: Download CounterStrikeSharp bridge artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: cs2menus-css-bridge
-          path: cs2menus-css-bridge
-
-      - name: Download symbol artifacts
-        uses: actions/download-artifact@v8
-        with:
-          pattern: cs2menus-*-symbols
-          path: symbols
-
-      - name: Create archives
+      - name: Init mm-utils
+        shell: bash
         run: |
-          cd cs2menus-steamrt3 && zip -r ../cs2menus-${{ github.ref_name }}-steamrt3.zip . && cd ..
-          cd cs2menus-steamrt4 && zip -r ../cs2menus-${{ github.ref_name }}-steamrt4.zip . && cd ..
-          cd cs2menus-windows && zip -r ../cs2menus-${{ github.ref_name }}-windows.zip . && cd ..
-          cd cs2menus-swiftly-bridge && zip -r ../cs2menus-swiftly-bridge-${{ github.ref_name }}.zip . && cd ..
-          cd cs2menus-css-bridge && zip -r ../cs2menus-css-bridge-${{ github.ref_name }}.zip . && cd ..
-          cd symbols && zip -r ../cs2menus-${{ github.ref_name }}-symbols.zip . && cd ..
+          git config --global --add safe.directory "*"
+          git submodule update --init --depth 1 mm-utils
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+      - uses: ./mm-utils/build/ci/release
         with:
-          files: |
-            cs2menus-${{ github.ref_name }}-steamrt3.zip
-            cs2menus-${{ github.ref_name }}-steamrt4.zip
-            cs2menus-${{ github.ref_name }}-windows.zip
-            cs2menus-swiftly-bridge-${{ github.ref_name }}.zip
-            cs2menus-css-bridge-${{ github.ref_name }}.zip
-            cs2menus-${{ github.ref_name }}-symbols.zip
-          generate_release_notes: true
+          artifact: cs2menus
+          extra: cs2menus-swiftly-bridge cs2menus-css-bridge
