@@ -2178,10 +2178,12 @@ void CS2MenusPlugin::OnPluginLoad(PluginId /*id*/)
 {
 	MENU_RefreshAdmin();
 	s_multiAddonManager.Refresh();
+	g_MenuPrefsDB.Refresh();
 }
 
 void CS2MenusPlugin::OnPluginUnload(PluginId id)
 {
+	g_MenuPrefsDB.Refresh();
 	MENU_RefreshAdmin();
 	s_multiAddonManager.Refresh();
 

@@ -34,6 +34,11 @@ public:
 
 	void Shutdown();
 
+	void Refresh()
+	{
+		m_conn.Refresh();
+	}
+
 	// Call every frame. A connect that failed is tried again, and Connect's cb(true) fires when one gets through.
 	void RunFrame(double now)
 	{
