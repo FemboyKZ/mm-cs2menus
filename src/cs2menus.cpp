@@ -992,9 +992,9 @@ static const char *NavCommandName(MenuNavAction action)
 // can't read input and must fall back to chat.
 static bool ProbeButtonSchema()
 {
-	int16_t a = schema::GetOffset("CBasePlayerPawn", FNV1a("CBasePlayerPawn"), "m_pMovementServices", FNV1a("m_pMovementServices"));
-	int16_t b = schema::GetOffset("CPlayer_MovementServices", FNV1a("CPlayer_MovementServices"), "m_nButtons", FNV1a("m_nButtons"));
-	int16_t c = schema::GetOffset("CInButtonState", FNV1a("CInButtonState"), "m_pButtonStates", FNV1a("m_pButtonStates"));
+	int16_t a = schema::GetOffset("CBasePlayerPawn", "m_pMovementServices");
+	int16_t b = schema::GetOffset("CPlayer_MovementServices", "m_nButtons");
+	int16_t c = schema::GetOffset("CInButtonState", "m_pButtonStates");
 	return a > 0 && b > 0 && c > 0;
 }
 

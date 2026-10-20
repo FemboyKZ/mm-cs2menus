@@ -28,31 +28,10 @@ bool center_html::Init()
 		return false;
 	}
 
-	void *base = nullptr;
-	size_t size = 0;
-	if (!sig::GetModuleRange(g_pServerGameDLL, base, size))
-	{
-		MMU_LOG_WARN("Could not locate server module - HTML menus disabled.\n");
-		return false;
-	}
-
-	bool multiple = false;
-	void *insn = sig::FindSignatureUnique(base, size, mmu::gamedata::kGameEventManagerSig, multiple);
-	if (!insn)
-	{
-		MMU_LOG_WARN("GameEventManager signature not found - HTML menus disabled.\n");
-		return false;
-	}
-	if (multiple)
-	{
-		// Ambiguous match.
-		MMU_LOG_WARN("GameEventManager signature matched multiple times - HTML menus disabled.\n");
-		return false;
-	}
-
-	g_pGameEventManager = reinterpret_cast<IGameEventManager2 *>(sig::ResolveRipRelative(insn));
+	g_pGameEventManager = mmu::FindGameEventManager();
 	if (!g_pGameEventManager)
 	{
+		MMU_LOG_WARN("HTML menus disabled.\n");
 		return false;
 	}
 

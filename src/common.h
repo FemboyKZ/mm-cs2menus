@@ -17,11 +17,6 @@
 // Plugin-specific engine interfaces. Shared ones live in sdk/plugin_globals.h.
 extern INetworkServerService *g_pNetworkServerService;
 
-class INetworkMessages;
-class IGameEventSystem;
-extern INetworkMessages *g_pNetworkMessages;
-extern IGameEventSystem *g_pGameEventSystem;
-
 // Schema + entity system.
 // g_pSchemaSystem and g_pGameResourceServiceServer come from the SDK's interfaces.lib.
 class CGameEntitySystem;

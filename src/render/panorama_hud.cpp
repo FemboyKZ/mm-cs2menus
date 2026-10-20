@@ -91,27 +91,25 @@ namespace
 				return true;
 			}
 			// A struct's first field sits at 0, so FindOffset, which tells it from a missing one.
-			auto field = [](const char *cls, const char *name) { return schema::FindOffset(cls, FNV1a(cls), name, FNV1a(name)); };
-			auto list = [](const char *cls, const char *name) { return schema::GetCollectionManipulator(cls, FNV1a(cls), name, FNV1a(name)); };
-			globalState = field("CCSCustomHudLayout", "m_globalLayoutState");
-			panelIds = field("CCSCustomHudLayout", "m_vecPanelIds");
-			classNames = field("CCSCustomHudLayout", "m_vecClassNames");
-			variableNames = field("CCSCustomHudLayout", "m_vecDialogVariableNames");
-			hasClasses = field("CCSCustomHudLayoutState", "m_vecHasClasses");
-			variables = field("CCSCustomHudLayoutState", "m_vecDialogVariableStrings");
-			inputCapture = field("CCSCustomHudLayoutState", "m_bInputCaptureEnabled");
-			classPanel = field("HUDPanelHasClass_t", "m_nPanelIdIndex");
-			className = field("HUDPanelHasClass_t", "m_nClassNameIndex");
-			classStatus = field("HUDPanelHasClass_t", "m_eClassStatus");
-			variablePanel = field("HUDPanelDialogVariableString_t", "m_nPanelIdIndex");
-			variableName = field("HUDPanelDialogVariableString_t", "m_nDialogVariableIndex");
-			variableValue = field("HUDPanelDialogVariableString_t", "m_sValue");
-			variableSet = field("HUDPanelDialogVariableString_t", "m_bIsSet");
-			panelIdsFn = list("CCSCustomHudLayout", "m_vecPanelIds");
-			classNamesFn = list("CCSCustomHudLayout", "m_vecClassNames");
-			variableNamesFn = list("CCSCustomHudLayout", "m_vecDialogVariableNames");
-			hasClassesFn = list("CCSCustomHudLayoutState", "m_vecHasClasses");
-			variablesFn = list("CCSCustomHudLayoutState", "m_vecDialogVariableStrings");
+			globalState = schema::FindOffset("CCSCustomHudLayout", "m_globalLayoutState");
+			panelIds = schema::FindOffset("CCSCustomHudLayout", "m_vecPanelIds");
+			classNames = schema::FindOffset("CCSCustomHudLayout", "m_vecClassNames");
+			variableNames = schema::FindOffset("CCSCustomHudLayout", "m_vecDialogVariableNames");
+			hasClasses = schema::FindOffset("CCSCustomHudLayoutState", "m_vecHasClasses");
+			variables = schema::FindOffset("CCSCustomHudLayoutState", "m_vecDialogVariableStrings");
+			inputCapture = schema::FindOffset("CCSCustomHudLayoutState", "m_bInputCaptureEnabled");
+			classPanel = schema::FindOffset("HUDPanelHasClass_t", "m_nPanelIdIndex");
+			className = schema::FindOffset("HUDPanelHasClass_t", "m_nClassNameIndex");
+			classStatus = schema::FindOffset("HUDPanelHasClass_t", "m_eClassStatus");
+			variablePanel = schema::FindOffset("HUDPanelDialogVariableString_t", "m_nPanelIdIndex");
+			variableName = schema::FindOffset("HUDPanelDialogVariableString_t", "m_nDialogVariableIndex");
+			variableValue = schema::FindOffset("HUDPanelDialogVariableString_t", "m_sValue");
+			variableSet = schema::FindOffset("HUDPanelDialogVariableString_t", "m_bIsSet");
+			panelIdsFn = schema::GetCollectionManipulator("CCSCustomHudLayout", "m_vecPanelIds");
+			classNamesFn = schema::GetCollectionManipulator("CCSCustomHudLayout", "m_vecClassNames");
+			variableNamesFn = schema::GetCollectionManipulator("CCSCustomHudLayout", "m_vecDialogVariableNames");
+			hasClassesFn = schema::GetCollectionManipulator("CCSCustomHudLayoutState", "m_vecHasClasses");
+			variablesFn = schema::GetCollectionManipulator("CCSCustomHudLayoutState", "m_vecDialogVariableStrings");
 			return Ready();
 		}
 	} s_hud;
