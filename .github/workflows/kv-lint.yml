@@ -30,9 +30,18 @@ jobs:
         with:
           fetch-depth: 0
           submodules: false
-      - name : Init workspace
+      - name: Init workspace
         shell: bash
         run: |
           git config --global --add safe.directory "*"
       - name: Lint KeyValues
         uses: jvnipers/kv-lint@v1
+        with:
+          output: kv-lint-results.txt
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: kv-lint-results
+          path: kv-lint-results.txt
+          if-no-files-found: ignore
