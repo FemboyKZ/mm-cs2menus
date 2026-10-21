@@ -1,0 +1,32 @@
+name: KV Lint
+
+on:
+  push:
+    branches: ["*"]
+    paths:
+      - "translations/**"
+      - "configs/**"
+      - "kv-lint.toml"
+      - ".github/workflows/kv-lint.yml"
+  pull_request:
+    branches: ["*"]
+    paths:
+      - "translations/**"
+      - "configs/**"
+      - "kv-lint.toml"
+      - ".github/workflows/kv-lint.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kv-lint:
+    name: KV Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Lint KeyValues
+        uses: jvnipers/kv-lint@v1

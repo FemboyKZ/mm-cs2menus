@@ -1,0 +1,8 @@
+languages = "translations/config.txt"
+
+[[files]]
+glob = "translations/*.phrases.txt"
+rules = "phrases"
+
+[[files]]
+glob = ["translations/config.txt", "configs/*.cfg"]
