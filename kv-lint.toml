@@ -3,6 +3,7 @@ languages = "translations/config.txt"
 [[files]]
 glob = "translations/*.phrases.txt"
 rules = "phrases"
+style = "mm-utils"
 
 [[files]]
 glob = ["translations/config.txt", "configs/*.cfg"]
