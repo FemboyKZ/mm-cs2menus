@@ -27,6 +27,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
+      - name : Init workspace
+        shell: bash
+        run: |
+          git config --global --add safe.directory "*"
       - name: Lint KeyValues
         uses: jvnipers/kv-lint@v1
