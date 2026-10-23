@@ -36,7 +36,6 @@ public: // KHook hook handlers
 	KHook::Return<void> Hook_ClientSvcUserMessage(IServerGameClients *, CPlayerSlot slot, int type, uint32 size, const void *buf);
 	KHook::Return<void> Hook_CheckTransmit(ISource2GameEntities *, CCheckTransmitInfo **pInfo, int infoCount, CBitVec<16384> &, CBitVec<16384> &,
 										   const Entity2Networkable_t **pNetworkables, const uint16 *pEntityIndicies, int nEntities);
-	KHook::Return<void> Hook_StartupServer(INetworkServerService *, const GameSessionConfiguration_t &config, ISource2WorldSession *, const char *);
 
 public:
 	const char *GetAuthor()
@@ -89,7 +88,6 @@ private:
 	KHook::Virtual<ISource2GameEntities, void, CCheckTransmitInfo **, int, CBitVec<16384> &, CBitVec<16384> &, const Entity2Networkable_t **,
 				   const uint16 *, int>
 		m_CheckTransmit;
-	KHook::Virtual<INetworkServerService, void, const GameSessionConfiguration_t &, ISource2WorldSession *, const char *> m_StartupServer;
 };
 
 extern CS2MenusPlugin g_ThisPlugin;

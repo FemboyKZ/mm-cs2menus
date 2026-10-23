@@ -1045,12 +1045,12 @@ static bool IsPanoramaFont(const std::string &name)
 	return false;
 }
 
-// Mounts our workshop addon like cs2kz mounts its own, once per ID.
+// Mounts our workshop addon like cs2kz mounts its own.
+// Every map: MultiAddonManager reruns its cfg in StartupServer, and the cfg's mm_extra_addons drops addons added at runtime.
 static void MountPanoramaAddon()
 {
-	static std::string s_mounted;
 	const MenuPanoramaCfg &p = g_MenuConfig.panorama;
-	if (!s_multiAddonManager || !p.mountAddon || p.workshopId.empty() || s_mounted == p.workshopId)
+	if (!s_multiAddonManager || !p.mountAddon || p.workshopId.empty() || s_multiAddonManager->IsAddonMounted(p.workshopId.c_str()))
 	{
 		return;
 	}
@@ -1058,7 +1058,6 @@ static void MountPanoramaAddon()
 	{
 		return;
 	}
-	s_mounted = p.workshopId;
 	// The same client cache cs2kz turns on, so addon reconnects stay rare.
 	ConVarRefAbstract cacheClients("mm_cache_clients_with_addons");
 	ConVarRefAbstract cacheDuration("mm_cache_clients_duration");
@@ -1070,7 +1069,7 @@ static void MountPanoramaAddon()
 	{
 		cacheDuration.SetFloat(30.0f);
 	}
-	MMU_LOG_INFO("Mounting panorama addon %s through MultiAddonManager.\n", s_mounted.c_str());
+	MMU_LOG_INFO("Mounting panorama addon %s through MultiAddonManager.\n", p.workshopId.c_str());
 }
 
 // Reload cfg/cs2menus/core.cfg and push the settings into the menu manager.
@@ -2033,8 +2032,7 @@ CS2MenusPlugin::CS2MenusPlugin()
 	  m_ClientPutInServer(&IServerGameClients::ClientPutInServer, this, nullptr, &CS2MenusPlugin::Hook_ClientPutInServer),
 	  m_DispatchConCommand(&ICvar::DispatchConCommand, this, &CS2MenusPlugin::Hook_DispatchConCommand, nullptr),
 	  m_ClientSvcUserMessage(&IServerGameClients::ClientSvcUserMessage, this, &CS2MenusPlugin::Hook_ClientSvcUserMessage, nullptr),
-	  m_CheckTransmit(&ISource2GameEntities::CheckTransmit, this, nullptr, &CS2MenusPlugin::Hook_CheckTransmit),
-	  m_StartupServer(&INetworkServerService::StartupServer, this, nullptr, &CS2MenusPlugin::Hook_StartupServer)
+	  m_CheckTransmit(&ISource2GameEntities::CheckTransmit, this, nullptr, &CS2MenusPlugin::Hook_CheckTransmit)
 {
 }
 
@@ -2069,7 +2067,6 @@ bool CS2MenusPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen
 	m_DispatchConCommand.Add(g_pICvar);
 	m_ClientSvcUserMessage.Add(g_pGameClients);
 	m_CheckTransmit.Add(g_pSource2GameEntities);
-	m_StartupServer.Add(g_pNetworkServerService);
 
 	g_pCVar = g_pICvar;
 	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_GAMEDLL);
@@ -2128,6 +2125,9 @@ void CS2MenusPlugin::OnLevelInit(char const * /*pMapName*/, char const * /*pMapE
 	{
 		LoadAndApplyConfig();
 	}
+
+	// Here rather than in StartupServer, which runs before this: our hook there could run ahead of MultiAddonManager's.
+	MountPanoramaAddon();
 }
 
 void CS2MenusPlugin::OnLevelShutdown()
@@ -2208,7 +2208,6 @@ bool CS2MenusPlugin::Unload(char *error, size_t maxlen)
 	m_DispatchConCommand.Remove(g_pICvar);
 	m_ClientSvcUserMessage.Remove(g_pGameClients);
 	m_CheckTransmit.Remove(g_pSource2GameEntities);
-	m_StartupServer.Remove(g_pNetworkServerService);
 
 	// Drops pending callbacks pointing into this binary.
 	mmu::cvarquery::Shutdown();
@@ -2320,13 +2319,6 @@ KHook::Return<void> CS2MenusPlugin::Hook_ClientSvcUserMessage(IServerGameClients
 		g_MenuManager.OnPanoramaClick(slot.Get(), click, index, MenuNow());
 	}
 	// Other layouts, like cs2kz's menu, read the same message.
-	return {KHook::Action::Ignore};
-}
-
-KHook::Return<void> CS2MenusPlugin::Hook_StartupServer(INetworkServerService *, const GameSessionConfiguration_t &, ISource2WorldSession *,
-													   const char *)
-{
-	MountPanoramaAddon();
 	return {KHook::Action::Ignore};
 }
 
