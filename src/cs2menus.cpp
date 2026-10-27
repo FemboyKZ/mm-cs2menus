@@ -2281,7 +2281,7 @@ KHook::Return<void> CS2MenusPlugin::Hook_OnClientConnected(IServerGameClients *,
 	return {KHook::Action::Ignore};
 }
 
-KHook::Return<void> CS2MenusPlugin::Hook_ClientPutInServer(IServerGameClients *, CPlayerSlot slot, char const *, int, uint64)
+KHook::Return<void> CS2MenusPlugin::Hook_ClientPutInServer(IServerGameClients *, CPlayerSlot slot, char const *, ClientPutInServerType_t, uint64)
 {
 	s_players.OnClientPutInServer(slot.Get());
 	return {KHook::Action::Ignore};
