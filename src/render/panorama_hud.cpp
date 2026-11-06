@@ -47,12 +47,8 @@ namespace
 	// Lets a reloaded plugin find the windows it left behind.
 	constexpr const char *kTargetPrefix = "cs2menus_";
 
-	using CreateEntityByName_t = CEntityInstance *(*)(const char *className, int forcedIndex);
-	using DispatchSpawn_t = void (*)(CEntityInstance *entity, CEntityKeyValues *keyValues);
 	using RemoveEntity_t = void (*)(CEntityInstance *entity);
 
-	CreateEntityByName_t s_createEntity = nullptr;
-	DispatchSpawn_t s_dispatchSpawn = nullptr;
 	RemoveEntity_t s_removeEntity = nullptr;
 
 	// CCSCustomHudLayout's networked state, written directly the way cs2kz-metamod does, so no game functions to sigscan.
@@ -68,8 +64,8 @@ namespace
 		int32_t inputCapture = -1;  // CCSCustomHudLayoutState::m_bInputCaptureEnabled
 		int32_t classPanel = -1, className = -1, classStatus = -1;                           // HUDPanelHasClass_t
 		int32_t variablePanel = -1, variableName = -1, variableValue = -1, variableSet = -1; // HUDPanelDialogVariableString_t
-		SchemaCollectionManipulatorFn_t panelIdsFn = nullptr, classNamesFn = nullptr, variableNamesFn = nullptr;
-		SchemaCollectionManipulatorFn_t hasClassesFn = nullptr, variablesFn = nullptr;
+		const CSchemaType_Atomic_CollectionOfT *panelIdsType = nullptr, *classNamesType = nullptr, *variableNamesType = nullptr;
+		const CSchemaType_Atomic_CollectionOfT *hasClassesType = nullptr, *variablesType = nullptr;
 
 		bool Ready() const
 		{
@@ -81,7 +77,7 @@ namespace
 					return false;
 				}
 			}
-			return panelIdsFn && classNamesFn && variableNamesFn && hasClassesFn && variablesFn;
+			return panelIdsType && classNamesType && variableNamesType && hasClassesType && variablesType;
 		}
 
 		bool Resolve()
@@ -105,11 +101,11 @@ namespace
 			variableName = schema::FindOffset("HUDPanelDialogVariableString_t", "m_nDialogVariableIndex");
 			variableValue = schema::FindOffset("HUDPanelDialogVariableString_t", "m_sValue");
 			variableSet = schema::FindOffset("HUDPanelDialogVariableString_t", "m_bIsSet");
-			panelIdsFn = schema::GetCollectionManipulator("CCSCustomHudLayout", "m_vecPanelIds");
-			classNamesFn = schema::GetCollectionManipulator("CCSCustomHudLayout", "m_vecClassNames");
-			variableNamesFn = schema::GetCollectionManipulator("CCSCustomHudLayout", "m_vecDialogVariableNames");
-			hasClassesFn = schema::GetCollectionManipulator("CCSCustomHudLayoutState", "m_vecHasClasses");
-			variablesFn = schema::GetCollectionManipulator("CCSCustomHudLayoutState", "m_vecDialogVariableStrings");
+			panelIdsType = schema::GetCollectionType("CCSCustomHudLayout", "m_vecPanelIds");
+			classNamesType = schema::GetCollectionType("CCSCustomHudLayout", "m_vecClassNames");
+			variableNamesType = schema::GetCollectionType("CCSCustomHudLayout", "m_vecDialogVariableNames");
+			hasClassesType = schema::GetCollectionType("CCSCustomHudLayoutState", "m_vecHasClasses");
+			variablesType = schema::GetCollectionType("CCSCustomHudLayoutState", "m_vecDialogVariableStrings");
 			return Ready();
 		}
 	} s_hud;
@@ -125,19 +121,25 @@ namespace
 		return *reinterpret_cast<T *>(reinterpret_cast<uintptr_t>(base) + offset);
 	}
 
+	template<typename T>
+	const T &FieldAt(const void *base, int32_t offset)
+	{
+		return *reinterpret_cast<const T *>(reinterpret_cast<uintptr_t>(base) + offset);
+	}
+
 	CCSCustomHudLayoutState *GlobalState(CCSCustomHudLayout *layout)
 	{
 		return &FieldAt<CCSCustomHudLayoutState>(layout, s_hud.globalState);
 	}
 
 	// The name's index in one of the layout's string lists, appended when new. -1 once the list is full.
-	int Intern(CCSCustomHudLayout *layout, int32_t offset, SchemaCollectionManipulatorFn_t manipulator, const char *text)
+	int Intern(CCSCustomHudLayout *layout, int32_t offset, const CSchemaType_Atomic_CollectionOfT *type, const char *text)
 	{
-		schema::Collection<CUtlString> strings(&FieldAt<uint8_t>(layout, offset), manipulator);
+		schema::Collection<CUtlString> strings(&FieldAt<uint8_t>(layout, offset), type);
 		const int count = strings.Count();
 		for (int i = 0; i < count; i++)
 		{
-			const char *entry = strings.At(i)->Get();
+			const char *entry = strings.Element(i)->Get();
 			if (entry && strcmp(entry, text) == 0)
 			{
 				return i;
@@ -161,21 +163,21 @@ namespace
 	// status 1 has the class, 0 hasn't.
 	bool SetHasClass(CCSCustomHudLayout *layout, const char *panelId, const char *className, uint32_t status)
 	{
-		const int panel = Intern(layout, s_hud.panelIds, s_hud.panelIdsFn, panelId);
-		const int name = Intern(layout, s_hud.classNames, s_hud.classNamesFn, className);
+		const int panel = Intern(layout, s_hud.panelIds, s_hud.panelIdsType, panelId);
+		const int name = Intern(layout, s_hud.classNames, s_hud.classNamesType, className);
 		if (panel < 0 || name < 0)
 		{
 			return false;
 		}
 		CCSCustomHudLayoutState *state = GlobalState(layout);
-		schema::Collection<uint8_t> entries(&FieldAt<uint8_t>(state, s_hud.hasClasses), s_hud.hasClassesFn);
+		schema::Collection<uint8_t> entries(&FieldAt<uint8_t>(state, s_hud.hasClasses), s_hud.hasClassesType);
 		const int count = entries.Count();
 		for (int i = 0; i < count; i++)
 		{
-			uint8_t *entry = entries.At(i);
+			const uint8_t *entry = entries.Element(i);
 			if (FieldAt<uint16_t>(entry, s_hud.classPanel) == panel && FieldAt<uint16_t>(entry, s_hud.className) == name)
 			{
-				FieldAt<uint32_t>(entry, s_hud.classStatus) = status;
+				FieldAt<uint32_t>(entries.ElementForModify(i), s_hud.classStatus) = status;
 				state->Notify(NetworkStateChangedData(static_cast<uint32>(s_hud.hasClasses), i));
 				return true;
 			}
@@ -194,20 +196,21 @@ namespace
 
 	bool SetDialogVariable(CCSCustomHudLayout *layout, const char *panelId, const char *variable, const char *value)
 	{
-		const int panel = Intern(layout, s_hud.panelIds, s_hud.panelIdsFn, panelId);
-		const int name = Intern(layout, s_hud.variableNames, s_hud.variableNamesFn, variable);
+		const int panel = Intern(layout, s_hud.panelIds, s_hud.panelIdsType, panelId);
+		const int name = Intern(layout, s_hud.variableNames, s_hud.variableNamesType, variable);
 		if (panel < 0 || name < 0)
 		{
 			return false;
 		}
 		CCSCustomHudLayoutState *state = GlobalState(layout);
-		schema::Collection<uint8_t> entries(&FieldAt<uint8_t>(state, s_hud.variables), s_hud.variablesFn);
+		schema::Collection<uint8_t> entries(&FieldAt<uint8_t>(state, s_hud.variables), s_hud.variablesType);
 		const int count = entries.Count();
 		for (int i = 0; i < count; i++)
 		{
-			uint8_t *entry = entries.At(i);
-			if (FieldAt<uint16_t>(entry, s_hud.variablePanel) == panel && FieldAt<uint16_t>(entry, s_hud.variableName) == name)
+			const uint8_t *found = entries.Element(i);
+			if (FieldAt<uint16_t>(found, s_hud.variablePanel) == panel && FieldAt<uint16_t>(found, s_hud.variableName) == name)
 			{
+				uint8_t *entry = entries.ElementForModify(i);
 				FieldAt<CUtlString>(entry, s_hud.variableValue) = value;
 				FieldAt<bool>(entry, s_hud.variableSet) = true;
 				state->Notify(NetworkStateChangedData(static_cast<uint32>(s_hud.variables), i));
@@ -233,7 +236,7 @@ namespace
 
 	bool Resolved()
 	{
-		return s_createEntity && s_dispatchSpawn && s_removeEntity && s_hud.Ready();
+		return s_removeEntity && s_hud.Ready();
 	}
 
 	// The layout rejects markup, so colors are classes. Keep in step with the cm-col rules in menu.css.
@@ -340,17 +343,16 @@ namespace
 		{
 			return nullptr;
 		}
-		CEntityInstance *entity = s_createEntity("custom_hud_layout", -1);
-		if (!entity)
-		{
-			return nullptr;
-		}
 		char name[48];
 		snprintf(name, sizeof(name), "%s%s%d", kTargetPrefix, kLayouts[layout].name, slot);
 		CEntityKeyValues *keyValues = new CEntityKeyValues();
 		keyValues->SetString("layout", kLayouts[layout].file);
 		keyValues->SetString("targetname", name);
-		s_dispatchSpawn(entity, keyValues);
+		CEntityInstance *entity = g_pEntitySystem->SpawnEntityByClassname("custom_hud_layout", keyValues);
+		if (!entity)
+		{
+			return nullptr;
+		}
 		s_windows[slot][layout].entity = entity->GetRefEHandle();
 		return static_cast<CCSCustomHudLayout *>(entity);
 	}
@@ -363,7 +365,7 @@ namespace
 		{
 			return false;
 		}
-		CCSCustomHudLayoutState *state = states.At(slot);
+		CCSCustomHudLayoutState *state = states.ElementForModify(slot);
 		if (!state)
 		{
 			return false;
@@ -1256,8 +1258,6 @@ bool panorama_hud::Init()
 	{
 		return false;
 	}
-	s_createEntity = reinterpret_cast<CreateEntityByName_t>(FindSig(base, size, mmu::gamedata::kCreateEntityByNameSig, "CreateEntityByName"));
-	s_dispatchSpawn = reinterpret_cast<DispatchSpawn_t>(FindSig(base, size, mmu::gamedata::kDispatchSpawnSig, "DispatchSpawn"));
 	s_removeEntity = reinterpret_cast<RemoveEntity_t>(FindSig(base, size, mmu::gamedata::kRemoveEntitySig, "RemoveEntity"));
 	if (!s_hud.Resolve())
 	{
@@ -1302,7 +1302,7 @@ bool panorama_hud::Show(int slot, const View &view)
 	}
 	// Every class ever written stays interned, an image tile's picture is one each. Near the limit the window starts over
 	// on a new entity, its classes written again from nothing.
-	if (schema::Collection<CUtlString>(&FieldAt<uint8_t>(entity, s_hud.classNames), s_hud.classNamesFn).Count() > kMaxInterned - kClassHeadroom)
+	if (schema::Collection<CUtlString>(&FieldAt<uint8_t>(entity, s_hud.classNames), s_hud.classNamesType).Count() > kMaxInterned - kClassHeadroom)
 	{
 		s_removeEntity(entity);
 		s_windows[slot][layout] = Window {};
@@ -1782,8 +1782,7 @@ std::string panorama_hud::Describe()
 	char line[256];
 	std::string out;
 	auto state = [](bool resolved) { return resolved ? "ok" : "MISSING"; };
-	snprintf(line, sizeof(line), "signatures: CreateEntityByName %s, DispatchSpawn %s, RemoveEntity %s\n", state(s_createEntity != nullptr),
-			 state(s_dispatchSpawn != nullptr), state(s_removeEntity != nullptr));
+	snprintf(line, sizeof(line), "signatures: RemoveEntity %s\n", state(s_removeEntity != nullptr));
 	out += line;
 	snprintf(line, sizeof(line), "schema: CCSCustomHudLayout state fields %s\n", state(s_hud.Ready()));
 	out += line;
