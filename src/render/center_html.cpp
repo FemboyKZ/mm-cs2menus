@@ -118,7 +118,8 @@ void center_html::Send(int slot, const char *html, int durationSecs)
 	CReliableSingleUserRecipientFilter filter(slot);
 	g_pGameEventSystem->PostEventAbstract(-1, false, &filter, pMsg, data, 0);
 
-	g_pNetworkMessages->DeallocateNetMessageAbstract(pMsg, data);
+	// CS2 14197 removed INetworkMessages::DeallocateNetMessageAbstract; a net message frees itself
+	delete raw;
 }
 
 const char *center_html::ChatCodeToHex(unsigned char c)
