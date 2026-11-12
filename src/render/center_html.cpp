@@ -96,12 +96,12 @@ void center_html::Send(int slot, const char *html, int durationSecs)
 	s_pEvent->SetInt("userid", -1);
 
 	// The message descriptor is stable for the process lifetime, resolve once.
-	static INetworkMessageInternal *s_pMsg = nullptr;
+	static NetMessageInfo_t *s_pMsg = nullptr;
 	if (!s_pMsg)
 	{
 		s_pMsg = g_pNetworkMessages->FindNetworkMessageById(GE_Source1LegacyGameEvent);
 	}
-	INetworkMessageInternal *pMsg = s_pMsg;
+	NetMessageInfo_t *pMsg = s_pMsg;
 	if (!pMsg)
 	{
 		return;
@@ -118,7 +118,7 @@ void center_html::Send(int slot, const char *html, int durationSecs)
 	CReliableSingleUserRecipientFilter filter(slot);
 	g_pGameEventSystem->PostEventAbstract(-1, false, &filter, pMsg, data, 0);
 
-	g_pNetworkMessages->DeallocateNetMessageAbstract(pMsg, data);
+	delete data;
 }
 
 const char *center_html::ChatCodeToHex(unsigned char c)
