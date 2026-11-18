@@ -6,3 +6,6 @@ output*/
 # C#
 bin*/
 obj*/
+
+# py
+__pycache__/
